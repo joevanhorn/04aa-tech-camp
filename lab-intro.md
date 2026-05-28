@@ -1,0 +1,106 @@
+# Lab Intro: TaskVantage AI Agents Tech Camp
+
+Welcome. Over the next three to four hours, you will take an unmanaged AI agent and turn it into an Okta-governed identity with controlled access to two business applications, then watch every dimension of that governance — static, dynamic, and emergency — work end to end. By the time you finish, you will have done the actual work that makes "we have AI agents in production" and "we know what our AI agents can do" the same sentence.
+
+This guide is the introduction. It sets the world you are about to operate in, introduces the people in it, and points you at the structure that follows. The work itself happens in Labs 1 through 5.
+
+---
+
+## About TaskVantage
+
+TaskVantage is the fictional company you work for in this camp. It is a mid-size software company in mid-2026 — large enough to have a real sales organization, a real IT help desk, an engineering team, and an executive layer; small enough that one person knows who built every system. You are on its identity team.
+
+Over the past eighteen months, individual departments across TaskVantage have built AI agents to make their work faster. Sales Operations built an agent that helps reps look up account context and update opportunities in VantageCRM. The IT help desk has been quietly asking for one of their own. Engineering managers ask weekly for "just read access" to CRM data for cross-functional projects. Each of these conversations starts the same way: *"can the agent just have an API key for now?"*
+
+The board met last week. They asked the question every IT leader has heard in 2026, phrased three different ways:
+
+- *What agents do we actually have?*
+- *What can they do, and on whose behalf?*
+- *How do we stop one if it goes wrong?*
+
+You do not have answers for any of these yet. Today, you build them.
+
+---
+
+## The people you will work with
+
+You spend most of this camp as a TaskVantage admin — your own personal admin account, which you will finish setting up at the start of Lab 1. But several other identities matter to the story, because the whole point of governance is that *what the agent can do depends on whose behalf it is acting*. You will run flows from their perspective at multiple points in the camp.
+
+| Person | Role | Why they matter to the story |
+| --- | --- | --- |
+| **Susan Potter** | Sales Manager | Full CRM access. The standard agent user — full set of tools, all the time. |
+| **Alex Martinez** | Sales Rep | Limited CRM access (read only). The "same agent, narrower tool set" comparison case. |
+| **Kim Liu** | IT Help Desk Tier 1 | Full VantageDesk access, limited read on CRM. Cross-system user; gets the agent's full ITSM toolkit in Lab 4. |
+| **Frank Boone** | Engineering Director | No CRM or ITSM access by default. The OIG round-trip in Lab 5 happens to him: he requests temporary access, watches it appear, and watches it disappear. |
+| **Sally Field** | Executive | Interacts with the agent rather than the apps directly. Appears in the background — her existence frames why "the agent's access is the user's access" matters. |
+
+The exact passwords and account details are in Lab 1.3 — no need to memorize anything yet.
+
+---
+
+## The two business applications
+
+TaskVantage runs on a custom-built CRM (**VantageCRM**) and a custom-built ITSM (**VantageDesk**). They are deliberately not Salesforce and not ServiceNow — fake apps the camp can configure freely without licensing or per-attendee provisioning costs. Think of them as stand-ins for whatever your real organization uses.
+
+Both apps live on a single per-attendee app server alongside an MCP server that fronts them. The agent never talks to either app directly. It talks to the MCP server through the **Okta MCP Adapter**, which is the policy enforcement point you will see in action repeatedly.
+
+The full picture is in `lab-architecture.md`. Open it now if you have not — it is your map for everything that follows.
+
+---
+
+## The two paths through Lab 2
+
+One choice is worth thinking about before you start. In Lab 2, you bring an agent under Okta management — and there are two ways to do this:
+
+- **Path A** imports an agent from AWS Bedrock AgentCore via the pre-integrated AWS IAM Identity Center provider in your Okta org. Use this if your Heropa allocation includes a Bedrock environment with a preconfigured agent.
+- **Path B** registers a custom-code agent manually. Use this if you do not have Bedrock provisioned, or if you want to see the manual flow.
+
+Both paths converge at the same point — an active agent in your AI Agents Registry — and the rest of the camp is identical from there. You only need to pick one. If you have time at the end of the camp, nothing stops you from going back and running the other path against a second agent registration.
+
+---
+
+## The camp's arc
+
+| Lab | What happens | Time |
+| --- | --- | --- |
+| **1 — Environment Tour** | Sign in, meet the personas, tour both apps, run the env-check script, build your first piece of configuration (the VantageDesk auth policy). | 25 min |
+| **2 — Bring the Agent Under Management** | Register the agent (Path A or B), assign an owner, generate a key, create and link a sign-on app, connect to VantageCRM. | 45 min |
+| **3 — See the Adapter Filter Tools by User** | Run the agent's tool-listing call as three different users and watch three different catalogs come back. Inspect the audit trail. | 30 min |
+| **4 — Build VantageDesk and Watch XAA in Flight** | Build the missing half — auth server, scopes, policy, managed connection — then invoke a tool end-to-end and watch the ID-JAG / two-step exchange happen with your own eyes. | 60 min |
+| **5 — Govern with OIG** | Submit an access request, approve it, watch tools appear; revoke via certification, watch them disappear; exercise the kill switch. | 50 min |
+
+About 3.5 hours of actual work. Build in a break after Lab 2 or in the middle of Lab 4 if your group is pacing more slowly.
+
+---
+
+## The shape of the work
+
+Two patterns repeat throughout the camp. Watching for them makes the structure easier to follow.
+
+**Review-then-build.** Each major capability is introduced first on VantageCRM, where it is already fully wired before you start, and then built by you on VantageDesk, which is intentionally incomplete. Authentication policy, authorization server, scopes, access policy, managed connection — every one of these you observe on CRM first, then create on Desk. By the end of Lab 4, both columns of the architecture are identically configured. The first instance of the pattern appears in Lab 1.10.
+
+**Same agent, different access.** Throughout the camp, you keep running the same script — `list-agent-tools.sh` or `invoke-agent-tool.sh` — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. What changes is *who is asking* and *what they are currently entitled to do*. The story the camp tells is that agent capability is a property of the user-and-moment, not a property of the agent.
+
+---
+
+## How to read this guide
+
+A few conventions appear throughout the labs.
+
+- ***NOTE: italic blocks*** are context — explanation of why a step matters, or what to watch for. Read them; they often save you a frustrating debugging session two labs later.
+- **`{HumanReview}`** is a flag for things being verified against live Okta during lab GA — System Log event names, exact menu paths, etc. The shape of the lesson is correct; the specific text may shift before final release.
+- **`{{double_brace_placeholders}}`** are values that vary per-attendee or per-lab-environment, like `{{org_url}}` or `{{lab_domain}}`. Your environment provides the real values; the guide uses placeholders so a single guide works across deployments.
+- **Code blocks** show commands you run on the VDI terminal and the output you should see back. If your output diverges substantially, raise it with a proctor before continuing — later labs often fail in confusing ways when an earlier one quietly went wrong.
+
+---
+
+## Before you start Lab 1
+
+Confirm these are all true:
+
+- [ ] Your Heropa allocation is active and you can reach the Virtual Desktop.
+- [ ] You have your Okta org URL and admin credentials in hand.
+- [ ] You know which Lab 2 path you intend to take (A or B). If unsure, default to whichever the proctor recommends for your cohort.
+- [ ] You have at least three uninterrupted hours ahead of you. The labs build on each other; stopping in the middle of Lab 4 and resuming the next day is doable but adds friction.
+
+When all four are checked, open Lab Module 1 and begin.

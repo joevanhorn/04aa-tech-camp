@@ -1,0 +1,15 @@
+# Editor / OS clutter
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Build outputs (when docx conversion happens later)
+build/
+*.docx
+*.pdf
+
+# Local config
+.env
+.env.local
