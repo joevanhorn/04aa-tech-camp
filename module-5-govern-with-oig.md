@@ -134,7 +134,7 @@ Expected output:
 ```
 Acting as: frank.boone@atko.email  (groups: Engineering, All Employees,
                                             CRM Read - Cross-Functional)
-Sign-in app: TaskVantage Agent UI (active session simulated)
+User-context token: minted for vantage-crm-as (aud api://vantage-crm)
 Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
@@ -188,7 +188,7 @@ Expected output:
 
 ```
 Acting as: frank.boone@atko.email  (groups: Engineering, All Employees)
-Sign-in app: TaskVantage Agent UI (active session simulated)
+User-context token: minted for vantage-crm-as (aud api://vantage-crm)
 Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools

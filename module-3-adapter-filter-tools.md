@@ -22,7 +22,7 @@ You'll answer that by running the same agent request as three users and observin
 The MCP Adapter is the policy enforcement point between the agent and the resources behind it. When the agent asks "what tools can I use right now?", the adapter does not just hand over its full catalog. It does this:
 
 1. **Identify the agent.** Verify the caller is a registered, active AI agent with a managed connection that covers the resources the catalog touches. (Your work in Lab 2.)
-2. **Identify the user.** Read the user's identity from the active sign-in to `TaskVantage Agent UI` — the app you linked in 2.6. No active sign-in, no further work.
+2. **Identify the user.** Read the user's identity from the user-context token the agent presents (the user the agent is acting for). No user context, no further work.
 3. **Resolve the user's effective scopes.** Ask Okta which scopes this user is permitted to request from `vantage-crm-as`. The answer comes from the auth server's access policy rules, which key off group membership.
 4. **Map scopes to tools.** The adapter holds a static map of `tool → required scope`. It returns only the tools whose required scopes are in the user's effective set.
 
@@ -76,7 +76,7 @@ The adapter knows about six CRM tools, each gated by one scope on `vantage-crm-a
 
 ```
 Acting as: alex.martinez@atko.email  (groups: Sales Reps, All Employees)
-Sign-in app: TaskVantage Agent UI (active session simulated)
+User context: user-context access token (simulated)
 Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
@@ -113,7 +113,7 @@ Alex's `Sales Reps` membership matched rule 2 — read access only. The agent on
 
 ```
 Acting as: susan.potter@atko.email  (groups: Sales Management, All Employees)
-Sign-in app: TaskVantage Agent UI (active session simulated)
+User context: user-context access token (simulated)
 Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
@@ -151,7 +151,7 @@ Susan's `Sales Management` membership matched rule 1 — full access. Same agent
 
 ```
 Acting as: frank.boone@atko.email  (groups: Engineering, All Employees)
-Sign-in app: TaskVantage Agent UI (active session simulated)
+User context: user-context access token (simulated)
 Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
@@ -185,7 +185,7 @@ The runs you just performed each generated a chain of events in the Okta System 
 
 | Event `{HumanReview}` | Actor | Target | What it tells you |
 | --- | --- | --- | --- |
-| `app.oauth2.token.grant.access_token` | `TaskVantage Agent UI` | the user | The user-sign-in token the script simulated |
+| `app.oauth2.token.grant.access_token` | the agent's OAuth client | the user | The user-context token the script simulated |
 | `ai_agent.token_exchange.request` | `TaskVantage Sales Agent` | `vantage-crm-as` | The adapter asking Okta what this user can request |
 | `ai_agent.token_exchange.scope_evaluation` | the access policy | the user | Which rule matched and which scopes were granted |
 | `ai_agent.tool_catalog.return` | the adapter | the user | The filtered catalog the user received |

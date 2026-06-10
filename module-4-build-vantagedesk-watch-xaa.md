@@ -2,7 +2,7 @@
 
 ## Objective
 
-Build the VantageDesk side of the camp end-to-end — authorization server, scopes, access policy, managed connection — using your work on VantageCRM as the template. Then invoke a tool through the agent and watch the full XAA token exchange happen: the adapter requests an ID-JAG carrying both agent and user identity, swaps it for a scoped access token at `vantage-desk-as`, and the call lands on VantageDesk as the actual user. By the end of this lab, the two halves of TaskVantage are configured identically and you have seen the protocol that makes the whole thing work.
+Build the VantageDesk side of the camp end-to-end — authorization server, scopes, access policy, managed connection — using your work on VantageCRM as the template. The VantageDesk API itself already exists: it is part of the one central, multi-tenant deployment at `https://vantagedesk.taskvantage-demo.com`, shared by every attendee's org and reached only as an API. You don't stand it up or deploy anything app-side. Your job is the Okta side: build `vantage-desk-as` (a custom authorization server in *your* org) with the ITSM scopes and an access policy. Because enrollment is by org, the central app trusts your new auth server automatically via your org's JWKS — no app-side registration or redeploy. Then invoke a tool through the agent and watch the full XAA token exchange happen: the adapter requests an ID-JAG carrying both agent and user identity, swaps it for a scoped access token at `vantage-desk-as`, and the call lands on the central VantageDesk as the actual user. By the end of this lab, the two halves of TaskVantage are configured identically in your org and you have seen the protocol that makes the whole thing work.
 
 ## Scenario
 
@@ -12,8 +12,8 @@ Today you build that. You start from the same agent you already registered (no n
 
 ## Browser use for this lab
 
-- Local browser for the Okta Admin Console (build steps and audit inspection).
-- Virtual Desktop for the terminal scripts that invoke tools and trace the protocol.
+- Local browser for the Okta Admin Console (the auth-server / access-policy build steps and Okta System Log inspection).
+- Virtual Desktop for the terminal scripts that invoke tools, trace the protocol, and read the central app's access log.
 
 ---
 
@@ -23,7 +23,7 @@ XAA — Cross App Access — is the protocol your adapter has been quietly using
 
 | Step | At | Inputs | Output | What it means |
 | --- | --- | --- | --- | --- |
-| 1 | Okta org authorization server | Agent client assertion (signed JWT) + user `id_token` (from sign-in app) | ID-JAG (short-lived, ~5 minutes) | "Okta vouches that this agent is authorized to act for this user with these scopes." |
+| 1 | Okta org authorization server | Agent client assertion (signed JWT) + user subject token (identity assertion from the org) | ID-JAG (short-lived, ~5 minutes) | "Okta vouches that this agent is authorized to act for this user with these scopes." |
 | 2 | Resource authorization server (e.g., `vantage-desk-as`) | ID-JAG + agent client assertion | Access token (Bearer, audience-scoped) | "Here is a normal Bearer token. Use it to call the resource as the user." |
 
 The agent then presents the access token to the MCP server, which forwards to VantageDesk, which sees a request that carries the user's identity — not the agent's. Audit logs, row-level filtering, and any other user-context behavior in VantageDesk works exactly as if Kim had clicked the buttons herself.
@@ -63,7 +63,7 @@ You will create the same four building blocks for VantageDesk over the next four
 
 The server appears in the list of authorization servers with status **Active**. By default it has no scopes and no access policies — both of which you will add in the next two steps.
 
-*NOTE: The `Audience` value is the identifier the access token's `aud` claim will carry. The MCP server validates this audience when it routes a tool call to VantageDesk — if the audience doesn't match, the call is rejected before reaching the backend. Keep this name in step with what the MCP server expects. `{HumanReview}` — confirm `api://vantage-desk` matches the audience the MCP server is configured to expect.*
+*NOTE: The `Audience` value is the identifier the access token's `aud` claim will carry. The central VantageDesk API validates this audience on every request — it accepts the token only if `aud` is the constant lab value `api://vantage-desk`, and resolves which tenant (org) the call belongs to from the token's **issuer**. So the audience is the same for every attendee's org; what makes your token *yours* is the issuer. If the audience doesn't match, the call is rejected before any data is touched. `{HumanReview}` — confirm `api://vantage-desk` is the constant audience the central app validates.*
 
 ### 4.4 Add scopes to vantage-desk-as
 
@@ -147,7 +147,7 @@ Expected output:
 
 ```
 Acting as: kim.liu@atko.email  (groups: IT Help Desk, All Employees)
-Sign-in app: TaskVantage Agent UI (active session simulated)
+User identity asserted via: Okta org (subject token for XAA exchange)
 Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
@@ -204,14 +204,15 @@ Result:
   Subject: "Outlook calendar sync failing for Sales team"
   Status: In Progress
   Priority: P2
-  Assignee: Kim Liu
+  Assignee: kim.liu@atko.email
+  Requester: susan.potter@atko.email
   Created: 2026-04-22 09:14
   Updated: 2026-04-23 11:02
   Description: Multiple Sales team members reporting that calendar events
                created in Outlook aren't syncing to Google Workspace...
 ```
 
-The agent did not just *describe* what calling a tool would look like. It actually called one. The result came back from VantageDesk, where the call was authenticated as Kim, scoped to `itsm.tickets.read`, and audited against her identity.
+The agent did not just *describe* what calling a tool would look like. It actually called one. The result came back from the central VantageDesk, where the call was authenticated as Kim, scoped to `itsm.tickets.read`, resolved to your org's tenant partition by the token issuer, and audited against her identity.
 
 ### 4.9 Inspect XAA in flight (verbose mode)
 
@@ -228,10 +229,9 @@ Re-run the same invocation with `--verbose`. The script will now print every int
 Output (decoded for readability):
 
 ```
-[1] Sign-in token (from TaskVantage Agent UI OIDC flow):
+[1] User subject token (identity assertion from your Okta org):
     {
       "iss": "https://{{org_url}}",
-      "aud": "TaskVantage Agent UI client_id",
       "sub": "kim.liu@atko.email",
       "groups": ["IT Help Desk", "All Employees"],
       "exp": 1735200000
@@ -247,7 +247,7 @@ Output (decoded for readability):
 
 [3] Step 1 — POST https://{{org_url}}/oauth2/v1/token
     grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-    subject_token=<sign-in token from step 1>
+    subject_token=<user subject token from step 1>
     actor_token=<agent client assertion from step 2>
     requested_token_type=urn:ietf:params:oauth:token-type:id-jag
     audience=api://vantage-desk
@@ -287,13 +287,19 @@ Output (decoded for readability):
 `{HumanReview}` — the exact `grant_type` URIs, token URLs, and claim names should be confirmed against current Okta XAA implementation. The shape (two POST requests, ID-JAG in between) is set by the IETF spec, but Okta-specific endpoints and parameter names may differ slightly.
 
 Walk through what you see:
-- **Sub claim stays put.** `kim.liu@atko.email` appears in the sign-in token (step 1), the ID-JAG (step 4), and the final access token (step 6). The user's identity is preserved end-to-end.
-- **Audience narrows.** The sign-in token's audience is the OIDC UI app. The ID-JAG's audience is `vantage-desk-as`. The access token's audience is `api://vantage-desk`. Each step scopes the token further toward its eventual use.
+- **Sub claim stays put.** `kim.liu@atko.email` appears in the user subject token (step 1), the ID-JAG (step 4), and the final access token (step 6). The user's identity is preserved end-to-end.
+- **Audience narrows.** The ID-JAG's audience is `vantage-desk-as`. The access token's audience is the constant lab value `api://vantage-desk` — the same for every attendee's org; the central app tells tenants apart by issuer, not audience. Each step scopes the token further toward its eventual use.
 - **Scope narrows.** Kim is allowed five Desk scopes per the policy. Only `itsm.tickets.read` was requested for this specific tool — that's the only scope in the ID-JAG and access token. Least-privilege by construction.
 
 ### 4.10 Verify the request landed as the user
 
-Open VantageDesk's admin view (sign in as a Desk admin on the Virtual Desktop) and find ticket `TKT-1734`'s access log. You should see an entry like:
+The central VantageDesk is API-only — there is no admin web page to open. Instead, read the access log out-of-band: the central app exposes `GET /admin/access-log`, scoped to *your* tenant (the app picks the partition from your token's issuer), so you only ever see your own org's records. Run the read script on the Virtual Desktop:
+
+```bash
+~/Desktop/show-access-log.sh --user kim.liu@atko.email --filter TKT-1734
+```
+
+It calls `GET https://vantagedesk.taskvantage-demo.com/admin/access-log` with your tenant-scoped token and prints the matching line:
 
 ```
 2026-04-23 11:24:08  GET  /api/tickets/TKT-1734
@@ -304,7 +310,9 @@ Open VantageDesk's admin view (sign in as a Desk admin on the Virtual Desktop) a
   Source:            mcp.{{lab_domain}}
 ```
 
-The request hit VantageDesk as Kim. The agent appears in the `Client` field — full attribution preserved — but the *actor* is Kim. If you wanted to know who was looking at TKT-1734 from Kim's perspective in VantageDesk, this log line is your answer. The agent's involvement is a fact, not a substitute for the user.
+*(If your environment serves this step as a rendered screenshot instead of a live script, the captured access-log line is identical — same fields, same values.)*
+
+The `Client` field reads `TaskVantage Sales Agent`, not a raw client ID: the central app resolves the token's `cid` to a display name via its `AGENT_CID_NAME_MAP`. The request hit VantageDesk as Kim — the agent appears in the `Client` field, full attribution preserved, but the *actor* is Kim. If you wanted to know who was looking at TKT-1734 from Kim's perspective in VantageDesk, this log line is your answer. The agent's involvement is a fact, not a substitute for the user.
 
 ---
 

@@ -4,10 +4,19 @@
 
 Review your TaskVantage environment before introducing any AI agents. You will tour your Okta org, the two custom business applications (VantageCRM and VantageDesk), the MCP server that fronts them, and the Okta AI Agents administration area. By the end of this lab, you will know where everything lives and what state it is in before governance is applied.
 
+> **Hosting model (ADR-0001):** VantageCRM and VantageDesk are **one central, multi-tenant,
+> API-only deployment** that every attendee's Okta org connects to — *not* a per-attendee copy.
+> They are resource servers only: no browser login, no app UI, no per-app OIDC client. Every
+> interaction is an agentic API call carrying a Bearer access token; the central app resolves which
+> tenant (org) the call belongs to from the token's **issuer**. Your **agent, MCP server, and Okta
+> MCP Adapter remain per-attendee.** The "tour it in a browser" moments below (Modules 1.5 / 1.6)
+> are delivered out-of-band as a provided screenshot or a small read script that calls the API as
+> each user — there is no app to sign into.
+
 ## Browser use for this lab
 
 - Use a regular browser tab on your local machine for administrator tasks (Super Admin in your Okta org).
-- Use the Chrome browser on the Virtual Desktop to sign in as end users and run validation scripts.
+- Use the terminal on the Virtual Desktop to run the read scripts and the environment check script. The central apps are API-only, so there is no end-user app login.
 
 ---
 
@@ -66,37 +75,57 @@ These personas will be used throughout the lab. The agent will act on behalf of 
 
 *NOTE: There is intentionally no group that grants "agent powers." Agent access is governed through OIG entitlements, not group membership — you will see this in Lab 5.*
 
-### 1.5 Tour VantageCRM
+### 1.5 Tour VantageCRM (out-of-band)
 
-VantageCRM is a custom-built CRM application that stands in for Salesforce, HubSpot, or similar. It holds the customer data your agent will read and modify.
+VantageCRM is a custom-built CRM application that stands in for Salesforce, HubSpot, or similar. It holds the customer data your agent will read and modify. It is **API-only** — there is no app UI to log into. It lives centrally at `https://vantagecrm.taskvantage-demo.com`, shared by every attendee org, and resolves your tenant from the token issuer.
 
-- On the Virtual Desktop, open Chrome and navigate to `https://vantagecrm.{{lab_domain}}`.
-- Sign in as **Susan Potter** (`susan.potter@atko.email` / `Tra!nme4321`).
-- You will be redirected to Okta for authentication, then back to VantageCRM.
-- Once signed in, browse:
-  - **Accounts** — the company records the agent will reference
-  - **Contacts** — individuals tied to accounts
-  - **Opportunities** — sales records the agent may need to update
+Because there is no browser app, you tour the data by calling the API as each user. Use the provided screenshot **or** run the small read script on the Virtual Desktop. Both call `GET /api/accounts` with each user's access token.
 
-- Sign out, then sign in again as **Alex Martinez** (`alex.martinez@atko.email`).
-- Note that Alex sees a smaller set of accounts — only those they own. This row-level filtering is enforced by VantageCRM itself, based on the authenticated user. The agent will inherit these same restrictions in later labs.
+- On the Virtual Desktop, open a terminal and run the read script for Susan:
 
-*NOTE: VantageCRM is fully wired up. It has an OIDC client for end-user login, a custom authorization server, scopes, access policies, and an authentication policy enforcing MFA. You will inspect each of these in the next several steps.*
+```bash
+~/Desktop/read-crm-accounts.sh susan.potter
+```
 
-### 1.6 Tour VantageDesk
+  Susan Potter is in **Sales Management**, so her token carries `crm.accounts.read` for all accounts — she sees **all 8 accounts**.
 
-VantageDesk is a custom-built IT service management app that stands in for ServiceNow or Jira Service Management.
+- Now run it as Alex:
 
-- On the Virtual Desktop, open Chrome and navigate to `https://vantagedesk.{{lab_domain}}`.
-- Sign in as **Kim Liu** (`kim.liu@atko.email` / `Tra!nme4321`).
-- Browse:
-  - **Tickets** — open, in-progress, and resolved support cases
-  - **Incidents** — higher-severity events
-  - **Knowledge Base** — articles the agent may surface as part of a resolution
+```bash
+~/Desktop/read-crm-accounts.sh alex.martinez
+```
 
-- Sign out. Sign in again as **Alex Martinez** — note that Alex cannot access the IT Help Desk portal at all. They can only create new tickets via a self-service form.
+  Alex Martinez is a Sales Rep, so he sees only the accounts he owns — **2 accounts (ACC-1001 and ACC-1002)**.
 
-*NOTE: VantageDesk has only the minimum configuration required to log in — an OIDC client and a default authentication policy. It has no custom authorization server, no MFA policy, no managed connection on the agent, and no OIG entitlements. You will build each of these in later modules.*
+- The difference is row-level filtering enforced by VantageCRM itself, based on the `sub` + `groups` in each user's token. The agent will inherit these same restrictions in later labs.
+
+*NOTE: VantageCRM is fully wired up as a resource server. It has a custom authorization server, scopes, a `groups` claim, and an access policy that maps groups to scopes. There is no OIDC client for human login and no app sign-in policy, because no human signs in to the API-only app. You will inspect the auth server and its access policy in the next several steps.*
+
+### 1.6 Tour VantageDesk (out-of-band)
+
+VantageDesk is a custom-built IT service management app that stands in for ServiceNow or Jira Service Management. Like VantageCRM, it is **API-only** — there is no app UI. It lives centrally at `https://vantagedesk.taskvantage-demo.com`, shared by every attendee org, and resolves your tenant from the token issuer.
+
+Tour it out-of-band — view the provided screenshot, or run the read script on the Virtual Desktop, which calls `GET /api/tickets` with each user's token:
+
+- On the Virtual Desktop, open a terminal and run the read script for Kim:
+
+```bash
+~/Desktop/read-desk-tickets.sh kim.liu
+```
+
+  Kim Liu is in **IT Help Desk**, so her token carries the ITSM scopes — she sees the full ticket queue (Tickets, Incidents, Knowledge Base).
+
+- Now run it as Alex:
+
+```bash
+~/Desktop/read-desk-tickets.sh alex.martinez
+```
+
+  Alex Martinez is not in IT Help Desk, so his token carries **no ITSM scopes at all**. The call returns nothing — and in later labs the adapter will surface **no Desk tools** to the agent when Alex is the user.
+
+- The Kim-vs-Alex difference here is purely **scope**: who has the ITSM scopes and who does not. There is no portal, and no self-service ticket form — access is decided entirely by what the token carries.
+
+*NOTE: VantageDesk has none of the Okta-side wiring yet — no custom authorization server, no scopes, no access policy, no managed connection on the agent, and no OIG entitlements. You will build each of these in later modules, modeled on VantageCRM.*
 
 ### 1.7 Run the environment check script
 
@@ -106,7 +135,7 @@ The MCP server is the single endpoint that fronts both VantageCRM and VantageDes
 2. Filtering the tool catalog based on the requesting user's entitlements
 3. Performing the XAA token exchange so backend calls hit VantageCRM/VantageDesk as the user, not as the agent
 
-For this lab, run the environment check script on your Virtual Desktop. The script verifies network reachability to all components, confirms TLS certificates are valid, and exports environment variables that subsequent labs will use.
+For this lab, run the environment check script on your Virtual Desktop. The script verifies reachability of the **central apps** and your **per-attendee MCP edge**, confirms TLS certificates are valid, and exports environment variables that subsequent labs will use.
 
 - On the Virtual Desktop, open a terminal and run:
 
@@ -119,12 +148,11 @@ For this lab, run the environment check script on your Virtual Desktop. The scri
 ```
 TaskVantage environment check
 ─────────────────────────────
-✓ /etc/hosts entries verified
 ✓ Okta org reachable        (https://{{org_url}})
-✓ VantageCRM reachable      (https://vantagecrm.{{lab_domain}})
-✓ VantageDesk reachable     (https://vantagedesk.{{lab_domain}})
-✓ MCP server reachable      (https://mcp.{{lab_domain}} — 14 tools registered)
-✓ TLS certificates valid for *.{{lab_domain}}
+✓ VantageCRM reachable      (https://vantagecrm.taskvantage-demo.com — central)
+✓ VantageDesk reachable     (https://vantagedesk.taskvantage-demo.com — central)
+✓ MCP server reachable      (https://mcp.{{lab_domain}} — 12 tools registered: 6 CRM + 6 Desk)
+✓ TLS certificates valid
 
 Environment variables exported to ~/.taskvantage.env:
   OKTA_ORG, OKTA_DOMAIN, MCP_URL, CRM_URL, DESK_URL
@@ -156,50 +184,31 @@ VantageCRM has its own custom authorization server in Okta. This is the trust an
 | --- | --- | --- |
 | `vantage-crm-as` | `api://vantage-crm` | `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write` |
 
-- Click into `vantage-crm-as` and review the **Scopes** tab. Each scope corresponds to a tool category the agent may invoke.
-- Click the **Access Policies** tab. Note the preconfigured policy allowing the (not yet created) agent client to request tokens for these scopes. This policy will not match anything until Lab 2 creates the agent.
+- Click into `vantage-crm-as` and review the **Scopes** tab. Each scope corresponds to a tool category the agent may invoke. Note the **constant audience `api://vantage-crm`** and the **`groups` claim** the server adds to issued tokens — the central app uses both to authorize and tenant-resolve each call.
+- Click the **Access Policies** tab. This is the access policy you will look at more closely in 1.10 — its token-issuance rules decide which groups receive which scopes (and let the not-yet-created agent client request tokens). It will not match anything until Lab 2 creates the agent.
 
 *NOTE: There is no entry for `vantage-desk-as` yet. You will create the VantageDesk authorization server, its scopes, and its access policy in Lab 4 — modeled on what you just reviewed here.*
 
-### 1.10 Review and build the application authentication policy
+### 1.10 Review the authorization server access policy (VantageCRM)
 
-In later labs, users authenticate to Okta before the agent acts on their behalf. The authentication policy controls what factors are required at that authentication moment.
+Because the apps are API-only, there is **no app sign-in policy** — no human signs in to VantageCRM or VantageDesk. What gates access is the **access policy on the custom authorization server**: its token-issuance rules decide **which groups receive which scopes**. That is what you will review here on VantageCRM, then build for VantageDesk in Lab 4.
 
-This is the first instance of the **review-then-build** pattern. You will review the VantageCRM policy, then create the equivalent policy for VantageDesk.
+This is part of the **review-then-build** pattern: review the VantageCRM access policy now, build the VantageDesk equivalent later.
 
 **Review (VantageCRM):**
 
-- From the Admin Console, go to **Security** > **Authentication Policies**.
-- Click **VantageCRM** and review the Default Rule:
+- From the Admin Console, go to **Security** > **API** and click into `vantage-crm-as`.
+- Open the **Access Policies** tab and review the preconfigured policy and its rules. Each rule maps a **group** to the **scopes** its members' tokens may carry:
 
-| Setting | Expected Value |
+| If the user is in… | The issued token may carry… |
 | --- | --- |
-| Access is | Allowed after successful authentication |
-| User must authenticate with | Password + Another factor |
-| Possession factor constraints | Require user interaction enabled |
-| AND Authentication methods | Allow any method that can be used to meet the requirement |
+| Sales Reps | `crm.accounts.read`, `crm.contacts.read`, `crm.opportunities.read` |
+| Sales Management | all CRM scopes, including `crm.accounts.write`, `crm.opportunities.write` |
 
-- Note that VantageCRM has its own authentication policy (not the default org-wide policy). The agent flows in later labs depend on this policy enforcing a second factor.
+- This is why Susan and Alex saw different data in 1.5: the access policy issued Susan a token with read scope over all accounts, while Alex's token (Sales Reps) carries read-only scope that VantageCRM then row-filters to the accounts he owns. There is no MFA-to-app step and no sign-in policy, because no human logs into the app — the policy governs **what each user's token is allowed to contain**.
 
-**Build (VantageDesk):**
-
-- From the Admin Console, go to **Security** > **Authentication Policies**.
-- Click **Add a policy**.
-- Name the policy `VantageDesk` and click **Save**.
-- The new policy will have a Catch-all Rule allowing password-only access. Edit the Catch-all Rule to match VantageCRM's Default Rule:
-  - User must authenticate with: **Password + Another factor**
-  - Possession factor constraints: **Require user interaction** enabled
-  - Authentication methods: **Allow any method that can be used to meet the requirement**
-- Click **Save**.
-- Now apply this policy to the VantageDesk app. From the **Applications** view of the policy, click **Add app**, search for VantageDesk, and click **Add**.
-
-**Verify:**
-
-- On the Virtual Desktop, open an incognito Chrome window and sign into `https://vantagedesk.{{lab_domain}}` as **Kim Liu**.
-- You should now be prompted for a second factor after entering the password.
-
-*NOTE: The agent client itself authenticates differently — private key JWT, no user factor. User MFA only applies when a human user is in the loop, which is every flow in this lab except direct M2M calls.*
+*NOTE: There is no `vantage-desk-as` yet, so there is no VantageDesk access policy to review. In Lab 4 you will create the VantageDesk authorization server, its ITSM scopes, and the access policy that grants those scopes to **IT Help Desk** (and withholds them from everyone else, including Alex) — modeled exactly on what you reviewed here.*
 
 ---
 
-**End of lab.** Your environment is familiar and VantageDesk has its first piece of user-built configuration. In Lab 2, you will bring your first AI agent under Okta governance — either by importing from AWS Bedrock AgentCore, or by registering a bring-your-own agent manually.
+**End of lab.** Your environment is familiar: you have seen the central, API-only apps respond differently to Susan, Alex, and Kim purely on the basis of their tokens, and you have reviewed the prebuilt `vantage-crm-as` and its access policy — the model you will rebuild for VantageDesk in Lab 4. In Lab 2, you will bring your first AI agent under Okta governance — either by importing from AWS Bedrock AgentCore, or by registering a bring-your-own agent manually.
