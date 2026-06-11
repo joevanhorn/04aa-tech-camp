@@ -1,14 +1,19 @@
-# Lab Architecture Diagram — Iteration v8
+# Lab Architecture Diagram — Iteration v9 (API-only / central pivot)
 
 ## Change in this iteration
 
-**Dropped the `Browser → CRM` direct sign-in edge.** With MCP only constrained by the incoming edge from Adapter, Mermaid should now place it directly below Adapter, eliminating the crossing with `Adapter → MCP`.
+**Reflects ADR-0001.** VantageCRM and VantageDesk are no longer a per-attendee "App Server" —
+they are **one central, multi-tenant, API-only deployment** shared by every attendee org, drawn in
+a separate `Central` subgraph (with Redis for per-tenant state). The **Okta MCP Adapter + MCP
+Server** are the per-attendee edge and now sit in their own subgraph.
 
-Trade-off: the diagram no longer shows that users can sign into VantageCRM/VantageDesk directly. The lab text already covers this (Labs 1.5, 1.6 walk through direct sign-in as part of the environment tour), and the agent-mediated path is the architecture story this diagram is for.
+**Removed the `Browser → CRM/Desk` direct sign-in concept entirely.** The apps are resource
+servers with no human login and no UI, so there is no direct-sign-in edge to add back. The
+browser is only used for the **Okta Admin Console**; the Module 1.5 / 1.6 "tour the apps" moments
+are delivered out-of-band (screenshots / read scripts), not as a browser app login.
 
-If you want direct sign-in back, two options that won't re-tangle the layout:
-- A small text label outside the diagram (e.g., "Users can also sign in to VantageCRM/VantageDesk directly via the browser")
-- A dotted line from Browser that lands on the App Server subgraph as a whole, not a specific node inside it
+This is the canonical source for the rendered diagram in `../lab-architecture.md` — keep the two in
+sync.
 
 ---
 
@@ -17,43 +22,55 @@ If you want direct sign-in back, two options that won't re-tangle the layout:
 flowchart TB
     User([Lab Attendee])
 
-    subgraph VDI["VDI"]
-        direction LR
-        Browser[Chrome Browser]
-        Terminal[Terminal<br>check-environment.sh]
-    end
-
-    subgraph AgentLayer["Agent Layer"]
-        direction LR
-        Bedrock[Bedrock AgentCore<br>Path A]
-        BYO[Bring Your Own Agent<br>Path B]
-    end
-
-    subgraph AppServer["App Server"]
+    subgraph Heropa["Per attendee (Heropa)"]
         direction TB
-        Adapter[Okta MCP Adapter<br>XAA + tool filtering]
-        MCP[MCP Server<br>routes CRM and Desk]
-        CRM[VantageCRM<br>fake CRM app]
-        Desk[VantageDesk<br>fake ITSM app]
+
+        subgraph VDI["VDI"]
+            direction LR
+            Browser[Chrome Browser<br>Okta Admin Console]
+            Terminal[Terminal<br>check-environment.sh<br>read scripts]
+        end
+
+        subgraph AgentLayer["Agent Layer"]
+            direction LR
+            Bedrock[Bedrock AgentCore<br>Path A]
+            BYO[Bring Your Own Agent<br>Path B]
+        end
+
+        subgraph Edge["MCP edge"]
+            direction TB
+            Adapter[Okta MCP Adapter<br>XAA + tool filtering]
+            MCP[MCP Server<br>routes CRM and Desk]
+        end
+
+        subgraph Okta["Okta Org"]
+            direction LR
+            UD[Universal Directory<br>users and groups]
+            AIRegistry[AI Agents Registry]
+            CRMAS[vantage-crm-as<br>custom auth server]
+            DeskAS[vantage-desk-as<br>custom auth server]
+            OIG[OIG<br>entitlements and certifications]
+        end
     end
 
-    subgraph Okta["Okta Org"]
-        direction LR
-        UD[Universal Directory<br>users and groups]
-        AIRegistry[AI Agents Registry]
-        CRMAS[vantage-crm-as<br>custom auth server]
-        DeskAS[vantage-desk-as<br>custom auth server]
-        OIG[OIG<br>entitlements and certifications]
+    subgraph Central["Central — shared by all orgs"]
+        direction TB
+        CRM[VantageCRM API<br>resource server only]
+        Desk[VantageDesk API<br>resource server only]
+        Redis[(Redis<br>per-tenant partitions)]
     end
 
     User --> Browser
+    Browser -->|configure org| Okta
     Browser -->|prompt the agent| AgentLayer
 
     AgentLayer -->|MCP protocol| Adapter
     Adapter -.verify agent<br>+ ID-JAG exchange.-> AIRegistry
     Adapter -->|filtered tool calls<br>with user-context tokens| MCP
-    MCP --> CRM
-    MCP --> Desk
+    MCP -->|HTTPS + Bearer| CRM
+    MCP -->|HTTPS + Bearer| Desk
+    CRM -->|tenant by issuer| Redis
+    Desk -->|tenant by issuer| Redis
 
     OIG -.governs.-> AIRegistry
     AIRegistry -.uses.-> CRMAS
@@ -70,11 +87,12 @@ flowchart TB
     class Browser,Terminal infra
     class Bedrock,BYO,Adapter workflow
     class MCP action
-    class CRM,Desk governance
+    class CRM,Desk,Redis governance
     class UD,AIRegistry,CRMAS,DeskAS,OIG oktaCore
 
     style VDI fill:#607d8b14,stroke:#607d8b,stroke-width:1px
     style AgentLayer fill:#7b1fa214,stroke:#7b1fa2,stroke-width:1px
-    style AppServer fill:#0277bd14,stroke:#0277bd,stroke-width:1px
+    style Edge fill:#0277bd14,stroke:#0277bd,stroke-width:1px
     style Okta fill:#ef6c0014,stroke:#ef6c00,stroke-width:1px
+    style Central fill:#2e7d3214,stroke:#2e7d32,stroke-width:1px
 ```

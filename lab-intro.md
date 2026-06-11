@@ -40,9 +40,9 @@ The exact passwords and account details are in Lab 1.3 — no need to memorize a
 
 ## The two business applications
 
-TaskVantage runs on a custom-built CRM (**VantageCRM**) and a custom-built ITSM (**VantageDesk**). They are deliberately not Salesforce and not ServiceNow — fake apps the camp can configure freely without licensing or per-attendee provisioning costs. Think of them as stand-ins for whatever your real organization uses.
+TaskVantage runs on a custom-built CRM (**VantageCRM**) and a custom-built ITSM (**VantageDesk**). They are deliberately not Salesforce and not ServiceNow — fake apps the camp can configure freely without licensing costs. Think of them as stand-ins for whatever your real organization uses.
 
-Both apps live on a single per-attendee app server alongside an MCP server that fronts them. The agent never talks to either app directly. It talks to the MCP server through the **Okta MCP Adapter**, which is the policy enforcement point you will see in action repeatedly.
+Both apps are **one central, multi-tenant, API-only deployment** shared by every attendee — VantageCRM lives at `https://vantagecrm.taskvantage-demo.com` and VantageDesk at `https://vantagedesk.taskvantage-demo.com`. They are resource servers only: there is no app UI and no human sign-in to them. Every interaction is an agentic API call carrying a Bearer access token, and each app resolves which tenant (your org) a call belongs to from the token's **issuer**. The agent never talks to either app directly. It talks to an MCP server through the **Okta MCP Adapter**, which is the policy enforcement point you will see in action repeatedly. Your **agent, MCP server, and Okta MCP Adapter — and your Okta org — are per-attendee**; only the two apps are shared.
 
 The full picture is in `lab-architecture.md`. Open it now if you have not — it is your map for everything that follows.
 
@@ -63,8 +63,8 @@ Both paths converge at the same point — an active agent in your AI Agents Regi
 
 | Lab | What happens | Time |
 | --- | --- | --- |
-| **1 — Environment Tour** | Sign in, meet the personas, tour both apps, run the env-check script, build your first piece of configuration (the VantageDesk auth policy). | 25 min |
-| **2 — Bring the Agent Under Management** | Register the agent (Path A or B), assign an owner, generate a key, create and link a sign-on app, connect to VantageCRM. | 45 min |
+| **1 — Environment Tour** | Sign in to the Okta Admin Console, meet the personas, see both apps (out-of-band screenshots / read scripts), run the env-check script, build your first piece of configuration (the VantageDesk auth server access policy). | 25 min |
+| **2 — Bring the Agent Under Management** | Register the agent (Path A or B), assign an owner, generate a key, create the managed connection to VantageCRM. | 45 min |
 | **3 — See the Adapter Filter Tools by User** | Run the agent's tool-listing call as three different users and watch three different catalogs come back. Inspect the audit trail. | 30 min |
 | **4 — Build VantageDesk and Watch XAA in Flight** | Build the missing half — auth server, scopes, policy, managed connection — then invoke a tool end-to-end and watch the ID-JAG / two-step exchange happen with your own eyes. | 60 min |
 | **5 — Govern with OIG** | Submit an access request, approve it, watch tools appear; revoke via certification, watch them disappear; exercise the kill switch. | 50 min |
@@ -77,7 +77,7 @@ About 3.5 hours of actual work. Build in a break after Lab 2 or in the middle of
 
 Two patterns repeat throughout the camp. Watching for them makes the structure easier to follow.
 
-**Review-then-build.** Each major capability is introduced first on VantageCRM, where it is already fully wired before you start, and then built by you on VantageDesk, which is intentionally incomplete. Authentication policy, authorization server, scopes, access policy, managed connection — every one of these you observe on CRM first, then create on Desk. By the end of Lab 4, both columns of the architecture are identically configured. The first instance of the pattern appears in Lab 1.10.
+**Review-then-build.** Each major capability is introduced first on VantageCRM, where it is already fully wired before you start, and then built by you on VantageDesk, which is intentionally incomplete. Authorization server, scopes, access policy, managed connection — every one of these you observe on CRM first, then create on Desk. (Access to the API-only apps is gated by the auth server's access policy mapping groups to scopes — there is no per-app sign-in policy, because no human signs in to the apps.) By the end of Lab 4, both columns of the architecture are identically configured. The first instance of the pattern appears in Lab 1.10.
 
 **Same agent, different access.** Throughout the camp, you keep running the same script — `list-agent-tools.sh` or `invoke-agent-tool.sh` — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. What changes is *who is asking* and *what they are currently entitled to do*. The story the camp tells is that agent capability is a property of the user-and-moment, not a property of the agent.
 
