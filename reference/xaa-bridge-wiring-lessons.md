@@ -133,16 +133,30 @@ filtering demo), covering, in the adapter Admin UI:
 6. **Sync managed connections** — and **re-sync after Lab 4** (the adapter caches connections; the new
    `vantage-desk-as` connection/scopes only take effect after a sync).
 
-### OPEN DESIGN QUESTION (resolve before writing the steps)
+### Design (resolved): one adapter resource, one managed connection per backend AS
 
-A single `okta-cross-app` adapter resource targets **one** authorization server, i.e. **one audience**.
-But the lab has **two** apps (`vantage-crm-as` → `api://vantage-crm`, `vantage-desk-as` →
-`api://vantage-desk`) behind **one** central MCP server. A token minted for `api://vantage-desk` is
-rejected by VantageCRM (wrong audience), and vice-versa. **Only the Desk path was validated end-to-end.**
-Likely resolution: **two adapter resources** (one per AS), both pointing at the same MCP server URL, with
-the CRM tools used via the CRM resource and the ITSM tools via the Desk resource. This needs confirming
-(and the CRM path validating) before the Module 2/4 adapter steps are written, since it determines whether
-the attendee registers one resource or two.
+Two apps (`api://vantage-crm`, `api://vantage-desk`) sit behind **one** central MCP server, and a token
+minted for one audience is rejected by the other app. The resolution — confirmed against the working
+**`claude-code`** agent in the same org — is **one adapter resource backed by one managed connection per
+backend authorization server**, each `INCLUDE_ONLY` with that backend's granular scopes. `claude-code`
+fronts Salesforce **and** ServiceNow through a single adapter resource exactly this way:
+
+```
+XAA - Salesforce  → audience https://…salesforce.com   INCLUDE_ONLY [accounts.read, contacts.read]
+XAA - ServiceNow  → audience https://…service-now.com  INCLUDE_ONLY [incidents.read, enhancements.read]
+```
+
+The adapter mints the **right-audience** token per tool from the connection whose scopes cover that tool,
+then forwards it to the one MCP server, which routes to the matching app. So for vantage: **one** adapter
+resource (`vantage-tools` → the MCP server), linked to **two** managed connections —
+`vantage-crm-as` (`api://vantage-crm`, `INCLUDE_ONLY` the `crm.*` scopes) and `vantage-desk-as`
+(`api://vantage-desk`, `INCLUDE_ONLY` the `itsm.*` scopes). This matches the modules' existing two-AS
+structure (build `vantage-crm-as` in Lab 2, `vantage-desk-as` in Lab 4) — the only adapter-side addition is
+registering the **single** resource and linking **both** connections to it. (This also independently
+confirms gotcha 5: `claude-code` uses `INCLUDE_ONLY` granular scopes, never "Allow all".)
+
+**Status:** the Desk path is validated end-to-end; the CRM connection still needs building +
+validating to confirm both-audiences-through-one-resource for vantage.
 
 ## Module impact summary (drives the doc/module update pass)
 
