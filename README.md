@@ -15,7 +15,7 @@ The two business apps — **VantageCRM** and **VantageDesk** — are **one centr
 | `lab-intro.md` | Narrative wrapper. Introduces TaskVantage, the personas, the architecture, the camp's two recurring patterns (review-then-build and same-agent-different-access), and pre-flight checklist. |
 | `lab-architecture.md` | Architecture overview with the Mermaid diagram. The central, multi-tenant, API-only apps + central MCP server vs. the per-attendee agent/adapter/Okta-org split, component roles, and the trust boundary. |
 | `module-1-environment-tour.md` | 25 min. Sign in, review preconfigured personas/groups/apps, run env-check, build first piece of config (VantageDesk auth policy). |
-| `module-2-bring-agent-under-management.md` | 45 min. Register an agent (Bedrock import or manual), owner + key, managed connection to VantageCRM. |
+| `module-2-bring-agent-under-management.md` | 45 min. Register your pre-installed OpenCode agent (Bedrock/BYO optional), owner + key, managed connection to VantageCRM. |
 | `module-3-adapter-filter-tools.md` | 30 min. Run the tool-listing script as three different users — Alex, Susan, Frank — and watch the catalog change without the agent changing. |
 | `module-4-build-vantagedesk-watch-xaa.md` | 60 min. Build the VantageDesk auth server / scopes / policy / managed connection, then exercise XAA end-to-end with decoded ID-JAG inspection. |
 | `module-5-govern-with-oig.md` | 50 min. Frank requests CRM access through OIG, gets approved, sees tools appear; certification campaign revokes him; kill switch deactivates the agent. |

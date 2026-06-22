@@ -48,14 +48,11 @@ The full picture is in `lab-architecture.md`. Open it now if you have not — it
 
 ---
 
-## The two paths through Lab 2
+## Your agent in Lab 2: OpenCode
 
-One choice is worth thinking about before you start. In Lab 2, you bring an agent under Okta management — and there are two ways to do this:
+In Lab 2 you bring an agent under Okta management. The agent is **OpenCode** — an open-source AI coding agent that is **already installed and configured on your Virtual Desktop**. You don't install or build anything; you register the OpenCode instance waiting on your VM as a first-class identity in Okta and govern it. This is the path the rest of the camp assumes.
 
-- **Path A** imports an agent from AWS Bedrock AgentCore via the pre-integrated AWS IAM Identity Center provider in your Okta org. Use this if your Heropa allocation includes a Bedrock environment with a preconfigured agent.
-- **Path B** registers a custom-code agent manually. Use this if you do not have Bedrock provisioned, or if you want to see the manual flow.
-
-Both paths converge at the same point — an active agent in your AI Agents Registry — and the rest of the camp is identical from there. You only need to pick one. If you have time at the end of the camp, nothing stops you from going back and running the other path against a second agent registration.
+If you'd rather bring a different agent — importing one from AWS Bedrock AgentCore, or registering another custom runtime — that's at your discretion (Lab 2.11). The Okta steps are identical regardless of runtime; only the agent itself differs. Either way you end at the same point: an active agent in your AI Agents Registry.
 
 ---
 
@@ -64,7 +61,7 @@ Both paths converge at the same point — an active agent in your AI Agents Regi
 | Lab | What happens | Time |
 | --- | --- | --- |
 | **1 — Environment Tour** | Sign in to the Okta Admin Console, meet the personas, see both apps (out-of-band screenshots / read scripts), run the env-check script, build your first piece of configuration (the VantageDesk auth server access policy). | 25 min |
-| **2 — Bring the Agent Under Management** | Register the agent (Path A or B), assign an owner, generate a key, create the managed connection to VantageCRM. | 45 min |
+| **2 — Bring the Agent Under Management** | Register your pre-installed OpenCode agent, assign an owner, generate a key, create the managed connection to VantageCRM. | 45 min |
 | **3 — See the Adapter Filter Tools by User** | Run the agent's tool-listing call as three different users and watch three different catalogs come back. Inspect the audit trail. | 30 min |
 | **4 — Build VantageDesk and Watch XAA in Flight** | Build the missing half — auth server, scopes, policy, managed connection — then invoke a tool end-to-end and watch the ID-JAG / two-step exchange happen with your own eyes. | 60 min |
 | **5 — Govern with OIG** | Submit an access request, approve it, watch tools appear; revoke via certification, watch them disappear; exercise the kill switch. | 50 min |

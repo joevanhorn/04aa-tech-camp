@@ -6,7 +6,7 @@ Register an AI agent in Okta Universal Directory as a first-class identity, assi
 
 ## Scenario
 
-It is 2026. TaskVantage's sales operations team has built an AI agent to help sales reps query and update VantageCRM. The agent currently exists as a piece of code — running, calling APIs, but with no Okta identity. Security has flagged it as ungoverned: no human owner, no audit trail, and credentials hardcoded in environment variables.
+It is 2026. TaskVantage's sales operations team has wired up **OpenCode** — an open-source AI coding agent — to help sales reps query and update VantageCRM. It runs on the team's machines, calling APIs, but it has no Okta identity. Security has flagged it as ungoverned: no human owner, no audit trail, and credentials sitting in a local config.
 
 Today, you fix that. You will give the agent an identity in your Okta org, an owner who is accountable for its behavior, a public-key credential it can use to prove who it is, a linked sign-on app that defines which users it can act on behalf of, and a scoped managed connection to VantageCRM.
 
@@ -33,51 +33,30 @@ The agent you register today acquires all three. The rest of the camp depends on
 
 ---
 
-### 2.2 Choose your path
+### 2.2 Your agent: OpenCode (pre-installed on your VM)
 
-| Path | Use this path if... |
-| --- | --- |
-| **Path A: Import from Bedrock AgentCore** | Your Heropa allocation includes AWS Bedrock AgentCore with a preconfigured agent, *and* the AWS IAM Identity Center provider app in your Okta org has AI agent imports already enabled (a Heropa provisioning step you confirmed in Lab 1.8). |
-| **Path B: Register a custom-code agent manually** | You do not have Bedrock provisioned, or you want to see the manual registration flow. |
+The agent you bring under management is **OpenCode** — an open-source AI coding agent that is **already installed and configured on your Virtual Desktop**. You don't install or build anything; you register the OpenCode instance waiting on your VM as a first-class identity in Okta, then govern it. OpenCode is a *third-party* agent — not Okta-built, not Amazon-built — which makes it a realistic stand-in for the "a team wired up an agent" situation every enterprise faces.
 
-Both paths converge at 2.4. After that, every step is identical.
+Register it with the manual flow in 2.3. The rest of the camp assumes this OpenCode agent.
 
----
-
-## Path A: Import from Bedrock AgentCore
-
-### 2.3.A Trigger the import
-
-- From the Admin Console, go to **Directory** > **AI Agents**.
-- Click **Register AI agent** > **Import from AI agent providers**.
-- The AI agent providers page appears, listing provider apps configured for imports. You should see **AWS IAM Identity Center**.
-- Click the **Import** button next to AWS IAM Identity Center.
-- A notification confirms the import is running. When it finishes, the imported agent (`TaskVantage Sales Agent`) appears on the **Directory** > **AI Agents** page with status **STAGED**.
-
-*NOTE: The Bedrock-side runtime is unchanged by the import. What changes is that Okta now knows about the agent and can govern it. For deeper background, see the [Secure an Imported Amazon Bedrock AgentCore Agent](https://support.okta.com/help/s/article/secure-an-imported-amazon-bedrock-agentcore-agent) reference.*
-
-Proceed to 2.4.
+> **Optional — bring your own / Bedrock (at your discretion).** If your Heropa allocation includes AWS Bedrock AgentCore (with imports enabled on the AWS IAM Identity Center provider), or you'd rather register a different agent runtime, you can — **the Okta steps from 2.4 on are identical**; only the agent runtime differs. The Bedrock *import* shortcut is in 2.11.
 
 ---
 
-## Path B: Register a custom-code agent manually
-
-### 2.3.B Register the agent
+### 2.3 Register your OpenCode agent
 
 - From the Admin Console, go to **Directory** > **AI Agents**.
 - Click **Register AI agent** > **Register manually**.
 - Fill in:
   - **Name**: `TaskVantage Sales Agent`
-  - **Description**: `Helps sales reps query and update VantageCRM`
+  - **Description**: `OpenCode agent that helps sales reps query and update VantageCRM`
 - Leave the optional **Application** link blank for now (you will link an app in 2.6 below).
 - Click **Register**.
 - On the Owners step that appears, click **Skip for now** (you will assign owners in 2.4 below).
 
 The agent appears on the **Directory** > **AI Agents** page with status **STAGED**. Proceed to 2.4.
 
----
-
-(Paths A and B converge here.)
+*NOTE: Registering it does not change the OpenCode runtime on your VM — it keeps running exactly as before. What changes is that Okta now knows about it and can govern it. OpenCode is already pointed at your Okta MCP Adapter (its endpoint and the agent credential are pre-configured on the VM); from here, every tool call OpenCode makes is brokered and governed by the steps you build below.*
 
 ### 2.4 Assign a human owner
 
@@ -90,7 +69,7 @@ The agent cannot be activated without at least one owner. This is enforced by Ok
 
 *NOTE: Production deployments typically assign 2–3 individual owners or a group of 2+ members. For this lab, a single owner is enough to satisfy activation. In Lab 5, OIG will demonstrate ownership-driven access certification.*
 
-> **[FLAG — to resolve before lab GA]** When AI agent imports are enabled on the AWS IAM Identity Center provider app, a default owner *can* be configured to apply to all imported agents. If Heropa provisioning sets a default owner for Path A users, this step changes: their agent arrives with an owner already populated, and 2.4 becomes "review the default owner and add yourself as an additional owner." If provisioning leaves the default unset, the flow is uniform across paths as written. Decision needed on provisioning approach.
+> **[FLAG — to resolve before lab GA]** When AI agent imports are enabled on the AWS IAM Identity Center provider app, a default owner *can* be configured to apply to all imported agents. If Heropa provisioning sets a default owner for the optional Bedrock-import path (2.11), this step changes for those users: their agent arrives with an owner already populated, and 2.4 becomes "review the default owner and add yourself as an additional owner." The primary OpenCode flow registers manually, so no default owner applies. Decision needed on provisioning approach.
 
 ### 2.5 Add a public-key credential
 
@@ -126,7 +105,7 @@ You will first create a new OIDC web application, then link it to your agent.
 - Click **Save**.
 - On the resulting app page, note the **Client ID** and **Client secret** — these belong to the front-end UI, not the agent.
 
-*NOTE: `{{agent_ui_host}}` is a placeholder for the front-end host where users would sign in to interact with the agent. In this lab the actual front-end is not deployed; the OIDC app exists so the linking constraint is enforceable in Okta. Lab 3 will simulate the user-sign-in flow against this app when exercising the agent.*
+*NOTE: `{{agent_ui_host}}` is the front-end users sign in through to reach the agent. With OpenCode as your runtime on the VM, OpenCode drives this sign-in via the Okta MCP Adapter's brokered OAuth — the linked app scopes which users the agent may act for and anchors each agent action to a user sign-in event. Lab 3 exercises this flow against the linked app.*
 
 **Link the app to your agent:**
 
@@ -189,6 +168,18 @@ Spend a minute confirming the agent is set up correctly. Lab 3 will fail in conf
 | Managed connections | 1 connection to `vantage-crm-as` (Managed connections tab) |
 
 **In the System Log** (Reports > System Log), filter on `target.type eq "AIAgent"` and confirm you see lifecycle events: agent created, owner added, key added, key activated, app linked, agent activated, managed connection created.
+
+---
+
+### 2.11 (Optional) Import from Bedrock AgentCore instead
+
+If you're using Bedrock (and AI agent imports are enabled on the AWS IAM Identity Center provider — confirmed in Lab 1.8), you can register the agent by import instead of the manual flow in 2.3:
+
+- From the Admin Console, go to **Directory** > **AI Agents**.
+- Click **Register AI agent** > **Import from AI agent providers**.
+- Click **Import** next to **AWS IAM Identity Center**. The imported agent (`TaskVantage Sales Agent`) appears with status **STAGED**.
+
+From 2.4 onward (owner, credential, sign-on app, activation, managed connection) the steps are identical regardless of runtime. The Bedrock-side runtime is unchanged by the import; what changes is that Okta can now govern it. Background: [Secure an Imported Amazon Bedrock AgentCore Agent](https://support.okta.com/help/s/article/secure-an-imported-amazon-bedrock-agentcore-agent).
 
 ---
 
