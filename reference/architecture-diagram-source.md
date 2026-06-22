@@ -1,11 +1,12 @@
-# Lab Architecture Diagram — Iteration v9 (API-only / central pivot)
+# Lab Architecture Diagram — Iteration v10 (central apps + central MCP server)
 
 ## Change in this iteration
 
-**Reflects ADR-0001.** VantageCRM and VantageDesk are no longer a per-attendee "App Server" —
-they are **one central, multi-tenant, API-only deployment** shared by every attendee org, drawn in
-a separate `Central` subgraph (with Redis for per-tenant state). The **Okta MCP Adapter + MCP
-Server** are the per-attendee edge and now sit in their own subgraph.
+**Reflects ADR-0001 + ADR-0002.** VantageCRM and VantageDesk are **one central, multi-tenant,
+API-only deployment** shared by every attendee org, drawn in a separate `Central` subgraph (with
+Redis for per-tenant state). The **MCP server is now also central/shared** (ADR-0002) and sits in
+that `Central` subgraph — a stateless bearer-forwarding proxy every attendee's adapter connects to.
+Only the **Okta MCP Adapter** remains the per-attendee edge.
 
 **Removed the `Browser → CRM/Desk` direct sign-in concept entirely.** The apps are resource
 servers with no human login and no UI, so there is no direct-sign-in edge to add back. The
@@ -37,10 +38,9 @@ flowchart TB
             BYO[Bring Your Own Agent<br>Path B]
         end
 
-        subgraph Edge["MCP edge"]
+        subgraph Edge["Adapter"]
             direction TB
             Adapter[Okta MCP Adapter<br>XAA + tool filtering]
-            MCP[MCP Server<br>routes CRM and Desk]
         end
 
         subgraph Okta["Okta Org"]
@@ -55,6 +55,7 @@ flowchart TB
 
     subgraph Central["Central — shared by all orgs"]
         direction TB
+        MCP[MCP Server<br>shared — routes CRM and Desk]
         CRM[VantageCRM API<br>resource server only]
         Desk[VantageDesk API<br>resource server only]
         Redis[(Redis<br>per-tenant partitions)]

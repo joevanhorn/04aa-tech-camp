@@ -2,7 +2,7 @@
 
 A hands-on customer / prospect tech camp for governing AI agents on the Okta Workforce Identity Cloud. Modeled on the format of the existing ITP Tech Camp. Approximately 3.5 hours of guided lab work.
 
-The two business apps — **VantageCRM** and **VantageDesk** — are **one central, multi-tenant, API-only deployment** shared by every attendee (resource servers only, no app UI or human sign-in; each app keys the tenant off the access token's issuer). Each attendee gets their own **agent, MCP server, Okta MCP Adapter, and Okta org**. See `build-specs/adr/0001-central-multitenant-api-only.md` for the hosting decision.
+The two business apps — **VantageCRM** and **VantageDesk** — are **one central, multi-tenant, API-only deployment** shared by every attendee (resource servers only, no app UI or human sign-in; each app keys the tenant off the access token's issuer). Each attendee gets their own **agent, Okta MCP Adapter, and Okta org**; the **MCP server is one central, shared service**. See `build-specs/adr/0001-central-multitenant-api-only.md` and `build-specs/adr/0002-central-shared-mcp-server.md` for the hosting decisions.
 
 ## Status
 
@@ -13,7 +13,7 @@ The two business apps — **VantageCRM** and **VantageDesk** — are **one centr
 | File | Contents |
 | --- | --- |
 | `lab-intro.md` | Narrative wrapper. Introduces TaskVantage, the personas, the architecture, the camp's two recurring patterns (review-then-build and same-agent-different-access), and pre-flight checklist. |
-| `lab-architecture.md` | Architecture overview with the v8 Mermaid diagram. The central, multi-tenant, API-only apps vs. the per-attendee agent/MCP/adapter/Okta-org split, component roles, and the trust boundary. |
+| `lab-architecture.md` | Architecture overview with the Mermaid diagram. The central, multi-tenant, API-only apps + central MCP server vs. the per-attendee agent/adapter/Okta-org split, component roles, and the trust boundary. |
 | `module-1-environment-tour.md` | 25 min. Sign in, review preconfigured personas/groups/apps, run env-check, build first piece of config (VantageDesk auth policy). |
 | `module-2-bring-agent-under-management.md` | 45 min. Register an agent (Bedrock import or manual), owner + key, managed connection to VantageCRM. |
 | `module-3-adapter-filter-tools.md` | 30 min. Run the tool-listing script as three different users — Alex, Susan, Frank — and watch the catalog change without the agent changing. |
@@ -46,7 +46,7 @@ The two business apps — **VantageCRM** and **VantageDesk** — are **one centr
 - **Final URL validation pass.** Every external link in every module needs a search-and-fetch verification before customer delivery (per the standing URL validation workflow).
 - **`{HumanReview}` flag resolution.** All speculative product items need to be verified against the live Okta product and either confirmed or corrected.
 - **Docx / customer-facing format conversion.** Markdown drafts here; ITP-styled docx is the eventual customer deliverable.
-- **Infrastructure-team dependencies.** Build specs for the lab environment that the docs reference: the central, multi-tenant, API-only VantageCRM and VantageDesk apps (tenant-by-issuer), the per-attendee MCP server with the 12-tool catalog, the per-attendee Okta MCP Adapter wired for XAA + scope filtering, the `check-environment.sh` / `list-agent-tools.sh` / `invoke-agent-tool.sh` scripts on the VDI.
+- **Infrastructure-team dependencies.** Build specs for the lab environment that the docs reference: the central, multi-tenant, API-only VantageCRM and VantageDesk apps (tenant-by-issuer), the central MCP server with the 12-tool catalog, the per-attendee Okta MCP Adapter wired for XAA + scope filtering, the `check-environment.sh` / `list-agent-tools.sh` / `invoke-agent-tool.sh` scripts on the VDI.
 
 ## Original-source notes
 

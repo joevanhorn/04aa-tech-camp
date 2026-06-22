@@ -27,7 +27,12 @@ The current build spec (`../lab-apps-build-spec.md`) assumes each attendee hosts
 
 ## What stays per-attendee regardless
 
-The **MCP server and Okta MCP Adapter** don't centralize cleanly — they hold per-org agent secrets and do per-org XAA token exchange. Natural seam: **apps central** (dumb resource-server + data layer), **MCP server + Adapter per-attendee** (baked into the VDI/Heropa env), pointing at the central app URLs. Each attendee's MCP server calls the central app with the attendee's Bearer token; the central app resolves tenant by issuer.
+> **Update (June 2026, ADR-0002):** this lumped the MCP server with the Adapter. As built, the MCP
+> server holds **no** secrets and does **no** XAA — it's a stateless bearer-forwarding proxy — so it
+> was subsequently **centralized** (one shared MCP server for all attendees). Only the **Adapter**
+> stays per-attendee for the reason below. The shared-*Adapter* analysis further down still stands.
+
+The **Okta MCP Adapter** doesn't centralize cleanly — it holds per-org agent secrets and does per-org XAA token exchange. Natural seam: **apps + MCP server central** (dumb resource-server + data layer + stateless proxy), **Adapter per-attendee** (baked into the VDI/Heropa env), pointing at the central app URLs. Each attendee's adapter calls the central MCP server with the attendee's Bearer token; the central apps resolve tenant by issuer.
 
 ## Honest downsides of centralizing
 
@@ -47,7 +52,7 @@ The feasibility fork:
 
 Extra wrinkle for the lab: the Adapter also does **scope-based tool filtering**, so a shared Adapter fans out to up to 100 different org authorization servers (per-tenant JWKS + policy caching) — fine at lab-pace traffic, but more moving parts in the component that is hardest to debug live, in front of customers.
 
-**Decision (June 2026): tabled.** Joe agreed the impersonation blast radius makes this a different risk class from the shared *app* backend, which holds no secrets. Revisit only if the design demonstrably keeps agent keys at the edge, and even then the tenant-selection path wants test coverage before it goes near a 100-person room. The default remains: MCP server + Adapter per-attendee, baked into the VDI/Heropa env.
+**Decision (June 2026): tabled.** Joe agreed the impersonation blast radius makes this a different risk class from the shared *app* backend, which holds no secrets. Revisit only if the design demonstrably keeps agent keys at the edge, and even then the tenant-selection path wants test coverage before it goes near a 100-person room. The default remains: **Adapter** per-attendee, baked into the VDI/Heropa env (the MCP server was centralized — ADR-0002).
 
 ## To resume
 
