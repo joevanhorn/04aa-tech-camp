@@ -111,8 +111,9 @@ Per attendee org, to bring a registered agent fully through the bridge to Vantag
    the adapter** (kids must match); agent marked **DCR-selectable** in the adapter.
 4. **Managed connection** agent → `vantage-desk-as`, set to **"Only allow" the `itsm.*` scopes**
    (`INCLUDE_ONLY`) — not "Allow all".
-5. **Adapter resource** for the MCP server: `auth_method = okta-cross-app`, pointing at the central
-   MCP `/mcp` URL, linked to the agent's `vantage-desk-as` connection.
+5. **Adapter resource** (one per backend AS — sync materializes it from the managed connection):
+   `auth_method = okta-cross-app`, URL = the **path-scoped** MCP mount for that audience
+   (`…/desk/mcp` for the desk connection, `…/crm/mcp` for the crm connection).
 6. **MCP server** = central, shared, with DNS-rebinding protection disabled (infra).
 7. **Org enrolled** in the apps (Redis-backed registry).
 
@@ -127,36 +128,56 @@ filtering demo), covering, in the adapter Admin UI:
    if the lab provisions the Okta event hook for sync.
 2. **Mark the agent DCR-selectable** (gotcha 4) — required for the brokered OAuth to link.
 3. **Confirm the agent's signing credential** matches Okta's active key (gotcha 3).
-4. **Register the tool backend** (Backends → *Add Backend*): the MCP server `/mcp` URL,
-   `auth_method = okta-cross-app`, target authorization server = the app's custom AS.
-5. **Grant the agent access** to that backend (`backend_access` / link).
-6. **Sync managed connections** — and **re-sync after Lab 4** (the adapter caches connections; the new
-   `vantage-desk-as` connection/scopes only take effect after a sync).
+4. **Sync managed connections** — each Okta managed connection materializes as one adapter resource
+   (resource = one `(agent, connection)` pair). After Lab 2 this surfaces the `vantage-crm-as`
+   connection; **re-sync after Lab 4** to surface `vantage-desk-as`.
+5. **Set each resource's URL to its path-scoped MCP mount** (sync owns the connection/scopes; the admin
+   owns routing): the CRM resource → `https://{{mcp_host}}/crm/mcp`, the Desk resource →
+   `https://{{mcp_host}}/desk/mcp`. (`auth_method` is auto-derived as `okta-cross-app` from the
+   connection type.) Each resource then mints its own audience token for its 6 tools.
+6. The agent's access to each resource is **implicit** (the resource *is* the agent's connection); no
+   separate grant/link step.
 
-### Design (resolved): one adapter resource, one managed connection per backend AS
+### Design (resolved): two adapter resources, one per backend AS, on path-scoped MCP mounts
 
 Two apps (`api://vantage-crm`, `api://vantage-desk`) sit behind **one** central MCP server, and a token
-minted for one audience is rejected by the other app. The resolution — confirmed against the working
-**`claude-code`** agent in the same org — is **one adapter resource backed by one managed connection per
-backend authorization server**, each `INCLUDE_ONLY` with that backend's granular scopes. `claude-code`
-fronts Salesforce **and** ServiceNow through a single adapter resource exactly this way:
+minted for one audience is rejected by the other app. The constraint that drives the design: in the
+adapter, **a "resource" is exactly one `(agent, managed-connection)` pair → one audience**, and
+`tools/list` namespaces every tool by its resource (`{resource}__{tool}`). The syncer materializes one
+resource row per connection (`resources/syncer.py`); there is **no way to bind two connections to one
+resource**. So a single `vantage-tools` resource (bound to the desk connection) can only ever mint
+`api://vantage-desk` tokens — and a `crm.*` call through it gets a desk-audience token, which VantageCRM
+rejects with `401 "Audience doesn't match"` (observed 2026-06-22).
+
+This is also how the working **`claude-code`** agent is wired — **two** resources, one per backend AS,
+each `INCLUDE_ONLY` its granular scopes — it just looks seamless there because Salesforce and ServiceNow
+are **different MCP server URLs**:
 
 ```
 XAA - Salesforce  → audience https://…salesforce.com   INCLUDE_ONLY [accounts.read, contacts.read]
 XAA - ServiceNow  → audience https://…service-now.com  INCLUDE_ONLY [incidents.read, enhancements.read]
 ```
 
-The adapter mints the **right-audience** token per tool from the connection whose scopes cover that tool,
-then forwards it to the one MCP server, which routes to the matching app. So for vantage: **one** adapter
-resource (`vantage-tools` → the MCP server), linked to **two** managed connections —
-`vantage-crm-as` (`api://vantage-crm`, `INCLUDE_ONLY` the `crm.*` scopes) and `vantage-desk-as`
-(`api://vantage-desk`, `INCLUDE_ONLY` the `itsm.*` scopes). This matches the modules' existing two-AS
-structure (build `vantage-crm-as` in Lab 2, `vantage-desk-as` in Lab 4) — the only adapter-side addition is
-registering the **single** resource and linking **both** connections to it. (This also independently
-confirms gotcha 5: `claude-code` uses `INCLUDE_ONLY` granular scopes, never "Allow all".)
+The vantage twist is that **both apps share one MCP server**. To keep tool catalogs clean (no duplicate,
+half-erroring tools), the MCP server exposes **path-scoped tool subsets** and each adapter resource points
+at its own path:
 
-**Status:** the Desk path is validated end-to-end; the CRM connection still needs building +
-validating to confirm both-audiences-through-one-resource for vantage.
+```
+MCP server (one ECS service, mcp.taskvantage-demo.com)
+  /crm/mcp   → 6 crm.*  tools        adapter resource "vantage-crm"  (conn vantage-crm-as,  api://vantage-crm)
+  /desk/mcp  → 6 itsm.* tools        adapter resource "vantage-desk" (conn vantage-desk-as, api://vantage-desk)
+  /mcp       → all 12 (back-compat)
+```
+
+Each resource mints the right-audience token for its 6 tools and forwards to the matching app. Both
+managed connections are `INCLUDE_ONLY` the backend's granular scopes (confirming gotcha 5 again —
+`claude-code` never uses "Allow all"). This matches the modules' two-AS structure (`vantage-crm-as`
+in Lab 2, `vantage-desk-as` in Lab 4); the adapter-side addition is registering **two** resources, each
+pointing at its `/crm/mcp` or `/desk/mcp` path.
+
+**Status:** Desk path validated end-to-end. CRM Okta config built (AS `aus24g60q8aVYfJJp1d8`, policy,
+managed connection `mcn24g62fj5feQhBf1d8` INCLUDE_ONLY `crm.*`) and the path-split MCP server deployed +
+verified live; CRM end-to-end pending the adapter sync + resource-URL step.
 
 ## Module impact summary (drives the doc/module update pass)
 
@@ -165,6 +186,6 @@ validating to confirm both-audiences-through-one-resource for vantage.
 | 5 — managed connection scope | **Module 2.9 / 4.6** | "Allow all" → **"Only allow" the granular scopes** | ✅ applied |
 | 6 — policy client = agent | **Module 4.5** | Assign the AS policy to the **agent principal** | ✅ applied (NOTE) |
 | 3 — credential key match | **Module 2.5** | Key generated+activated must be the one the runtime/adapter uses | ✅ applied (NOTE) |
-| 4 + resource registration | **NEW Module 2 adapter-config section** | Import agent, DCR-selectable, register backend (okta-cross-app), link, sync | ⏳ pending (see design question) |
+| 4 + resource registration | **NEW Module 2 adapter-config section** | Import agent, DCR-selectable, register the per-AS resource (okta-cross-app) at its `/crm/mcp`/`/desk/mcp` path, sync | ⏳ pending |
 | 1, 2 — infra | platform-team / apps | MCP server transport-security; Redis registry | ✅ done in taskvantage-apps |
-| dual-audience routing | architecture / Module 2+4 | one MCP server, two audiences → likely two adapter resources | ⏳ needs design + CRM-path validation |
+| dual-audience routing | architecture / Module 2+4 | **two** adapter resources (one per AS), MCP server path-scoped (`/crm/mcp`, `/desk/mcp`) | ✅ design resolved + MCP server deployed; CRM E2E pending |
