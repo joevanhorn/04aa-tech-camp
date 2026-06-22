@@ -116,12 +116,41 @@ Per attendee org, to bring a registered agent fully through the bridge to Vantag
 6. **MCP server** = central, shared, with DNS-rebinding protection disabled (infra).
 7. **Org enrolled** in the apps (Redis-backed registry).
 
+## The participant configures their own adapter
+
+The Okta MCP Adapter is **provisioned per attendee but starts empty** — the participant wires it as
+part of the lab. So the adapter-side steps are **attendee module content**, not just platform-team
+infra. A new **Module 2 "Wire your agent into the MCP Adapter"** section is needed (before Module 3's
+filtering demo), covering, in the adapter Admin UI:
+
+1. **Import the agent** (Agents → *Okta Import* → the registered agent) — or confirm it auto-imported
+   if the lab provisions the Okta event hook for sync.
+2. **Mark the agent DCR-selectable** (gotcha 4) — required for the brokered OAuth to link.
+3. **Confirm the agent's signing credential** matches Okta's active key (gotcha 3).
+4. **Register the tool backend** (Backends → *Add Backend*): the MCP server `/mcp` URL,
+   `auth_method = okta-cross-app`, target authorization server = the app's custom AS.
+5. **Grant the agent access** to that backend (`backend_access` / link).
+6. **Sync managed connections** — and **re-sync after Lab 4** (the adapter caches connections; the new
+   `vantage-desk-as` connection/scopes only take effect after a sync).
+
+### OPEN DESIGN QUESTION (resolve before writing the steps)
+
+A single `okta-cross-app` adapter resource targets **one** authorization server, i.e. **one audience**.
+But the lab has **two** apps (`vantage-crm-as` → `api://vantage-crm`, `vantage-desk-as` →
+`api://vantage-desk`) behind **one** central MCP server. A token minted for `api://vantage-desk` is
+rejected by VantageCRM (wrong audience), and vice-versa. **Only the Desk path was validated end-to-end.**
+Likely resolution: **two adapter resources** (one per AS), both pointing at the same MCP server URL, with
+the CRM tools used via the CRM resource and the ITSM tools via the Desk resource. This needs confirming
+(and the CRM path validating) before the Module 2/4 adapter steps are written, since it determines whether
+the attendee registers one resource or two.
+
 ## Module impact summary (drives the doc/module update pass)
 
-| Lesson | Module / artifact | Change |
-| --- | --- | --- |
-| 5 — managed connection scope | **Module 2.9** | "Allow all" → **"Only allow" the granular scopes** (required, not optional) |
-| 6 — policy client = agent | **Module 4.5** (and 2.x policy refs) | Assign the AS policy to the **agent principal**; confirm UI wording |
-| 3 — credential key match | **Module 2.5** | The generated+activated key must be the one the runtime/adapter uses |
-| 1, 2, 4 — infra | architecture / platform-team notes | MCP server transport-security; Redis registry; agent DCR-selectable |
-| central MCP + granular scopes | architecture / Module 1 | already reflected; cross-check the scope-flow wording |
+| Lesson | Module / artifact | Change | Status |
+| --- | --- | --- | --- |
+| 5 — managed connection scope | **Module 2.9 / 4.6** | "Allow all" → **"Only allow" the granular scopes** | ✅ applied |
+| 6 — policy client = agent | **Module 4.5** | Assign the AS policy to the **agent principal** | ✅ applied (NOTE) |
+| 3 — credential key match | **Module 2.5** | Key generated+activated must be the one the runtime/adapter uses | ✅ applied (NOTE) |
+| 4 + resource registration | **NEW Module 2 adapter-config section** | Import agent, DCR-selectable, register backend (okta-cross-app), link, sync | ⏳ pending (see design question) |
+| 1, 2 — infra | platform-team / apps | MCP server transport-security; Redis registry | ✅ done in taskvantage-apps |
+| dual-audience routing | architecture / Module 2+4 | one MCP server, two audiences → likely two adapter resources | ⏳ needs design + CRM-path validation |
