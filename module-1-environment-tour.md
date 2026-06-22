@@ -8,8 +8,9 @@ Review your TaskVantage environment before introducing any AI agents. You will t
 > API-only deployment** that every attendee's Okta org connects to — *not* a per-attendee copy.
 > They are resource servers only: no browser login, no app UI, no per-app OIDC client. Every
 > interaction is an agentic API call carrying a Bearer access token; the central app resolves which
-> tenant (org) the call belongs to from the token's **issuer**. Your **agent, MCP server, and Okta
-> MCP Adapter remain per-attendee.** The "tour it in a browser" moments below (Modules 1.5 / 1.6)
+> tenant (org) the call belongs to from the token's **issuer**. Your **agent and Okta MCP Adapter
+> remain per-attendee**; the **MCP server is one central, shared service** (ADR-0002). The "tour it
+> in a browser" moments below (Modules 1.5 / 1.6)
 > are delivered out-of-band as a provided screenshot or a small read script that calls the API as
 > each user — there is no app to sign into.
 
@@ -135,7 +136,7 @@ The MCP server is the single endpoint that fronts both VantageCRM and VantageDes
 2. Filtering the tool catalog based on the requesting user's entitlements
 3. Performing the XAA token exchange so backend calls hit VantageCRM/VantageDesk as the user, not as the agent
 
-For this lab, run the environment check script on your Virtual Desktop. The script verifies reachability of the **central apps** and your **per-attendee MCP edge**, confirms TLS certificates are valid, and exports environment variables that subsequent labs will use.
+For this lab, run the environment check script on your Virtual Desktop. The script verifies reachability of the **central apps** and the **central MCP server**, confirms TLS certificates are valid, and exports environment variables that subsequent labs will use.
 
 - On the Virtual Desktop, open a terminal and run:
 

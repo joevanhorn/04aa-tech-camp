@@ -24,7 +24,7 @@ Tenant identity is the attendee's Okta org, keyed by the token **issuer**. The a
 
 In scope: both apps' REST API, multi-issuer token validation, the tenant registry, per-tenant data partitioning and reset, row-level filtering, access logging, containerization, local-dev compose.
 
-Out of scope (separate deliverables, referenced but not specified here): the MCP server that fronts these apps and the Okta MCP Adapter (both stay **per-attendee** — see ADR-0001), the Okta org configuration (auth servers, scopes, access policies — covered in the lab modules), TLS termination and the reverse proxy (an infra concern; see Part 1.6 for the contract the apps expect).
+Out of scope (separate deliverables, referenced but not specified here): the MCP server that fronts these apps (now **central/shared** — see ADR-0002) and the Okta MCP Adapter (stays **per-attendee** — see ADR-0001), the Okta org configuration (auth servers, scopes, access policies — covered in the lab modules), TLS termination and the reverse proxy (an infra concern; see Part 1.6 for the contract the apps expect).
 
 ### Why one repo, one spec
 

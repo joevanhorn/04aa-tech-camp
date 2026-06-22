@@ -2,6 +2,7 @@
 
 **Status:** Accepted — June 2026
 **Supersedes:** the per-attendee hosting model in the original `../lab-apps-build-spec.md`
+**Amended by:** `0002-central-shared-mcp-server.md` — the "Unchanged" clause below wrongly lumped the MCP server with the adapter; the MCP server is now **central/shared** (the adapter stays per-attendee).
 **Related:** `../notes/central-multitenant-hosting.md` (the parked exploration this resolves)
 
 ## Context
@@ -23,7 +24,7 @@ The original build spec hosted VantageCRM and VantageDesk once per attendee. For
 
 **Negative / risks.** Trades 100 small failure domains for one larger one (mitigated by Redis + multiple replicas). **Tenant isolation becomes a correctness-critical property on every data path** — a bug that lets org A's token read org B's data is the principal risk, and must be covered by tests before the lab runs at scale. Loses the tactile browser-login demo (accepted; faked with screenshots).
 
-**Unchanged.** The MCP server and Okta MCP Adapter stay **per-attendee** — they hold per-org agent secrets and perform per-org XAA token exchange, and do not centralize cleanly (see `../notes/central-multitenant-hosting.md` for the shared-Adapter analysis, which remains tabled). Each attendee's MCP server calls the central apps with the attendee's Bearer token; the apps resolve tenant by issuer.
+**Partly changed — see ADR-0002.** The **Okta MCP Adapter** stays **per-attendee** — it holds per-org agent secrets and performs per-org XAA token exchange, and does not centralize cleanly (see `../notes/central-multitenant-hosting.md` for the shared-Adapter analysis, which remains tabled). The **MCP server**, however, is a stateless secret-less proxy and was subsequently **centralized** (ADR-0002): one shared MCP server serves every attendee's adapter. Each adapter calls the central MCP server with the attendee's Bearer token; the MCP server forwards it to the central apps, which resolve tenant by issuer.
 
 ## Module impact
 
