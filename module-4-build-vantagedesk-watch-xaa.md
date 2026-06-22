@@ -195,7 +195,7 @@ Tool: itsm.lookup_ticket
 Args: {"ticket_id":"TKT-1734"}
 
 → Adapter performing XAA token exchange (step 1 + step 2)
-→ Calling MCP server at https://mcp.{{lab_domain}}/invoke
+→ Adapter forwarding to the central MCP server at https://mcp.taskvantage-demo.com/mcp
 → MCP server routing to VantageDesk as kim.liu@atko.email
 ✓ Tool returned in 247 ms.
 
@@ -277,7 +277,8 @@ Output (decoded for readability):
       "exp": 1735196700
     }
 
-[7] Tool invocation — POST https://mcp.{{lab_domain}}/invoke/itsm.lookup_ticket
+[7] Tool invocation — adapter → central MCP server:
+    POST https://mcp.taskvantage-demo.com/mcp  (tools/call: itsm.lookup_ticket)
     Authorization: Bearer <access token from step 6>
     Body: {"ticket_id":"TKT-1734"}
 
@@ -307,7 +308,7 @@ It calls `GET https://vantagedesk.taskvantage-demo.com/admin/access-log` with yo
   Client:            TaskVantage Sales Agent
   Audience:          api://vantage-desk
   Scopes:            itsm.tickets.read
-  Source:            mcp.{{lab_domain}}
+  Source:            mcp.taskvantage-demo.com (shared MCP server)
 ```
 
 *(If your environment serves this step as a rendered screenshot instead of a live script, the captured access-log line is identical — same fields, same values.)*
