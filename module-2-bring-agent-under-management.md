@@ -85,6 +85,8 @@ Okta uses a public key to verify the agent's identity when it requests tokens. T
 
 *NOTE: The key has its own activation status, separate from the agent. Both must be active for the agent to authenticate. If you regenerate or rotate a key later, the new one starts INACTIVE and must be activated explicitly.*
 
+*NOTE: The **private key your agent runtime uses must be the one whose public key is active here.** The XAA exchange (Lab 4) signs a client assertion with this key, and Okta validates it against the active credential's `kid` — if the agent/adapter was configured with a different (or stale) key, the exchange fails with `client_assertion_invalid_kid`. Whenever you regenerate the credential, re-sync the new private key to the runtime.*
+
 ### 2.6 Create and link a user-sign-on app
 
 The linked sign-on app is the front door to your agent. Users authenticate to this OIDC app first; from there they reach the agent and, through the agent, the Okta-managed resources it brokers access to. The link does two things in the access model: it scopes the agent's audience to users assigned to the app (access control), and it anchors every agent action to a specific user sign-in event (visibility and audit). In a real deployment this app is the chat UI, workflow tool, or other front-end through which users interact with the agent.
@@ -146,12 +148,12 @@ This step turns your active agent into an agent that can actually do something. 
 - In the Add connection dialog:
   - **Resource type**: select **Authorization server**.
   - **Authorization server**: select `vantage-crm-as` from the dropdown.
-  - **Scopes**: select **Allow all** to grant the full scope set.
+  - **Scopes**: select **Only allow**, and add the full granular scope set: `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write`.
 - Click **Add**.
 
 The new connection appears on the **Managed connections** tab.
 
-*NOTE: "Allow all" grants every scope `vantage-crm-as` exposes. For real-world deployments, you would typically choose "Only allow" with a narrowed scope list — for example, only `crm.accounts.read` for a read-only research agent. In Lab 5, OIG will demonstrate scope-down via certification and time-bound entitlements. For this lab, the agent needs the full scope set so Lab 3's tool filtering has something to filter.*
+*NOTE: Choose **"Only allow"** with the granular scope list — **not "Allow all".** The managed connection caps which scopes the agent may *request*; which scopes a given **user** is granted still comes from `vantage-crm-as`'s access policy (Lab 1.10 / Lab 3), keyed on group membership — that policy is what drives Lab 3's per-user tool filtering. "Allow all" is not just broader: with the Okta MCP Adapter it makes the agent fall back to requesting a generic `mcp:read` scope that the custom auth server doesn't define, and the token exchange fails (`no_matching_scope`). In Lab 5, OIG layers time-bound scope-down on top via certification.*
 
 ### 2.10 Verify the configuration
 

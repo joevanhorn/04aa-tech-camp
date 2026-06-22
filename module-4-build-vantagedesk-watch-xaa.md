@@ -96,6 +96,8 @@ The access policy is what differentiates Kim (full ITSM access) from Alex (no IT
   - **Assign to clients**: select `TaskVantage Sales Agent` from the list
 - Click **Create Policy**.
 
+*NOTE: The assigned client must be the **AI agent itself** (`TaskVantage Sales Agent`), not its user-sign-on app. During XAA the adapter authenticates to this auth server **as the agent** (via `private_key_jwt` with the agent's credential), so the agent principal is the client Okta evaluates. If only the sign-on app were assigned, the exchange would fail with `no_matching_policy`.*
+
 Now add the rules. Click **Add Rule** for each:
 
 **Rule 1 — IT help desk full access**
@@ -130,7 +132,7 @@ The auth server and policy exist. Now bind them to the agent.
 - In the Add connection dialog:
   - **Resource type**: select **Authorization server**.
   - **Authorization server**: select `vantage-desk-as` from the dropdown.
-  - **Scopes**: select **Allow all** to grant the full scope set.
+  - **Scopes**: select **Only allow**, and add the granular ITSM scope set: `itsm.tickets.read`, `itsm.tickets.write`, `itsm.incidents.read`, `itsm.incidents.write`, `itsm.kb.read`. (Not "Allow all" — see the Lab 2.9 note: "Allow all" makes the adapter request a generic `mcp:read` scope this auth server doesn't define, and the XAA exchange fails.)
 - Click **Add**.
 
 The agent now shows two managed connections: one to `vantage-crm-as` (from Lab 2) and one to `vantage-desk-as` (just added). The agent's reach has doubled.
