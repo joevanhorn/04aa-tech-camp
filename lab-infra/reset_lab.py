@@ -12,8 +12,9 @@ Wipes (idempotent — silent if already gone):
   • `vantage-desk-as` (built in Module 4) — deactivate + delete.
   • Module-5 OIG residue: remove members from "CRM Read - Cross-Functional" (Frank's temporary grant).
 
-The attendee's MCP Adapter (agent import + resources) is reset separately on the adapter side; pass
---adapter + --adapter-token to also delete the agent there, or do it via the adapter Admin UI.
+The attendee's MCP Adapter is reset on the adapter side when you pass --adapter + --adapter-token:
+it deletes the agent's adapter **resources** (so no orphaned resource survives with a dead
+connection_id → silent 0 tools next run) and then the adapter agent. Otherwise do it via the Admin UI.
 
 Usage:
   export OKTA_ORG=https://demo-o4aa-techcamp-testing.okta.com
@@ -28,6 +29,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -67,7 +69,26 @@ def delete_agent(base, token, name):
     for a in hit:
         aid = a["id"]
         req("POST", base, f"/workload-principals/api/v1/ai-agents/{aid}/lifecycle/deactivate", token)
-        code, _ = req("DELETE", base, f"/workload-principals/api/v1/ai-agents/{aid}", token)
+        # Deactivation is async; DELETE 400s until the status settles to INACTIVE. Wait for it.
+        if not DRY:
+            for _ in range(10):
+                c, cur = req("GET", base, f"/workload-principals/api/v1/ai-agents/{aid}", token)
+                if c == 404 or (isinstance(cur, dict) and cur.get("status") == "INACTIVE"):
+                    break
+                time.sleep(2)
+        code = 0
+        for _ in range(1 if DRY else 6):
+            code, _ = req("DELETE", base, f"/workload-principals/api/v1/ai-agents/{aid}", token)
+            if DRY or code in (200, 202, 204, 404):
+                break
+            time.sleep(2)
+        # DELETE is async too — poll until the agent is actually gone (404).
+        if not DRY:
+            for _ in range(10):
+                c, _ = req("GET", base, f"/workload-principals/api/v1/ai-agents/{aid}", token)
+                if c == 404:
+                    break
+                time.sleep(2)
         print(f"  agent '{name}' ({aid}) deleted (HTTP {code})")
 
 
@@ -109,17 +130,30 @@ def empty_group(base, token, name):
 
 
 def delete_adapter_agent(adapter, token, okta_agent_name):
-    """Best-effort adapter-side reset: delete the agent (cascades its resources)."""
+    """Adapter-side reset: delete the agent's RESOURCES first, then the agent.
+
+    Deleting the resources is the important part. An orphaned resource survives a reset and, on
+    the next import, gets its agent_id reassigned while keeping the OLD (now-deleted)
+    connection_id — XAA then fails with "could not create auth headers" and the agent silently
+    returns 0 tools. Removing the resources forces a clean re-materialize on the next sync.
+    """
     code, body = req("GET", adapter, "/api/admin/agents", token, scheme="Bearer")
     if code != 200:
         print(f"  adapter agents list ({code}) — skipping adapter reset"); return
     agents = body if isinstance(body, list) else body.get("agents", body.get("data", []))
-    # adapter stores the slug lowercased; match loosely
-    want = okta_agent_name.lower().replace(" ", "-")
+    want = okta_agent_name.lower().replace(" ", "-")  # adapter stores the slug lowercased
     for a in agents or []:
-        if a.get("agent_id", "").lower() in (want, okta_agent_name.lower()) or a.get("name") == okta_agent_name:
-            code, _ = req("DELETE", adapter, f"/api/admin/agents/{a['agent_id']}", token, scheme="Bearer")
-            print(f"  adapter agent '{a['agent_id']}' deleted (HTTP {code})")
+        slug = a.get("agent_id", "")
+        if slug.lower() in (want, okta_agent_name.lower()) or a.get("name") == okta_agent_name:
+            rc, rbody = req("GET", adapter, "/api/admin/resources", token, scheme="Bearer")
+            resources = (rbody.get("resources", rbody) if isinstance(rbody, dict) else rbody) or []
+            for r in (resources if isinstance(resources, list) else []):
+                if r.get("agent_id") == slug:
+                    rn = r.get("name")
+                    drc, _ = req("DELETE", adapter, f"/api/admin/resources/{rn}", token, scheme="Bearer")
+                    print(f"    adapter resource '{rn}' deleted (HTTP {drc})")
+            code, _ = req("DELETE", adapter, f"/api/admin/agents/{slug}", token, scheme="Bearer")
+            print(f"  adapter agent '{slug}' deleted (HTTP {code})")
 
 
 def main() -> int:

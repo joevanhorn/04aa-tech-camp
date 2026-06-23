@@ -180,10 +180,27 @@ def ensure_groups_claim(base, token, asid):
     })
 
 
+def _reconcile_policy(base, token, asid, pid):
+    """Reassert the desired pre-state on an existing policy: clients=ALL_CLIENTS and ACTIVE.
+
+    Why: deleting the attendee's agent (reset_lab.py) cascades to empty the policy's
+    clients.include and can leave it INACTIVE, and a bare create-if-absent would never repair
+    that. Re-running provisioning should restore a clean ALL_CLIENTS/active pre-state so the
+    attendee can re-pin their own agent in Module 2.11.
+    """
+    req("PUT", base, f"/api/v1/authorizationServers/{asid}/policies/{pid}", token, {
+        "type": "OAUTH_AUTHORIZATION_POLICY", "name": "VantageCRM access policy",
+        "description": "Per-user CRM scope filtering (Module 3) + XAA grant",
+        "conditions": {"clients": {"include": ["ALL_CLIENTS"]}},
+    })
+    req("POST", base, f"/api/v1/authorizationServers/{asid}/policies/{pid}/lifecycle/activate", token)
+
+
 def ensure_policy(base, token, asid) -> str:
     code, pols = req("GET", base, f"/api/v1/authorizationServers/{asid}/policies", token)
     for p in (pols if isinstance(pols, list) else []):
         if p.get("name") == "VantageCRM access policy":
+            _reconcile_policy(base, token, asid, p["id"])   # repair clients/active on re-runs
             return p["id"]
     code, p = req("POST", base, f"/api/v1/authorizationServers/{asid}/policies", token, {
         "type": "OAUTH_AUTHORIZATION_POLICY", "name": "VantageCRM access policy",
