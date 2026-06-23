@@ -91,7 +91,7 @@ You will launch this campaign in 5.6, after Frank's membership has been granted.
 Switch perspectives. You will now act as Frank Boone, the requesting user.
 
 - On the Virtual Desktop, open a new Chrome incognito window.
-- Navigate to your Okta End-User Dashboard at `https://{{org_url}}` and sign in as Frank (`frank.boone@atko.email` / `Tra!nme4321`).
+- Navigate to your Okta End-User Dashboard at `https://{{org_url}}` and sign in as Frank (`frank.boone@atko.email` / `{{persona_password}}`).
 - Click the **Requests** tab (or **My Access** depending on the dashboard version `{HumanReview}`) and then **Request Access**.
 - Browse or search for `CRM Read - Cross-Functional`.
 - Click **Request**.

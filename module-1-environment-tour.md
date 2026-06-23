@@ -50,7 +50,7 @@ When you see a step that asks you to *review* something on VantageCRM, look clos
 These personas will be used throughout the lab. The agent will act on behalf of these users; their group memberships drive what tools and data they can reach.
 
 - From the Admin Console, go to **Directory** > **People**.
-- Confirm the following users are present and **ACTIVE**. All passwords are `Tra!nme4321`.
+- Confirm the following users are present and **ACTIVE**. All personas share the same password, `{{persona_password}}` (provided with your lab credentials).
 
 | User | Role | Use in lab |
 | --- | --- | --- |
