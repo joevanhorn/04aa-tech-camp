@@ -28,6 +28,10 @@ Usage:
   export OKTA_ORG=https://demo-o4aa-techcamp-testing.okta.com
   export OKTA_API_TOKEN=<SSWS super-admin token>
   export LAB_USER_PASSWORD='<password for persona logins>'      # or --password
+  # NOTE: whatever LAB_USER_PASSWORD is set to becomes every persona's login password, and is the
+  # value the lab guide surfaces as the {{persona_password}} placeholder (Module 1.3 / 5.3). The
+  # lab platform must inject the SAME value into both this provisioner and the guide's placeholder,
+  # or attendees can't log in as the personas.
   python deploy/provision_lab_org.py
   python deploy/provision_lab_org.py --dry-run
 """
@@ -256,6 +260,73 @@ def ensure_example_agent(base, token, asid, name=EXAMPLE_AGENT_NAME) -> str:
     return aid
 
 
+# --- OIG: make CRM Read - Cross-Functional requestable (Module 5.3–5.5) -----------------------
+# Mirrors the prod "Privileged AD Group Request" pattern: an OIN host app with the group assigned,
+# plus an access request-condition. The certification campaign (Module 5.6) is intentionally NOT
+# created here — build it in the Admin UI / lab platform (Governance > Access Certifications). The
+# approval sequence is also not created (Okta pre-creates a "Requester's Manager Approval" sequence
+# per org); we just reference it.
+REQUEST_APP_OIN = "scim2testapp_basic"          # same OIN integration prod uses as the host app
+REQUEST_APP_LABEL = "VantageCRM Access Requests"
+XFUNC_GROUP = "CRM Read - Cross-Functional"
+REQUEST_DURATION = "PT2H"                         # 2h for the lab (production would be 30+ days)
+FRANK_LOGIN = "frank.boone@atko.email"           # the Module 5 requester whose manager must be set
+
+
+def ensure_oig_request_access(base, token, gids, approver_login=None):
+    """Option-C OIG setup: make the cross-functional group requestable via an OIN host app +
+    request-condition, and set the requester's manager so Module 5.4 approval routes correctly."""
+    xgid = gids[XFUNC_GROUP]
+    # 1. Host app (idempotent by label).
+    code, apps = req("GET", base, f"/api/v1/apps?q={urllib.parse.quote(REQUEST_APP_LABEL)}&limit=20", token)
+    appid = next((a["id"] for a in (apps if isinstance(apps, list) else [])
+                  if a.get("label") == REQUEST_APP_LABEL), None)
+    if not appid:
+        code, a = req("POST", base, "/api/v1/apps", token,
+                      {"name": REQUEST_APP_OIN, "label": REQUEST_APP_LABEL, "signOnMode": "AUTO_LOGIN"})
+        appid = a.get("id", "DRY") if isinstance(a, dict) else "DRY"
+    # 2. Assign the requestable group to the host app.
+    req("PUT", base, f"/api/v1/apps/{appid}/groups/{xgid}", token, {})
+    # 3. Set the requester's manager (approval routing). Needs an approver login.
+    if approver_login:
+        code, u = req("GET", base, f"/api/v1/users/{urllib.parse.quote(approver_login)}", token)
+        aid = u.get("id") if isinstance(u, dict) else None
+        if aid:
+            req("POST", base, f"/api/v1/users/{urllib.parse.quote(FRANK_LOGIN)}", token,
+                {"profile": {"managerId": aid, "manager": approver_login}})
+    else:
+        print("  WARN no --approver-login: Frank has no manager set, so Module 5.4 manager-approval "
+              "won't route. Pass --approver-login <admin> (the attendee admin who approves).")
+    # 4. Reference the org's pre-created manager-approval request-sequence (prefer one naming a
+    #    Manager and supporting GROUP; fall back to the first available).
+    code, seqs = req("GET", base, f"/governance/api/v2/resources/{appid}/request-sequences", token)
+    slist = seqs.get("data", seqs) if isinstance(seqs, dict) else seqs
+    slist = slist if isinstance(slist, list) else []
+    seq = next((s for s in slist if "Manager" in (s.get("name") or "")
+                and "GROUP" in (s.get("compatibleResourceTypes") or [])), None) or (slist[0] if slist else None)
+    seqid = seq.get("id") if seq else None
+    # 5. Request-condition (idempotent by name — the list view omits accessScopeSettings.groups,
+    #    so we can't match on the group; the name is unique to this condition), then activate.
+    rc_name = "Request CRM cross-functional access"
+    code, conds = req("GET", base, f"/governance/api/v2/resources/{appid}/request-conditions", token)
+    clist = conds.get("data", conds) if isinstance(conds, dict) else conds
+    clist = clist if isinstance(clist, list) else []
+    rcid = next((c["id"] for c in clist if c.get("name") == rc_name), None)
+    if not rcid and seqid:
+        code, rc = req("POST", base, f"/governance/api/v2/resources/{appid}/request-conditions", token, {
+            "name": rc_name,
+            "requesterSettings": {"type": "EVERYONE"},
+            "accessScopeSettings": {"type": "GROUPS", "groups": [{"id": xgid}]},
+            "accessDurationSettings": {"type": "ADMIN_FIXED_DURATION", "duration": REQUEST_DURATION},
+            "approvalSequenceId": seqid})
+        rcid = rc.get("id") if isinstance(rc, dict) else None
+    elif not seqid:
+        print("  WARN no request-sequence found on the host app — cannot create the request-condition.")
+    if rcid:
+        req("POST", base, f"/governance/api/v2/resources/{appid}/request-conditions/{rcid}/activate", token)
+    return appid, rcid, seqid
+
+
 def main() -> int:
     global DRY
     p = argparse.ArgumentParser(description="Provision O4AA lab pre-state into a fresh Okta org.")
@@ -264,6 +335,11 @@ def main() -> int:
     p.add_argument("--password", default=os.environ.get("LAB_USER_PASSWORD"), help="persona login password")
     p.add_argument("--no-example-agent", action="store_true",
                    help="skip pre-loading the example AI agent + its CRM connection")
+    p.add_argument("--approver-login", default=os.environ.get("LAB_APPROVER_LOGIN"),
+                   help="admin login set as Frank's manager for Module 5.4 approval routing "
+                        "(env LAB_APPROVER_LOGIN); omit to skip the OIG request-access setup")
+    p.add_argument("--no-oig", action="store_true",
+                   help="skip the Module 5 OIG request-access setup (catalog entry + approver)")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     if not args.org or not args.token:
@@ -303,6 +379,13 @@ def main() -> int:
               f"     wire_adapter_resource.py --preset crm --okta-agent-id {ex} "
               f"--auth-server-id {asid} --adapter <adapter-url> --mcp-host <mcp-host> "
               f"--org-domain <org>  (adapter token via ADAPTER_ADMIN_TOKEN)")
+
+    if not args.no_oig:
+        print("OIG request access (Module 5.3–5.5; certification campaign 5.6 is a manual/platform step) …")
+        appid, rcid, seqid = ensure_oig_request_access(base, token, gids, args.approver_login)
+        print(f"  request app = {appid}  | request-condition = {rcid}  | sequence = {seqid}")
+        print(f"  '{XFUNC_GROUP}' is now requestable ({REQUEST_DURATION}, manager approval). "
+              f"NOTE: create the certification campaign (5.6) in Governance > Access Certifications.")
 
     print("\nLab pre-state provisioned. Next: enroll the org in the apps (enroll_tenant.py); the example "
           "agent's CRM resource materializes once the adapter imports it (wire_adapter_resource.py). "
