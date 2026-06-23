@@ -88,14 +88,31 @@ new groups/scopes during testing: `aws ecs update-service --cluster supersafe-ai
 --force-new-deployment` (memory cache ⇒ restart clears it). For the live lab this is a non-issue
 (attendees mint fresh, and config is set before first call).
 
-## Validation status
+## Validation status — ✅ BOTH AUDIENCES PROVEN END-TO-END
 
-- Desk: ✅ `itsm.lookup_ticket TKT-1734` returns real data through the bridge.
-- CRM audience/scope: ✅ app log shows `GET /api/accounts?id=ACC-1001 200 OK`, `Audience:
-  api://vantage-crm`, `Client: wlp24…`, `Scopes: crm.accounts.read …` — the right-audience XAA token
-  is minted + accepted. Empty body was row-level visibility (bot not yet in Sales Management) + cached
-  groups-empty token; resolved by the groups claim + group membership + adapter restart.
-- CRM real-data proof: ⏳ in progress (re-run after adapter restart).
+Single `bridge_login.py` run, one agent, one adapter, two path-scoped resources:
+- `vantage-tools__itsm.lookup_ticket TKT-1734` → real VantageDesk ticket (`api://vantage-desk`).
+- `vantage-crm__crm.lookup_account ACC-1001` → **"Northwind Trading Co."** (`api://vantage-crm`).
+
+35 tools consolidated (12 vantage = 6 crm + 6 itsm, 14 SuperSafe, 9 governance), each minting its
+own correct-audience XAA token. Groups claim + Sales-Management membership gave the caller CRM
+visibility (Module 3's "Susan sees all accounts" mechanic).
+
+### Durability finding (gotcha-5 redux — important for lab-day)
+
+After an adapter **restart**, both vantage exchanges failed with
+`[ID-JAG] STEP 1+2 FAILED: invalid_scope: scopes not allowed: [mcp:read]`. Cause: the DB-hydrated
+resources came back with `scope_condition` defaulted to **ALLOW_ALL**, so the adapter requested its
+fallback scope `mcp:read` — which the vantage AS doesn't define. (Same failure mode as gotcha 5; here
+triggered by hydration, not config.) On this **older deployed adapter**, a resource created via the
+manual `POST /api/admin/resources` workaround + sync persists the granular scopes to the in-memory
+resolved set and the admin cache, but not durably to the DB `scope_condition` column — so a restart
+loses them. **Fix: re-run sync after any adapter restart** (`POST /api/admin/okta/sync/all` then
+`/api/admin/connections/sync`) to rebuild the in-memory resolved resources with `INCLUDE_ONLY` +
+granular scopes. For a real lab on a **current adapter (0.15.x)**, resources auto-materialize from
+connections on sync (no manual POST), where sync-owned scope fields persist — so this is largely an
+artifact of the old-adapter workaround. Still: the modules' adapter-setup step should say *sync* (and
+re-sync after Lab 4), and proctor notes should mention "re-sync if the adapter restarts."
 
 ## Test harness
 

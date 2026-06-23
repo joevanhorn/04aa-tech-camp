@@ -175,9 +175,14 @@ managed connections are `INCLUDE_ONLY` the backend's granular scopes (confirming
 in Lab 2, `vantage-desk-as` in Lab 4); the adapter-side addition is registering **two** resources, each
 pointing at its `/crm/mcp` or `/desk/mcp` path.
 
-**Status:** Desk path validated end-to-end. CRM Okta config built (AS `aus24g60q8aVYfJJp1d8`, policy,
-managed connection `mcn24g62fj5feQhBf1d8` INCLUDE_ONLY `crm.*`) and the path-split MCP server deployed +
-verified live; CRM end-to-end pending the adapter sync + resource-URL step.
+**Status:** ✅ **both audiences validated end-to-end in one run (2026-06-23)** — `itsm.lookup_ticket
+TKT-1734` (`api://vantage-desk`) **and** `crm.lookup_account ACC-1001` → "Northwind Trading Co."
+(`api://vantage-crm`), same agent, one adapter, two path-scoped resources (`vantage-tools`→`/desk/mcp`,
+`vantage-crm`→`/crm/mcp`). Full play-by-play + IDs in `crm-path-validation-runbook.md`. Two lab gaps
+surfaced and fixed: (1) **groups claim** missing on both vantage AS — the apps read `token["groups"]`
+for row-level visibility (Module 3); added to both. (2) the **"Sales Management" group** referenced by
+the app code didn't exist; created it. Durability note: on the older deployed adapter, re-run sync after
+any restart (see runbook).
 
 ## Module impact summary (drives the doc/module update pass)
 
@@ -188,4 +193,5 @@ verified live; CRM end-to-end pending the adapter sync + resource-URL step.
 | 3 — credential key match | **Module 2.5** | Key generated+activated must be the one the runtime/adapter uses | ✅ applied (NOTE) |
 | 4 + resource registration | **NEW Module 2 adapter-config section** | Import agent, DCR-selectable, register the per-AS resource (okta-cross-app) at its `/crm/mcp`/`/desk/mcp` path, sync | ⏳ pending |
 | 1, 2 — infra | platform-team / apps | MCP server transport-security; Redis registry | ✅ done in taskvantage-apps |
-| dual-audience routing | architecture / Module 2+4 | **two** adapter resources (one per AS), MCP server path-scoped (`/crm/mcp`, `/desk/mcp`) | ✅ design resolved + MCP server deployed; CRM E2E pending |
+| dual-audience routing | architecture / Module 2+4 | **two** adapter resources (one per AS), MCP server path-scoped (`/crm/mcp`, `/desk/mcp`) | ✅ validated E2E (both audiences, one run) |
+| groups claim for visibility | **Module 1 (AS build) / 2.x** | add a `groups` claim to each vantage AS; create the **Sales Management** group | ✅ added to both AS + group created |
