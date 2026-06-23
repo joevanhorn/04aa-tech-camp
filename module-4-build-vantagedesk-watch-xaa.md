@@ -153,7 +153,7 @@ Your adapter now has **two** resources for one agent: the CRM resource at `/crm/
 
 ### 4.8 Re-list tools — see ITSM appear
 
-Run the tool-listing script again as Kim Liu, who is in `IT Help Desk` and matches both rule 3 on CRM (limited read) and rule 1 on Desk (full access).
+Run the tool-listing script again as Kim Liu, who is in `IT Help Desk` and matches both rule 3 on CRM and rule 1 on Desk. Because access is binary today, matching a CRM rule yields the full CRM tool set and matching the Desk rule yields the full Desk tool set — so Kim sees all twelve.
 
 ```bash
 ~/Desktop/list-agent-tools.sh --user kim.liu@atko.email
@@ -168,14 +168,19 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
 → Adapter resolved effective scopes:
-    From vantage-crm-as:  crm.accounts.read, crm.contacts.read
+    From vantage-crm-as:  full crm.* set (crm.accounts.read/write,
+                          crm.contacts.read, crm.opportunities.read/write)
     From vantage-desk-as: itsm.tickets.read, itsm.tickets.write,
                           itsm.incidents.read, itsm.incidents.write,
                           itsm.kb.read
 
-8 tools available to this user:
+12 tools available to this user:
   ▸ crm.lookup_account       Look up a customer account by name or ID
+  ▸ crm.create_account       Create a new customer account
+  ▸ crm.update_account       Update an existing account
   ▸ crm.lookup_contact       Look up a contact by name or email
+  ▸ crm.lookup_opportunity   Look up an opportunity by name or stage
+  ▸ crm.update_opportunity   Update an opportunity's stage, amount, or details
   ▸ itsm.lookup_ticket       Look up a ticket by ID or queue
   ▸ itsm.create_ticket       Create a new support ticket
   ▸ itsm.update_ticket       Update an existing ticket
@@ -183,14 +188,12 @@ Agent: TaskVantage Sales Agent (ACTIVE)
   ▸ itsm.update_incident     Update an incident's status or severity
   ▸ itsm.search_kb           Search the knowledge base
 
-4 tools filtered out (scope not granted to this user):
-  ✗ crm.create_account, crm.update_account,
-    crm.lookup_opportunity, crm.update_opportunity
+0 tools filtered out (scope not granted to this user).
 
 0 tools filtered out (resource not yet configured).
 ```
 
-The "resource not yet configured" bucket is empty — every tool the adapter knows about is now gated against an authorization server. Compare this to Lab 3.4 where six ITSM tools sat in that bucket; your work in 4.3 through 4.7 cleared it.
+The "resource not yet configured" bucket is empty — every tool the adapter knows about is now gated against an authorization server. Compare this to Lab 3.4 where six ITSM tools sat in that bucket; your work in 4.3 through 4.7 cleared it. (As in Module 3, the per-tool catalog is binary today: Kim is a member of both CRM and Desk groups, so she gets both full tool sets. What scopes a manager-vs-rep distinction would carve out at the tool level is a future graduated model — see `lab-infra/README.md`. Data-level differences still apply: VantageCRM row-filters Kim's CRM results to what her role can see.)
 
 ### 4.9 Invoke a tool through the agent
 

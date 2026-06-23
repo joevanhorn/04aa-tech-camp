@@ -14,7 +14,7 @@ This is the round-trip that proves governance is not a separate paperwork proces
 
 You have built the static half of the access model: access policy rules tied to group membership, scoped at the authorization server. That governs the *steady state*. But real organizations are not in steady state. Engineering managers occasionally need CRM read access for cross-functional projects. Auditors want quarterly reviews of who has access to what. And when something goes wrong, the security team needs a single switch that stops everything.
 
-Today, Frank Boone — the Engineering Director who saw zero tools in Lab 3.6 — requests temporary CRM read access through OIG to support a cross-functional product launch. You'll approve his request, watch the same tool-listing script that returned zero tools in Lab 3 now return three for Frank, then launch a certification campaign that revokes the access and watch those tools vanish. Finally, you'll deactivate the agent entirely and confirm nobody — not even Kim, who has full standing access — can use it.
+Today, Frank Boone — the Engineering Director who saw zero tools in Lab 3.6 — requests temporary CRM access through OIG to support a cross-functional product launch. You'll approve his request, watch the same tool-listing script that returned zero tools in Lab 3 now return the full CRM tool set for Frank (access is binary today — joining the gated group grants all CRM tools), then launch a certification campaign that revokes the access and watch those tools vanish. Finally, you'll deactivate the agent entirely and confirm nobody — not even Kim, who has full standing access — can use it.
 
 ## Browser use for this lab
 
@@ -50,7 +50,7 @@ Review what's there now.
 You saw the rule in Lab 3.2 — it sits as rule 4 on `vantage-crm-as`, gating the group `CRM Read - Cross-Functional`. Confirm both are present:
 
 - From the Admin Console, go to **Directory** > **Groups** and find `CRM Read - Cross-Functional`. It is empty — no members yet.
-- Go to **Security** > **API** > `vantage-crm-as` > **Access Policies** and confirm rule 4 (`Cross-functional readers — read access`) gates this group with the three read scopes.
+- Go to **Security** > **API** > `vantage-crm-as` > **Access Policies** and confirm rule 4 (`Cross-functional readers — access`) gates this group with the full `crm.*` scope set (every CRM rule grants the same set today — see Module 3.1).
 
 Together, the rule and the group are the access machinery. They have been in place since Lab 1. The reason rule 4 has never fired in any of your script runs is simply that nobody has been a member of the gated group. That changes in 5.4.
 
@@ -139,23 +139,28 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
 → Adapter resolved effective scopes via vantage-crm-as:
-    Matched rule 4 (Cross-functional readers — read access):
-      crm.accounts.read, crm.contacts.read, crm.opportunities.read
+    Matched rule 4 (Cross-functional readers — access): full crm.* set
+      crm.accounts.read, crm.accounts.write, crm.contacts.read,
+      crm.opportunities.read, crm.opportunities.write
 
-3 tools available to this user:
+6 tools available to this user:
   ▸ crm.lookup_account       Look up a customer account by name or ID
+  ▸ crm.create_account       Create a new customer account
+  ▸ crm.update_account       Update an existing account
   ▸ crm.lookup_contact       Look up a contact by name or email
   ▸ crm.lookup_opportunity   Look up an opportunity by name or stage
+  ▸ crm.update_opportunity   Update an opportunity's stage, amount, or details
 
-3 tools filtered out (scope not granted to this user):
-  ✗ crm.create_account, crm.update_account, crm.update_opportunity
+0 tools filtered out (scope not granted to this user).
 
 6 tools filtered out (Desk scope not granted):
   ✗ itsm.lookup_ticket, itsm.create_ticket, itsm.update_ticket,
     itsm.lookup_incident, itsm.update_incident, itsm.search_kb
 ```
 
-Compare to Lab 3.6: 0 tools then, 3 now. The agent did not change. Rule 4 did not change. The only change is Frank's group membership — and that propagated automatically through the same evaluation path that Alex's and Susan's memberships have always taken.
+Compare to Lab 3.6: 0 tools then, the full CRM set now. The agent did not change. Rule 4 did not change. The only change is Frank's group membership — and that propagated automatically through the same evaluation path that Alex's and Susan's memberships have always taken.
+
+*NOTE: Frank gets the **full** CRM tool set, not a read-only slice, because access is binary today: matching any CRM rule grants all `crm.*` scopes (see Module 3.1). His row-level data visibility is still bounded by what `CRM Read - Cross-Functional` can see. A future graduated model would let the cross-functional grant be genuinely read-only at the tool level; that isn't wired yet — see `lab-infra/README.md`.*
 
 ### 5.6 Launch the certification campaign
 

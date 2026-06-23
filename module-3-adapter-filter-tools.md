@@ -8,7 +8,9 @@ Watch the MCP Adapter constrain the agent's tool catalog based on the requesting
 
 The TaskVantage Sales Agent is registered, owned, and connected. The sales team is asking the obvious question: "If anyone in the company can sign in and talk to this agent, what stops the wrong person from getting account data they shouldn't see?"
 
-You'll answer that by running the same agent request as three users and observing that none of them sees the same thing. Alex (a sales rep) gets a read-only tool set. Susan (a sales manager) gets the full set. Frank (an engineering director with no CRM relationship) gets nothing. No reconfiguration between runs — only the user changes.
+You'll answer that by running the same agent request as three users and observing that what comes back depends on the user. Susan (a sales manager) and Alex (a sales rep) are both in a CRM group that `vantage-crm-as` grants access to, so each gets the agent's full CRM tool set. Frank (an engineering director with no CRM relationship) is in no CRM group, so he gets nothing. No reconfiguration between runs — only the user changes.
+
+> **Access today is binary (0-or-all).** Membership in *any* `vantage-crm-as` policy group grants the **full** `crm.*` tool set; a non-member gets **none**. The lab does **not** currently hand a sales rep a narrower read-only *tool* subset than a sales manager — graduated per-user tool filtering is a known follow-up (see `lab-infra/README.md`). What still differs per user is the **data** each one sees inside those tools: VantageCRM row-filters results by the caller's `sub` + `groups` (Module 1.5), so a rep sees fewer accounts than a manager even when both hold the same tools.
 
 ## Browser use for this lab
 
@@ -23,8 +25,10 @@ The MCP Adapter is the policy enforcement point between the agent and the resour
 
 1. **Identify the agent.** Verify the caller is a registered, active AI agent with a managed connection that covers the resources the catalog touches. (Your work in Lab 2.)
 2. **Identify the user.** Read the user's identity from the user-context token the agent presents (the user the agent is acting for). No user context, no further work.
-3. **Resolve the user's effective scopes.** Ask Okta which scopes this user is permitted to request from `vantage-crm-as`. The answer comes from the auth server's access policy rules, which key off group membership.
-4. **Map scopes to tools.** The adapter holds a static map of `tool → required scope`. It returns only the tools whose required scopes are in the user's effective set.
+3. **Resolve the user's effective scopes.** Ask Okta which scopes this user is permitted to request from `vantage-crm-as`. The answer comes from the auth server's access policy rules, which key off group membership. Today every CRM rule grants the **same full `crm.*` scope set**, so the resolution is effectively binary: a user who matches any rule gets all CRM scopes; a user who matches none gets none.
+4. **Map scopes to tools.** The adapter holds a static map of `tool → required scope`. It returns only the tools whose required scopes are in the user's effective set. Because matched users get the full scope set today, a matched user sees the full CRM tool catalog and a non-matched user sees nothing.
+
+> **Why not a graduated tool subset per group?** Conceptually the access policy *could* grant a sales rep fewer scopes (read-only) than a manager, and the adapter would then surface fewer tools. The lab does not do this yet: the adapter requests the managed connection's full `INCLUDE_ONLY` scope set for every user, and Okta returns `no_matching_policy` when a request isn't a subset of a matched rule — so a narrower per-group rule denies that user entirely instead of trimming their tools. Until the adapter narrows its request per user (or Okta does an intersection grant), access stays 0-or-all. Tracked in `lab-infra/README.md`.
 
 The agent never sees a tool that does not match the user. There is no client-side filtering. There is no "ask and be denied later." The adapter shapes the catalog before the agent ever sees it.
 
@@ -39,13 +43,15 @@ The access policy is what drives the entire filtering decision. Worth seeing it 
 
 | Rule order | Rule name | If user is in group... | Granted scopes |
 | --- | --- | --- | --- |
-| 1 | Sales managers — full access | `Sales Management` | `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write` |
-| 2 | Sales reps — read access | `Sales Reps` | `crm.accounts.read`, `crm.contacts.read`, `crm.opportunities.read` |
-| 3 | IT help desk — limited read | `IT Help Desk` | `crm.accounts.read`, `crm.contacts.read` |
-| 4 | Cross-functional readers — read access | `CRM Read - Cross-Functional` | `crm.accounts.read`, `crm.contacts.read`, `crm.opportunities.read` |
+| 1 | Sales managers — full access | `Sales Management` | full `crm.*` set |
+| 2 | Sales reps — access | `Sales Reps` | full `crm.*` set |
+| 3 | IT help desk — access | `IT Help Desk` | full `crm.*` set |
+| 4 | Cross-functional readers — access | `CRM Read - Cross-Functional` | full `crm.*` set |
 | Catch-all | Deny | (anyone else) | (none) |
 
-*NOTE: Okta evaluates rules top to bottom and stops at the first match. Susan Potter is in `Sales Management`, so rule 1 matches and rules 2 onward are never considered for her. The catch-all is what makes Frank Boone see zero tools.*
+where the **full `crm.*` set** is `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write`.
+
+*NOTE: Okta evaluates rules top to bottom and stops at the first match. Susan Potter is in `Sales Management`, so rule 1 matches; Alex Martinez is in `Sales Reps`, so rule 2 matches. Because every CRM rule currently grants the **same full scope set** (the binary model — see 3.1), matching a rule yields all six CRM tools regardless of which rule matched. The catch-all is what makes Frank Boone see zero tools. (A future graduated model would let rule 2 grant a strict subset of rule 1; today it does not — see `lab-infra/README.md`.)*
 
 *NOTE: Rule 4 gates a group named `CRM Read - Cross-Functional`. That group is empty at this point in the camp — no user matches rule 4 right now. The group is populated only via OIG access requests in Lab 5, where you will watch a user (Frank) be added to it temporarily, see rule 4 start firing for him, and watch his tools appear and then disappear as the membership is revoked. The rule exists today; the membership is the dynamic part.*
 
@@ -81,44 +87,7 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 
 → Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
 → Adapter resolved effective scopes via vantage-crm-as:
-    Matched rule 2 (Sales reps — read access):
-      crm.accounts.read, crm.contacts.read, crm.opportunities.read
-
-3 tools available to this user:
-  ▸ crm.lookup_account       Look up a customer account by name or ID
-  ▸ crm.lookup_contact       Look up a contact by name or email
-  ▸ crm.lookup_opportunity   Look up an opportunity by name or stage
-
-3 tools filtered out (scope not granted to this user):
-  ✗ crm.create_account       requires crm.accounts.write
-  ✗ crm.update_account       requires crm.accounts.write
-  ✗ crm.update_opportunity   requires crm.opportunities.write
-
-6 tools filtered out (resource not yet configured):
-  ✗ itsm.lookup_ticket, itsm.create_ticket, itsm.update_ticket,
-    itsm.lookup_incident, itsm.update_incident, itsm.search_kb
-```
-
-Alex's `Sales Reps` membership matched rule 2 — read access only. The agent on Alex's behalf can read but cannot write. The ITSM tools sit in the second filtered group because the adapter has nowhere to ask about them yet.
-
-### 3.5 List tools as Susan Potter (Sales Manager)
-
-- Run the script again, this time as Susan:
-
-```bash
-~/Desktop/list-agent-tools.sh --user susan.potter@atko.email
-```
-
-- Expected output:
-
-```
-Acting as: susan.potter@atko.email  (groups: Sales Management, All Employees)
-User context: user-context access token (simulated)
-Agent: TaskVantage Sales Agent (ACTIVE)
-
-→ Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
-→ Adapter resolved effective scopes via vantage-crm-as:
-    Matched rule 1 (Sales managers — full access):
+    Matched rule 2 (Sales reps — access): full crm.* set
       crm.accounts.read, crm.accounts.write, crm.contacts.read,
       crm.opportunities.read, crm.opportunities.write
 
@@ -137,7 +106,47 @@ Agent: TaskVantage Sales Agent (ACTIVE)
     itsm.lookup_incident, itsm.update_incident, itsm.search_kb
 ```
 
-Susan's `Sales Management` membership matched rule 1 — full access. Same agent, same script, double the tools. The agent did not change. The adapter responded to *who is asking*.
+Alex's `Sales Reps` membership matched rule 2, so the agent surfaces the full CRM tool set for him — access is binary today (member = all CRM tools). What still differs from a manager is the **data**: when Alex actually calls `crm.lookup_account`, VantageCRM row-filters the results to the accounts he owns (Module 1.5). The ITSM tools sit in the second filtered group because the adapter has nowhere to ask about them yet.
+
+### 3.5 List tools as Susan Potter (Sales Manager)
+
+- Run the script again, this time as Susan:
+
+```bash
+~/Desktop/list-agent-tools.sh --user susan.potter@atko.email
+```
+
+- Expected output:
+
+```
+Acting as: susan.potter@atko.email  (groups: Sales Management, All Employees)
+User context: user-context access token (simulated)
+Agent: TaskVantage Sales Agent (ACTIVE)
+
+→ Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
+→ Adapter resolved effective scopes via vantage-crm-as:
+    Matched rule 1 (Sales managers — full access): full crm.* set
+      crm.accounts.read, crm.accounts.write, crm.contacts.read,
+      crm.opportunities.read, crm.opportunities.write
+
+6 tools available to this user:
+  ▸ crm.lookup_account       Look up a customer account by name or ID
+  ▸ crm.create_account       Create a new customer account
+  ▸ crm.update_account       Update an existing account
+  ▸ crm.lookup_contact       Look up a contact by name or email
+  ▸ crm.lookup_opportunity   Look up an opportunity by name or stage
+  ▸ crm.update_opportunity   Update an opportunity's stage, amount, or details
+
+0 tools filtered out (scope not granted to this user).
+
+6 tools filtered out (resource not yet configured):
+  ✗ itsm.lookup_ticket, itsm.create_ticket, itsm.update_ticket,
+    itsm.lookup_incident, itsm.update_incident, itsm.search_kb
+```
+
+Susan's `Sales Management` membership matched rule 1 — full access. Susan and Alex see the **same six tools** today, because access is binary: both are members of a CRM group, so both get the full set. Where they diverge is in the **data** each tool returns — Susan, in `Sales Management`, sees all accounts; Alex sees only his own (Module 1.5). The agent did not change. The adapter responded to *who is asking* by deciding member-vs-non-member; VantageCRM then differentiated the two members by row-level data filtering.
+
+*NOTE: A future graduated model would also differentiate Susan and Alex at the **tool** level (e.g. Alex would lack the `create`/`update` tools). That isn't wired today — see the binary-access note in 3.1. For now the manager/rep distinction shows up in the rows returned, not the tools offered.*
 
 ### 3.6 List tools as Frank Boone — see the catch-all in action
 
