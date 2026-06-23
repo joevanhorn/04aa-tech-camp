@@ -28,9 +28,9 @@ You spend most of this camp as a TaskVantage admin — your own personal admin a
 
 | Person | Role | Why they matter to the story |
 | --- | --- | --- |
-| **Susan Potter** | Sales Manager | Full CRM access. The standard agent user — full set of tools, all the time. |
-| **Alex Martinez** | Sales Rep | Limited CRM access (read only). The "same agent, narrower tool set" comparison case. |
-| **Kim Liu** | IT Help Desk Tier 1 | Full VantageDesk access, limited read on CRM. Cross-system user; gets the agent's full ITSM toolkit in Lab 4. |
+| **Susan Potter** | Sales Manager | Full CRM access. The standard agent user — full CRM tool set, and sees all accounts. |
+| **Alex Martinez** | Sales Rep | A CRM-group member, so the agent surfaces him the full CRM tool set too — but VantageCRM row-filters his **data** to the accounts he owns. The "same agent, same tools, less data" comparison case. (Tool-level differentiation per role is a future graduated model — not wired today.) |
+| **Kim Liu** | IT Help Desk Tier 1 | Full VantageDesk access; also a CRM-group member (so she gets CRM tools, with role-bounded data). Cross-system user; gets the agent's full ITSM toolkit in Lab 4. |
 | **Frank Boone** | Engineering Director | No CRM or ITSM access by default. The OIG round-trip in Lab 5 happens to him: he requests temporary access, watches it appear, and watches it disappear. |
 | **Sally Field** | Executive | Interacts with the agent rather than the apps directly. Appears in the background — her existence frames why "the agent's access is the user's access" matters. |
 
@@ -76,7 +76,7 @@ Two patterns repeat throughout the camp. Watching for them makes the structure e
 
 **Review-then-build.** Each major capability is introduced first on VantageCRM, where it is already fully wired before you start, and then built by you on VantageDesk, which is intentionally incomplete. Authorization server, scopes, access policy, managed connection — every one of these you observe on CRM first, then create on Desk. (Access to the API-only apps is gated by the auth server's access policy mapping groups to scopes — there is no per-app sign-in policy, because no human signs in to the apps.) By the end of Lab 4, both columns of the architecture are identically configured. The first instance of the pattern appears in Lab 1.10.
 
-**Same agent, different access.** Throughout the camp, you keep running the same script — `list-agent-tools.sh` or `invoke-agent-tool.sh` — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. What changes is *who is asking* and *what they are currently entitled to do*. The story the camp tells is that agent capability is a property of the user-and-moment, not a property of the agent.
+**Same agent, different access.** Throughout the camp, you keep running the same script — `list-agent-tools.sh` or `invoke-agent-tool.sh` — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. What changes is *who is asking* and *what they are currently entitled to do*. The story the camp tells is that agent capability is a property of the user-and-moment, not a property of the agent. (Today the **tool catalog** is gated binary — a user in a relevant group gets the full tool set for that app, a non-member gets none — and **data** is then filtered per user inside the tools; finer per-role tool subsets are a planned enhancement.)
 
 ---
 

@@ -89,7 +89,7 @@ Okta uses a public key to verify the agent's identity when it requests tokens. T
 
 ### 2.6 Create and link a user-sign-on app
 
-The linked sign-on app is the front door to your agent. Users authenticate to this OIDC app first; from there they reach the agent and, through the agent, the Okta-managed resources it brokers access to. The link does two things in the access model: it scopes the agent's audience to users assigned to the app (access control), and it anchors every agent action to a specific user sign-in event (visibility and audit). In a real deployment this app is the chat UI, workflow tool, or other front-end through which users interact with the agent.
+The linked sign-on app is the front door to your agent. Users authenticate to this OIDC app first; from there they reach the agent and, through the agent, the Okta-managed resources it brokers access to. The link does two things in the access model: it scopes the agent's audience to users assigned to the app (access control), and it anchors every agent action to a specific user sign-in event (visibility and audit). In this lab the agent runtime is OpenCode, which drives this sign-in itself through the adapter's brokered OAuth (no separate chat UI) — in other deployments the front-end might be a workflow tool or other application the agent is embedded in.
 
 You will first create a new OIDC web application, then link it to your agent.
 

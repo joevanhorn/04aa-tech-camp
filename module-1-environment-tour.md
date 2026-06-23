@@ -54,9 +54,9 @@ These personas will be used throughout the lab. The agent will act on behalf of 
 
 | User | Role | Use in lab |
 | --- | --- | --- |
-| Alex Martinez | Sales Rep | Limited CRM access; cannot create accounts |
-| Susan Potter | Sales Manager | Full CRM access; can create and edit accounts |
-| Kim Liu | IT Help Desk Tier 1 | Full VantageDesk access; read-only on CRM |
+| Alex Martinez | Sales Rep | CRM-group member — gets the full CRM tool set, but VantageCRM shows him only the accounts he owns (data row-filtering) |
+| Susan Potter | Sales Manager | Full CRM access; sees all accounts |
+| Kim Liu | IT Help Desk Tier 1 | Full VantageDesk access; also a CRM-group member (CRM tools with role-bounded data) |
 | Frank Boone | Engineering Director | No CRM or ITSM access by default — will request access via OIG in Lab 5 |
 | Sally Field | Executive | Indirect access only — uses the agent rather than apps directly |
 
@@ -203,10 +203,12 @@ This is part of the **review-then-build** pattern: review the VantageCRM access 
 
 | If the user is in… | The issued token may carry… |
 | --- | --- |
-| Sales Reps | `crm.accounts.read`, `crm.contacts.read`, `crm.opportunities.read` |
-| Sales Management | all CRM scopes, including `crm.accounts.write`, `crm.opportunities.write` |
+| Sales Reps | the full `crm.*` scope set |
+| Sales Management | the full `crm.*` scope set |
 
-- This is why Susan and Alex saw different data in 1.5: the access policy issued Susan a token with read scope over all accounts, while Alex's token (Sales Reps) carries read-only scope that VantageCRM then row-filters to the accounts he owns. There is no MFA-to-app step and no sign-in policy, because no human logs into the app — the policy governs **what each user's token is allowed to contain**.
+*NOTE: Today every CRM access-policy rule grants the **same full scope set** — access is binary (in a CRM group → all CRM scopes; in none → none). Graduated per-group scopes (e.g. read-only for reps) are a known follow-up, not yet wired — see `lab-infra/README.md`.*
+
+- This is why Susan and Alex saw different data in 1.5 even though their **tokens carry the same scopes**: the difference is **data-level**, not scope-level. The access policy issues both a read-capable token; VantageCRM then **row-filters** results by the caller's `sub` + `groups` — Susan (`Sales Management`) sees all accounts, Alex (`Sales Reps`) sees only the accounts he owns. There is no MFA-to-app step and no sign-in policy, because no human logs into the app — the policy governs **whether a user's token gets CRM scopes at all**, and the app handles the row-level cut.
 
 *NOTE: There is no `vantage-desk-as` yet, so there is no VantageDesk access policy to review. In Lab 4 you will create the VantageDesk authorization server, its ITSM scopes, and the access policy that grants those scopes to **IT Help Desk** (and withholds them from everyone else, including Alex) — modeled exactly on what you reviewed here.*
 
