@@ -12,6 +12,7 @@ Creates:
       alex.martinez@atko.email → Sales Reps               (full CRM — see binary-model note)
       kim.liu@atko.email       → IT Help Desk             (full CRM; full ITSM in Lab 4)
       frank.boone@atko.email   → Engineering              (no CRM/ITSM by default; OIG round-trip in Lab 5)
+      sally.field@atko.email   → (no functional group)    (executive; background persona, used only as narrative)
   • `vantage-crm-as` authorization server: audience api://vantage-crm, the 5 crm.* scopes, a
     `groups` claim, and the access policy with the 4 group-keyed rules that drive Module 3's
     per-user tool filtering (Sales mgmt / Sales reps / IT help desk / Cross-functional). The policy
@@ -60,6 +61,9 @@ USERS = [
     ("Alex", "Martinez", "alex.martinez@atko.email", ["Sales Reps"]),
     ("Kim", "Liu", "kim.liu@atko.email", ["IT Help Desk"]),
     ("Frank", "Boone", "frank.boone@atko.email", ["Engineering"]),
+    # Executive — no functional group; interacts only via the agent. Background persona that
+    # frames "the agent's access is the user's access" (Module 1.3 / lab-intro); not used in steps.
+    ("Sally", "Field", "sally.field@atko.email", []),
 ]
 
 CRM_SCOPES = ["crm.accounts.read", "crm.accounts.write", "crm.contacts.read",

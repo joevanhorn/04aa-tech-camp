@@ -69,10 +69,12 @@ These personas will be used throughout the lab. The agent will act on behalf of 
 
 | Group | Purpose |
 | --- | --- |
-| Sales Reps | Read access to accounts they own in VantageCRM |
-| Sales Management | Read/write access to all accounts in VantageCRM |
-| IT Help Desk | Full access to VantageDesk tickets and incidents |
-| All Employees | Default group; minimum baseline access |
+| Sales Management | CRM access; members see **all** accounts (manager visibility) |
+| Sales Reps | CRM access; members see only the accounts they **own** (row-level) |
+| IT Help Desk | VantageDesk (ITSM) access — and CRM too, under the binary model (see Module 3.1) |
+| CRM Read - Cross-Functional | Empty until OIG grants temporary CRM access in Lab 5 |
+| Engineering | No CRM/ITSM access by default (Frank's group) |
+| Everyone | Built-in default group; baseline only — no app or tool access |
 
 *NOTE: There is intentionally no group that grants "agent powers." Agent access is governed through OIG entitlements, not group membership — you will see this in Lab 5.*
 
