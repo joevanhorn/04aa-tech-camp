@@ -195,12 +195,63 @@ def ensure_rules(base, token, asid, pid, gids):
         })
 
 
+EXAMPLE_AGENT_NAME = "VantageCRM Example Agent"
+CRM_AUDIENCE = "api://vantage-crm"
+
+
+def ensure_example_agent(base, token, asid, name=EXAMPLE_AGENT_NAME) -> str:
+    """Pre-load a dummy example AI agent + its CRM managed connection.
+
+    Purpose: give attendees a reference agent in UD from lab launch, and let the CRM adapter
+    resource materialize at launch (the adapter only surfaces a resource once an agent has a CRM
+    managed connection it can sync). The agent stays STAGED — it's illustrative; the bridge won't
+    serve live tool calls through it until someone activates it (which the lab doesn't require).
+    The adapter-side step (import + enable the resource) is done by `wire_adapter_resource.py`.
+    """
+    code, body = req("GET", base, "/workload-principals/api/v1/ai-agents?limit=200", token)
+    agents = (body.get("data", body) if isinstance(body, dict) else body) or []
+    aid = next((a["id"] for a in agents if (a.get("profile") or {}).get("name") == name), None)
+    if not aid:
+        code, a = req("POST", base, "/workload-principals/api/v1/ai-agents", token,
+                      {"profile": {"name": name,
+                                   "description": "Reference/example agent for the O4AA lab (pre-loaded at launch; stays STAGED)."}})
+        if code not in (200, 201, 202):  # create is async (202)
+            raise SystemExit(f"create example agent failed ({code}): {a}")
+        aid = (a or {}).get("id")
+        if not aid:  # 202 may not return a body — re-fetch by name
+            import time as _t; _t.sleep(2)
+            _, body2 = req("GET", base, "/workload-principals/api/v1/ai-agents?limit=200", token)
+            ag2 = (body2.get("data", body2) if isinstance(body2, dict) else body2) or []
+            aid = next((x["id"] for x in ag2 if (x.get("profile") or {}).get("name") == name), None)
+            if not aid:
+                raise SystemExit("example agent created (202) but not found on re-fetch")
+    if DRY:
+        return aid
+    code, conns = req("GET", base, f"/workload-principals/api/v1/ai-agents/{aid}/connections", token)
+    have = any(c.get("resourceIndicator") == CRM_AUDIENCE
+               for c in (conns.get("data", []) if isinstance(conns, dict) else []))
+    if not have:
+        code, org = req("GET", base, "/api/v1/org", token)
+        orgid = org.get("id") if isinstance(org, dict) else None
+        orn = f"orn:okta:idp:{orgid}:authorization_servers:{asid}"
+        code, c = req("POST", base, f"/workload-principals/api/v1/ai-agents/{aid}/connections", token, {
+            "connectionType": "IDENTITY_ASSERTION_CUSTOM_AS",
+            "authorizationServer": {"orn": orn},
+            "resourceIndicator": CRM_AUDIENCE, "scopeCondition": "INCLUDE_ONLY", "scopes": CRM_SCOPES,
+        })
+        if code not in (200, 201):
+            print(f"  WARN example-agent CRM connection ({code}): {c}")
+    return aid
+
+
 def main() -> int:
     global DRY
     p = argparse.ArgumentParser(description="Provision O4AA lab pre-state into a fresh Okta org.")
     p.add_argument("--org", default=os.environ.get("OKTA_ORG"), help="org base URL (env OKTA_ORG)")
     p.add_argument("--token", default=os.environ.get("OKTA_API_TOKEN"), help="SSWS token (env OKTA_API_TOKEN)")
     p.add_argument("--password", default=os.environ.get("LAB_USER_PASSWORD"), help="persona login password")
+    p.add_argument("--no-example-agent", action="store_true",
+                   help="skip pre-loading the example AI agent + its CRM connection")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     if not args.org or not args.token:
@@ -232,8 +283,18 @@ def main() -> int:
     ensure_rules(base, token, asid, pid, gids)
     print(f"  rules = {[r[0] for r in CRM_RULES]}")
 
-    print("\nLab pre-state provisioned. Next: enroll the org in the apps (enroll_tenant.py), then the "
-          "attendee runs Modules 1-2 (register agent + setup-crm-resource.sh).")
+    if not args.no_example_agent:
+        print("Example agent (pre-loaded reference; STAGED) …")
+        ex = ensure_example_agent(base, token, asid)
+        print(f"  {EXAMPLE_AGENT_NAME} = {ex}  (+ CRM managed connection)")
+        print(f"  → at launch, materialize its CRM resource with:\n"
+              f"     wire_adapter_resource.py --preset crm --okta-agent-id {ex} "
+              f"--auth-server-id {asid} --adapter <adapter-url> --mcp-host <mcp-host> "
+              f"--org-domain <org>  (adapter token via ADAPTER_ADMIN_TOKEN)")
+
+    print("\nLab pre-state provisioned. Next: enroll the org in the apps (enroll_tenant.py); the example "
+          "agent's CRM resource materializes once the adapter imports it (wire_adapter_resource.py). "
+          "The attendee still registers their OWN agent in Module 2.")
     return 0
 
 

@@ -27,6 +27,11 @@ Python** (plus one bash wrapper); most take `--dry-run`.
    persona users (susan/alex/kim/frank@atko.email, group-mapped), and `vantage-crm-as` (audience
    `api://vantage-crm`, the 5 `crm.*` scopes, a **`groups` claim**, and the **4-rule per-user policy**
    that drives Module 3's tool filtering — assigned `ALL_CLIENTS` with the XAA grant types).
+   It also **pre-loads a dummy `VantageCRM Example Agent`** (STAGED) + its CRM managed connection, so
+   the CRM adapter resource can materialize at launch and attendees have a reference agent in UD
+   (`--no-example-agent` to skip). It stays STAGED — illustrative only; the bridge won't serve live
+   tool calls through it until someone activates it, which the lab doesn't require. To surface its
+   resource in the adapter at launch, run `wire_adapter_resource.py --preset crm` against it (step 3a).
    ```bash
    export OKTA_ORG=https://<org>.okta.com OKTA_API_TOKEN=<SSWS super-admin>
    export LAB_USER_PASSWORD='<persona login password>'
