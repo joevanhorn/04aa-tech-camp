@@ -39,7 +39,7 @@ The agent you bring under management is **OpenCode** — an open-source AI codin
 
 Register it with the manual flow in 2.3. The rest of the camp assumes this OpenCode agent.
 
-> **Optional — bring your own / Bedrock (at your discretion).** If your Heropa allocation includes AWS Bedrock AgentCore (with imports enabled on the AWS IAM Identity Center provider), or you'd rather register a different agent runtime, you can — **the Okta steps from 2.4 on are identical**; only the agent runtime differs. The Bedrock *import* shortcut is in 2.11.
+> **Optional — bring your own / Bedrock (at your discretion).** If your Heropa allocation includes AWS Bedrock AgentCore (with imports enabled on the AWS IAM Identity Center provider), or you'd rather register a different agent runtime, you can — **the Okta steps from 2.4 on are identical**; only the agent runtime differs. The Bedrock *import* shortcut is in 2.13.
 
 ---
 
@@ -69,7 +69,7 @@ The agent cannot be activated without at least one owner. This is enforced by Ok
 
 *NOTE: Production deployments typically assign 2–3 individual owners or a group of 2+ members. For this lab, a single owner is enough to satisfy activation. In Lab 5, OIG will demonstrate ownership-driven access certification.*
 
-> **[FLAG — to resolve before lab GA]** When AI agent imports are enabled on the AWS IAM Identity Center provider app, a default owner *can* be configured to apply to all imported agents. If Heropa provisioning sets a default owner for the optional Bedrock-import path (2.11), this step changes for those users: their agent arrives with an owner already populated, and 2.4 becomes "review the default owner and add yourself as an additional owner." The primary OpenCode flow registers manually, so no default owner applies. Decision needed on provisioning approach.
+> **[FLAG — to resolve before lab GA]** When AI agent imports are enabled on the AWS IAM Identity Center provider app, a default owner *can* be configured to apply to all imported agents. If Heropa provisioning sets a default owner for the optional Bedrock-import path (2.13), this step changes for those users: their agent arrives with an owner already populated, and 2.4 becomes "review the default owner and add yourself as an additional owner." The primary OpenCode flow registers manually, so no default owner applies. Decision needed on provisioning approach.
 
 ### 2.5 Add a public-key credential
 
@@ -170,7 +170,24 @@ Open the adapter admin console at `https://{{adapter_admin_host}}`, sign in, and
 
 **Lab 4 returns here.** After you build `vantage-desk-as` and its managed connection in Lab 4, you'll add a **second** resource — by hand in the adapter console — pointing at `https://{{mcp_host}}/desk/mcp`, then re-sync. The adapter caches connections, so new scopes take effect only after a sync.
 
-### 2.11 Verify the configuration
+### 2.11 Add your agent to the VantageCRM access policy
+
+The managed connection (2.9) lets your agent *request* `crm.*` scopes; the **access policy** on `vantage-crm-as` decides whether to *issue* them. That policy was seeded with rules keyed to the persona groups (Lab 1.10), but its rules also have to name **your agent as an allowed client** — otherwise the token exchange your agent performs in Lab 3 is rejected with `no_matching_policy`, even though every scope and group looks correct.
+
+*NOTE: Why isn't "Any client" enough? The XAA flow your agent uses (Lab 3/4) exchanges a **JWT-bearer client assertion** signed as the agent **principal** — a distinct client identity from a normal app. Okta's "Any client" rule condition does **not** match that agent-principal assertion, so the rule has to list the agent's clients explicitly. This is the single most common reason a correctly-scoped agent still gets zero tools.*
+
+1. Go to **Security** > **API** > **Authorization Servers** > `vantage-crm-as` > **Access Policies**.
+2. Open the policy that governs CRM access and edit each rule that should apply to your agent (at minimum the **Sales managers — full access** rule your owner persona falls under).
+3. Under **AND the following clients**, switch from *Any client* to **The following clients** and add **both** of your agent's client identities:
+   - your agent's **user-sign-on app** (the OIDC `client_id` from 2.6 — `TaskVantage Agent UI`), and
+   - your agent's **principal client** (the `wlp…` shown as the imported agent's principal id in the adapter, 2.10).
+4. **Save** the rule.
+
+*{HumanReview}: confirm the exact Admin UI label for the agent-principal client in the rule's client picker (it surfaces by agent name / `wlp…` id), and whether both entries are required in your tenant's build or only the principal — validation needed both.*
+
+> The lab seeds these rules with `ALL_CLIENTS` so the org provisions cleanly, but `ALL_CLIENTS` does **not** cover the agent-principal assertion — this step is what actually entitles *your* agent. Skipping it is fine until Lab 3, where it surfaces as an empty tool list with `no_matching_policy` in the System Log.
+
+### 2.12 Verify the configuration
 
 Spend a minute confirming the agent is set up correctly. Lab 3 will fail in confusing ways if anything is missing.
 
@@ -183,6 +200,7 @@ Spend a minute confirming the agent is set up correctly. Lab 3 will fail in conf
 | Credentials | 1 public key, ACTIVE (Credentials tab) |
 | User sign-on app | TaskVantage Agent UI (User sign-on tab) |
 | Managed connections | 1 connection to `vantage-crm-as` (Managed connections tab) |
+| Access policy | Your agent listed as an allowed client on the `vantage-crm-as` CRM rule(s) (2.11) |
 
 **In the adapter admin console** (2.10), confirm:
 
@@ -196,7 +214,7 @@ Spend a minute confirming the agent is set up correctly. Lab 3 will fail in conf
 
 ---
 
-### 2.12 (Optional) Import from Bedrock AgentCore instead
+### 2.13 (Optional) Import from Bedrock AgentCore instead
 
 If you're using Bedrock (and AI agent imports are enabled on the AWS IAM Identity Center provider — confirmed in Lab 1.8), you can register the agent by import instead of the manual flow in 2.3:
 
