@@ -121,15 +121,35 @@ def _resources(adapter: str, token: str) -> list[dict]:
     return body.get("resources", body) if isinstance(body, dict) else body
 
 
-def _find_resource(adapter: str, token: str, auth_server_id: str, audience: str) -> dict | None:
-    """Match by the resource's auth-server id or its resource_indicator (audience)."""
+def _find_resource(adapter: str, token: str, auth_server_id: str, audience: str,
+                   agent_slug: str | None = None, connection_id: str | None = None) -> dict | None:
+    """Match THIS agent's synced resource for the given auth server.
+
+    Multiple agents can connect to the same auth server, so the adapter creates one resource per
+    (agent, connection) — naming them after the AS id with a `-N` suffix on collision. Scope the
+    match to this agent (agent_id / connection_id) first, then fall back to AS-id/audience matching.
+    """
+    asl = (auth_server_id or "").lower()
+    candidates = []
     for r in _resources(adapter, token):
         cfg = r.get("config", {}) or {}
         meta = cfg.get("metadata", {}) or {}
-        if r.get("resource_id") == auth_server_id:
+        name_l = (r.get("name") or "").lower()
+        as_match = (r.get("resource_id") == auth_server_id
+                    or name_l == asl or name_l.startswith(asl + "-")
+                    or (r.get("connection_resource_id") or "").lower() == asl
+                    or cfg.get("resource_indicator") == audience
+                    or meta.get("resource_indicator") == audience)
+        if not as_match:
+            continue
+        if connection_id and r.get("connection_id") == connection_id:
             return r
-        if cfg.get("resource_indicator") == audience or meta.get("resource_indicator") == audience:
+        if agent_slug and r.get("agent_id") == agent_slug:
             return r
+        candidates.append(r)
+    # no agent-scoped hit; return a single AS match only if unambiguous
+    if not agent_slug and not connection_id and len(candidates) == 1:
+        return candidates[0]
     return None
 
 
@@ -238,7 +258,7 @@ def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
 
     # 4. Ensure the resource exists, points at the path-scoped MCP URL, and is enabled.
     print(f"[4/5] ensuring resource '{resource_name}' → {mcp_url} …")
-    existing = _find_resource(adapter, token, auth_server_id, audience)
+    existing = _find_resource(adapter, token, auth_server_id, audience, agent_slug=slug)
     issuer = f"https://{org_domain}/oauth2/{auth_server_id}" if org_domain else None
     orn_metadata = {
         "resource_indicator": audience,
@@ -247,29 +267,30 @@ def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
     if issuer:
         orn_metadata["issuer_url"] = issuer
     if existing is None:
-        # Older adapter: connection stays "unresolved" until a resource with this
-        # auth-server id exists. Create it, then re-sync to bind the connection.
-        print("      no resource yet — creating it")
+        # Newer adapter auto-materializes the resource on sync; give it a moment + re-sync,
+        # then look again. Only fall back to POST-create on older adapters that need it.
+        print("      resource not found yet — re-syncing for auto-materialize")
+        _req("POST", f"{adapter}/api/admin/connections/sync", token, {})
+        time.sleep(2)
+        existing = _find_resource(adapter, token, auth_server_id, audience, agent_slug=slug)
+    if existing is None:
+        print("      still none — POST-creating (older adapter path)")
         code, body = _req("POST", f"{adapter}/api/admin/resources", token, {
-            "name": resource_name,
-            "resource_id": auth_server_id,
-            "mcp_url": mcp_url,
-            "protocol": "mcp",
-            "auth_method": "okta-cross-app",
-            "enabled": True,
+            "name": resource_name, "resource_id": auth_server_id, "url": mcp_url, "mcp_url": mcp_url,
+            "protocol": "mcp", "auth_method": "okta-cross-app", "enabled": True,
             "config": {"metadata": orn_metadata, "resource_indicator": audience},
         })
         if code not in (200, 201):
             raise SystemExit(f"create resource failed ({code}): {body}")
         name = body.get("name", resource_name)
-        time.sleep(1)
-        _req("POST", f"{adapter}/api/admin/connections/sync", token, {})
     else:
         name = existing.get("name", resource_name)
-        if existing.get("mcp_url") != mcp_url or not existing.get("enabled", False):
+        cur_url = existing.get("url") or existing.get("mcp_url")
+        if cur_url != mcp_url or not existing.get("enabled", False):
             print(f"      updating existing resource '{name}' (url/enabled)")
+            # send both field names so it works across adapter versions
             code, body = _req("PUT", f"{adapter}/api/admin/resources/{name}", token,
-                              {"mcp_url": mcp_url, "enabled": True})
+                              {"url": mcp_url, "mcp_url": mcp_url, "enabled": True})
             if code not in (200, 204):
                 raise SystemExit(f"update resource failed ({code}): {body}")
         else:
@@ -280,9 +301,10 @@ def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
     code, r = _req("GET", f"{adapter}/api/admin/resources/{name}", token)
     if code != 200:
         raise SystemExit(f"verify GET failed ({code}): {r}")
-    ok = (r.get("enabled") and r.get("mcp_url") == mcp_url
+    got_url = r.get("url") or r.get("mcp_url")
+    ok = (r.get("enabled") and got_url == mcp_url
           and r.get("scope_condition") == "INCLUDE_ONLY" and r.get("scopes"))
-    print(f"      enabled={r.get('enabled')} url={r.get('mcp_url')} "
+    print(f"      enabled={r.get('enabled')} url={got_url} "
           f"scope_condition={r.get('scope_condition')} scopes={r.get('scopes')}")
     if not ok:
         print("ERROR: resource is not fully wired. If scope_condition is ALLOW_ALL / scopes are "
