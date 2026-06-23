@@ -215,7 +215,7 @@ Imagine a scenario where the security team needs to stop the agent immediately. 
 
 - From the Admin Console, go to **Directory** > **AI Agents** > **TaskVantage Sales Agent**.
 - Click **Actions** > **Deactivate**.
-- A confirmation dialog appears. Read it — note that deactivation stops **new** token issuance but does not retroactively revoke tokens already issued. Two caches bound the exposure window for someone already active: the short-lived ID-JAG (~5 min) and, more significantly, the adapter's cached **resource access token** (up to ~1 hour in the current build — the same cache discussed in 5.7). So deactivation guarantees no *new* access is brokered; a session already holding a cached token may keep working until it expires.
+- A confirmation dialog appears. Read it — note that deactivation stops **new** token issuance but does not retroactively revoke tokens already issued. This is **tested behavior**: deactivating the agent does **not** flush the adapter's token cache, so a user who already has a cached **resource access token** keeps working until it expires (up to ~1 hour in the current build — the same cache discussed in 5.7). Deactivation reliably blocks any session that needs a *new* token exchange (a cache miss → fresh ID-JAG, which the IdP refuses for a deactivated agent); it does **not** instantly cut off sessions already holding a cached token.
 - Click **Confirm**.
 
 The agent's status changes from **ACTIVE** to **DEACTIVATED**.
@@ -244,7 +244,7 @@ No call was made to the MCP server. No tool was invoked. The agent is offline.
 
 Kim has done nothing wrong, has lost no group memberships. But because the agent is the broker of all access, deactivating the agent stops all activity through it. That is the operational shape of an agent kill switch.
 
-*NOTE: Deactivation blocks **new** brokering immediately; whether it also **flushes the adapter's cached resource tokens** (making the kill instant for already-active sessions) versus letting them age out to their TTL is an adapter behavior being confirmed — `{HumanReview}`: confirm with the adapter maintainer and, if deactivation does not flush the cache, either (a) set a short resource-token TTL for the lab build so the kill is effectively immediate, or (b) word this section as "blocks new access; in-flight sessions end within the token lifetime." For real-time revocation of tokens already issued, Okta's Universal Logout targets active sessions across linked apps; coverage for AI agents specifically is on the roadmap — `{HumanReview}` confirm its status at lab GA and update if it has shipped.*
+*NOTE: Deactivation blocks **new** brokering immediately but — confirmed by test — does **not** flush the adapter's cached resource tokens, so an already-active session keeps working until its token ages out (~1 hour in the current build). For the kill to read as *immediate* in the lab, the lab build should set a **short resource-token TTL** (e.g. 60–120s) and/or the adapter should **invalidate cached tokens on agent deactivation** — `{HumanReview}`: tracked with the adapter maintainer. To demonstrate the kill cleanly today, use a session that forces a fresh exchange (a user/tool the agent hasn't brokered recently), or set the short TTL. For real-time revocation of tokens already issued, Okta's Universal Logout targets active sessions across linked apps; coverage for AI agents specifically is on the roadmap — `{HumanReview}` confirm its status at lab GA and update if it has shipped.*
 
 ### 5.9 Reactivate the agent
 
