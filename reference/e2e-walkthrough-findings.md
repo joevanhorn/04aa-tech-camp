@@ -15,10 +15,16 @@ Severity: **[BUG]** breaks the lab / **[DOC]** guide inaccurate / **[NIT]** poli
 > (Alex=6, Kim=12, Frank-post-OIG=full 6). This overlaps several Module-1/3 findings below —
 > they're partly pre-addressed on that branch; fold it into the cleanup sprint.
 >
-> **STRATEGIC FLAG it raised (for the user):** binary collapses the camp's headline "same agent,
-> *different tools* per persona" into "same tools, *different data* (row-level) + member/non-member
-> gate." That under-delivers on the "narrower tool set per persona" promise. Decision for GA:
-> ship binary docs as-is, or hold the affected modules until graduated per-user filtering ships.
+> **RESOLVED by the adapter maintainer (design intent, not a gap):** tool *visibility* is
+> **resource-based, not user-based** — the adapter exposes whatever tools the MCP server provides
+> for a linked resource. Per-user differentiation is **data/application-layer** (`require_scope`
+> for capability + `groups` row-filtering for data). So the binary tool model is correct **by
+> design**; graduated per-*tool* filtering is explicitly NOT an adapter responsibility and should
+> not be framed as a missing feature. The camp's "different access per persona" story lives on two
+> real axes: (1) **resource granularity** — genuine tool-level differences (Frank=0 tools since no
+> managed-connection grant → XAA fails; Alex/Susan=CRM resource's tools; Kim=CRM+Desk); (2)
+> **within a resource** — data-layer (row filtering + `require_scope` 403s on unpermitted calls).
+> The docs should teach this model rather than present binary as a shortfall. Ship binary as-is.
 
 ---
 
@@ -271,3 +277,43 @@ simulating the OIG grant/revoke by adding/removing Frank from `CRM Read - Cross-
 - **[NOT RUN] §5.6 certification campaign and §5.8/§5.9 deactivate-reactivate kill switch** — require
   the OIG campaign construct (not provisioned) and would disrupt walkthrough state; deferred. The
   membership round-trip above exercises the same access-propagation path the campaign's revoke uses.
+
+---
+
+## Deep-dive: why scopes can't control the tool set (graduated filtering)
+
+> **RESOLUTION (adapter maintainer):** this is **by design**, not a defect. Tool visibility is
+> resource-based; per-user control is data/application-layer (`require_scope` + `groups` row
+> filtering). The "fix options" below are NOT planned work — kept only as reference for if the
+> product direction ever changes. Current path (binary tools + app-layer enforcement) is correct.
+
+Investigated whether the limitation is in the custom MCP server. Conclusion: it's **two
+independent gaps**, and the MCP server is one of them.
+
+**Gap 1 — no scope→tool mapping anywhere in the stack.**
+- MCP server (`mcp-server/app/server.py`) is a **thin proxy by design**: tools are registered
+  statically per path (`/crm/mcp` → 6 CRM, `/desk/mcp` → 6 ITSM); `tools/list` never inspects the
+  token or its scopes. **Proven empirically:** calling `https://mcp.taskvantage-demo.com/crm/mcp`
+  directly with a *bogus* `Bearer dummy-token-zero-scopes` still returns all 6 CRM tools. No tool
+  declares a required scope; the server only forwards the Bearer to the backend (which does
+  row-level *data* filtering by `sub`/`groups`).
+- Adapter filters at **resource granularity** (whole resource's tools if XAA yields a valid
+  audience-scoped token, else none) — no per-tool scope mapping. Hence the binary all-6-or-0.
+
+**Gap 2 — the token never carries narrowed scopes.** The adapter requests the connection's full
+INCLUDE_ONLY scope set for every user; Okta custom-AS rules match only when requested scopes are a
+**subset** of a rule's allowed set, so a per-group subset rule → `no_matching_policy` → 0 tools
+(why we went binary). Even a narrowed token wouldn't help given Gap 1.
+
+**Both must be closed together** — fixing either alone changes nothing.
+
+**Fix options (recommend #1 for the lab):**
+1. **Filter by the `groups` claim in the MCP server.** Token already carries `groups`; have the
+   server decode the JWT and return a per-group tool subset. Sidesteps Gap 2 (keep binary scopes),
+   delivers "different tools per persona." Cost: server is no longer a pure thin proxy; contradicts
+   Module 1.7's "the adapter filters tools."
+2. **Per-tier resources/paths** (`/crm/read/mcp` ↔ read scopes) + separate adapter resources +
+   managed connections. Config-only but multiplies resources/connections per agent.
+3. **True scope→tool enforcement**: annotate tools with required scopes, adapter requests only the
+   user's entitled scopes (needs per-user entitlement awareness) + server/adapter filters by granted
+   scopes + Okta downscoping. Correct but touches all three layers.
