@@ -2,7 +2,7 @@
 
 ## Objective
 
-Build the VantageDesk side of the camp end-to-end — authorization server, scopes, access policy, managed connection — using your work on VantageCRM as the template. The VantageDesk API itself already exists: it is part of the one central, multi-tenant deployment at `https://vantagedesk.taskvantage-demo.com`, shared by every attendee's org and reached only as an API. You don't stand it up or deploy anything app-side. Your job is the Okta side: build `vantage-desk-as` (a custom authorization server in *your* org) with the ITSM scopes and an access policy. Because enrollment is by org, the central app trusts your new auth server automatically via your org's JWKS — no app-side registration or redeploy. Then invoke a tool through the agent and watch the full XAA token exchange happen: the adapter requests an ID-JAG carrying both agent and user identity, swaps it for a scoped access token at `vantage-desk-as`, and the call lands on the central VantageDesk as the actual user. By the end of this lab, the two halves of TaskVantage are configured identically in your org and you have seen the protocol that makes the whole thing work.
+Build the VantageDesk side of the camp end-to-end — authorization server, scopes, access policy, managed connection, and the matching MCP Adapter resource — using your work on VantageCRM as the template. The VantageDesk API itself already exists: it is part of the one central, multi-tenant deployment at `https://vantagedesk.taskvantage-demo.com`, shared by every attendee's org and reached only as an API. You don't stand it up or deploy anything app-side. Your job is the Okta side: build `vantage-desk-as` (a custom authorization server in *your* org) with the ITSM scopes and an access policy. Because enrollment is by org, the central app trusts your new auth server automatically via your org's JWKS — no app-side registration or redeploy. Then invoke a tool through the agent and watch the full XAA token exchange happen: the adapter requests an ID-JAG carrying both agent and user identity, swaps it for a scoped access token at `vantage-desk-as`, and the call lands on the central VantageDesk as the actual user. By the end of this lab, the two halves of TaskVantage are configured identically in your org and you have seen the protocol that makes the whole thing work.
 
 ## Scenario
 
@@ -47,9 +47,10 @@ Before you build the missing half, take one minute to look at the completed half
 | Authorization server | Security > API | `vantage-crm-as`, audience `api://vantage-crm` |
 | Scopes | Scopes tab | 5 scopes: `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write` |
 | Access policy rules | Access Policies tab | 4 rules (Sales mgmt, Sales reps, IT help desk, catch-all) — reviewed in Lab 3.2 |
-| Managed connection on the agent | Directory > AI Agents > TaskVantage Sales Agent > Managed connections | One entry pointing at `vantage-crm-as` with all scopes allowed |
+| Managed connection on the agent | Directory > AI Agents > TaskVantage Sales Agent > Managed connections | One entry pointing at `vantage-crm-as`, **Only allow** with the five granular CRM scopes |
+| Adapter resource | Adapter admin console (Lab 2.10) | One resource for `vantage-crm-as`, URL `…/crm/mcp`, auth `okta-cross-app` |
 
-You will create the same four building blocks for VantageDesk over the next four sections.
+You will create the same building blocks for VantageDesk over the next sections — the four Okta pieces, then the adapter resource that brings them online.
 
 ### 4.3 Create the vantage-desk-as authorization server
 
@@ -137,7 +138,20 @@ The auth server and policy exist. Now bind them to the agent.
 
 The agent now shows two managed connections: one to `vantage-crm-as` (from Lab 2) and one to `vantage-desk-as` (just added). The agent's reach has doubled.
 
-### 4.7 Re-list tools — see ITSM appear
+### 4.7 Re-sync the adapter and add the VantageDesk resource
+
+The Okta side now knows your agent may reach VantageDesk — but your **MCP Adapter** doesn't yet. It caches managed connections, and it routes each backend audience through its own **resource**. In Lab 2.10 the setup helper wired your CRM resource for you; now you do the same wiring **by hand** for VantageDesk — the same steps the helper ran for CRM, in your own clicks. This is the step that makes the ITSM tools appear in 4.8.
+
+Open the adapter admin console at `https://{{adapter_admin_host}}`.
+
+- **Re-sync.** On `TaskVantage Sales Agent`, click **Sync** (or **Sync connections**). The adapter re-reads your managed connections and picks up the new `vantage-desk-as` connection, materializing it as a second **resource**. {HumanReview: confirm the synced connection auto-creates the resource; if not, add it manually with the `vantage-desk-as` auth-server id.}
+- **Point it at the Desk path.** Open the new resource and set its **MCP server URL** to your central MCP server's **Desk path**: `https://{{mcp_host}}/desk/mcp`. Leave the auth method as **okta-cross-app**. **Enable** the resource.
+
+Your adapter now has **two** resources for one agent: the CRM resource at `/crm/mcp` (Lab 2.10) and the Desk resource at `/desk/mcp` (just added). Each mints its own audience-scoped token — `api://vantage-crm` for CRM tools, `api://vantage-desk` for ITSM tools — and routes to the matching tool subset on the one shared MCP server.
+
+*NOTE: One adapter resource maps to exactly one managed connection and one audience. That's why VantageDesk needs its own resource rather than joining the CRM one: a single resource could only ever mint one audience's token, and VantageDesk rejects a CRM-audience token (and vice versa). The `/crm/mcp` and `/desk/mcp` paths exist so each resource is handed only the tools its token is valid for. If the adapter is ever restarted, re-run this sync — a freshly hydrated resource can lose its granular scopes and fall back to `mcp:read`, which `vantage-desk-as` doesn't define.*
+
+### 4.8 Re-list tools — see ITSM appear
 
 Run the tool-listing script again as Kim Liu, who is in `IT Help Desk` and matches both rule 3 on CRM (limited read) and rule 1 on Desk (full access).
 
@@ -176,9 +190,9 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 0 tools filtered out (resource not yet configured).
 ```
 
-The "resource not yet configured" bucket is empty — every tool the adapter knows about is now gated against an authorization server. Compare this to Lab 3.4 where six ITSM tools sat in that bucket; your work in 4.3 through 4.6 cleared it.
+The "resource not yet configured" bucket is empty — every tool the adapter knows about is now gated against an authorization server. Compare this to Lab 3.4 where six ITSM tools sat in that bucket; your work in 4.3 through 4.7 cleared it.
 
-### 4.8 Invoke a tool through the agent
+### 4.9 Invoke a tool through the agent
 
 Filtering is done. Time to actually call something.
 
@@ -216,7 +230,7 @@ Result:
 
 The agent did not just *describe* what calling a tool would look like. It actually called one. The result came back from the central VantageDesk, where the call was authenticated as Kim, scoped to `itsm.tickets.read`, resolved to your org's tenant partition by the token issuer, and audited against her identity.
 
-### 4.9 Inspect XAA in flight (verbose mode)
+### 4.10 Inspect XAA in flight (verbose mode)
 
 Re-run the same invocation with `--verbose`. The script will now print every intermediate token so you can see the protocol with your own eyes.
 
@@ -294,7 +308,7 @@ Walk through what you see:
 - **Audience narrows.** The ID-JAG's audience is `vantage-desk-as`. The access token's audience is the constant lab value `api://vantage-desk` — the same for every attendee's org; the central app tells tenants apart by issuer, not audience. Each step scopes the token further toward its eventual use.
 - **Scope narrows.** Kim is allowed five Desk scopes per the policy. Only `itsm.tickets.read` was requested for this specific tool — that's the only scope in the ID-JAG and access token. Least-privilege by construction.
 
-### 4.10 Verify the request landed as the user
+### 4.11 Verify the request landed as the user
 
 The central VantageDesk is API-only — there is no admin web page to open. Instead, read the access log out-of-band: the central app exposes `GET /admin/access-log`, scoped to *your* tenant (the app picks the partition from your token's issuer), so you only ever see your own org's records. Run the read script on the Virtual Desktop:
 
@@ -319,6 +333,6 @@ The `Client` field reads `TaskVantage Sales Agent`, not a raw client ID: the cen
 
 ---
 
-**End of lab.** VantageDesk now matches VantageCRM end-to-end: authorization server, scopes, access policy, managed connection. You watched the protocol that makes user-scoped agent access possible — ID-JAG, two-step exchange, audience and scope narrowing on each hop. And you saw the consequence at the backend: a request that carries the user's identity, not the agent's.
+**End of lab.** VantageDesk now matches VantageCRM end-to-end: authorization server, scopes, access policy, managed connection, and an MCP Adapter resource at `/desk/mcp`. You watched the protocol that makes user-scoped agent access possible — ID-JAG, two-step exchange, audience and scope narrowing on each hop. And you saw the consequence at the backend: a request that carries the user's identity, not the agent's.
 
 One module remains. Lab 5 introduces OIG — access requests, certification campaigns, time-bound elevations, and the kill switch. You will watch Frank Boone request CRM access, get it approved, see the same tool-listing script start returning real tools for him, and then watch the access expire and the tools disappear again.

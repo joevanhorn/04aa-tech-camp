@@ -2,7 +2,7 @@
 
 ## Objective
 
-Register an AI agent in Okta Universal Directory as a first-class identity, assign a human owner, configure its public-key credential, link it to a user-sign-on app, activate it, and connect it to the prebuilt VantageCRM authorization server. By the end of this lab, your agent exists in the AI Agents Registry, is owned and active, scoped to a specific user-facing app, and authorized to request tokens for VantageCRM via XAA. Module 3 will exercise this access.
+Register an AI agent in Okta Universal Directory as a first-class identity, assign a human owner, configure its public-key credential, link it to a user-sign-on app, and activate it — then bring its VantageCRM access online (managed connection + MCP Adapter resource) with the lab's setup helper and review it as the worked example. By the end of this lab, your agent exists in the AI Agents Registry, is owned and active, scoped to a specific user-facing app, authorized to request tokens for VantageCRM via XAA, and reachable through the adapter. Module 3 will exercise this access; in Lab 4 you'll build the VantageDesk equivalent from scratch.
 
 ## Scenario
 
@@ -128,7 +128,7 @@ The agent's status changes from **STAGED** to **ACTIVE**.
 
 ### 2.8 Reference: the VantageCRM authorization server
 
-You reviewed `vantage-crm-as` in Lab 1.9. The managed connection you are about to build references it as the trust anchor for token exchange.
+You reviewed `vantage-crm-as` in Lab 1.9. The managed connection the lab is about to wire for you references it as the trust anchor for token exchange.
 
 Quick recap, no clicks needed:
 
@@ -136,30 +136,45 @@ Quick recap, no clicks needed:
 | --- | --- | --- |
 | `vantage-crm-as` | `api://vantage-crm` | `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write` |
 
-The access policy on `vantage-crm-as` allows AI agents that hold a valid managed connection to request these scopes. Your agent is about to become one.
+The access policy on `vantage-crm-as` allows AI agents that hold a valid managed connection to request these scopes. Your agent is about to become one — wired as the worked example you'll replicate for VantageDesk in Lab 4.
 
-### 2.9 Connect the agent to VantageCRM
+### 2.9 Pre-wire your agent's CRM access (the worked example)
 
-This step turns your active agent into an agent that can actually do something. Without a managed connection, the agent has identity but no authorized resources.
+Your agent has an identity but no authorized resources yet. Bringing VantageCRM online takes two pieces: an Okta **managed connection** (so the agent may *request* `crm.*` scopes at `vantage-crm-as`) and, in your **MCP Adapter**, a **resource** that routes CRM tool calls to the backend. The lab wires **both** for you here — the complete CRM path — so you start with a working example to study. In Lab 4 you build the equivalent for VantageDesk *by hand, from zero* — that's where you learn the mechanic. This is the camp's review-then-build pattern.
 
-- From **Directory** > **AI Agents**, click into `TaskVantage Sales Agent`.
-- Select the **Managed connections** tab.
-- Click **Add connection**.
-- In the Add connection dialog:
-  - **Resource type**: select **Authorization server**.
-  - **Authorization server**: select `vantage-crm-as` from the dropdown.
-  - **Scopes**: select **Only allow**, and add the full granular scope set: `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write`.
-- Click **Add**.
+Run the setup helper from your Virtual Desktop:
 
-The new connection appears on the **Managed connections** tab.
+```bash
+~/Desktop/setup-crm-resource.sh
+```
 
-*NOTE: Choose **"Only allow"** with the granular scope list — **not "Allow all".** The managed connection caps which scopes the agent may *request*; which scopes a given **user** is granted still comes from `vantage-crm-as`'s access policy (Lab 1.10 / Lab 3), keyed on group membership — that policy is what drives Lab 3's per-user tool filtering. "Allow all" is not just broader: with the Okta MCP Adapter it makes the agent fall back to requesting a generic `mcp:read` scope that the custom auth server doesn't define, and the token exchange fails (`no_matching_scope`). In Lab 5, OIG layers time-bound scope-down on top via certification.*
+It creates your agent's **INCLUDE_ONLY** `crm.*` managed connection in Okta, imports the agent into your adapter, marks it **DCR-selectable**, and registers the CRM **resource** at `https://{{mcp_host}}/crm/mcp`. It prints each step and finishes with `OK: 'vantage-crm' wired …`.
 
-### 2.10 Verify the configuration
+*{HumanReview}: the VDI helper wraps `deploy/wire_adapter_resource.py --preset crm --okta-token …` (taskvantage-apps), pre-seeded with your agent id (resolved from its name), `vantage-crm-as` id, adapter + MCP hosts, and the Okta + adapter admin tokens. Confirm packaging + token delivery at lab GA.*
+
+**Review the managed connection it created.** From **Directory** > **AI Agents** > `TaskVantage Sales Agent` > **Managed connections**, open the `vantage-crm-as` entry. Confirm it is **Only allow** (INCLUDE_ONLY) with the five granular `crm.*` scopes.
+
+*NOTE: Why "Only allow" with the granular list — **not "Allow all"**? The managed connection caps which scopes the agent may *request*; which scopes a given **user** actually gets still comes from `vantage-crm-as`'s access policy (Lab 1.10 / Lab 3), keyed on group membership — that policy drives Lab 3's per-user tool filtering. "Allow all" is not just broader: with the Okta MCP Adapter it makes the agent fall back to requesting a generic `mcp:read` scope the custom auth server doesn't define, and the token exchange fails (`no_matching_scope` / `invalid_scope`). You set this yourself for VantageDesk in Lab 4 — remember **"Only allow"**.*
+
+### 2.10 Review your CRM tool resource in the adapter
+
+The other half the helper wired lives in your **Okta MCP Adapter** — the broker OpenCode actually calls (OpenCode never reaches Okta or VantageCRM directly). It authenticates the agent, performs the XAA token exchange, and routes each tool call to the right backend. Two things had to become true for a CRM call to flow, and the helper did both: the adapter now **knows your agent** (imported, and marked **DCR-selectable** so OpenCode can link to it on first connect), and it has a **resource** — its view of "this agent may reach VantageCRM with these scopes" — pointed at the CRM tools.
+
+Open the adapter admin console at `https://{{adapter_admin_host}}`, sign in, and review — this is the example you'll replicate for Desk: {HumanReview: confirm adapter Admin UI labels}
+- **Agents** → `TaskVantage Sales Agent` is present, **DCR-selectable** on.
+- **Resources** → one resource for `vantage-crm-as`: URL `https://{{mcp_host}}/crm/mcp`, auth **okta-cross-app**, **enabled**, scopes = your five granular `crm.*` scopes (*not* `mcp:read`).
+
+*NOTE: Why the CRM-specific `/crm/mcp` path? One shared MCP server hosts both VantageCRM and VantageDesk tools, but the adapter binds **one resource to one managed connection and mints one audience-scoped token** — an `api://vantage-crm` token for this CRM resource. The server publishes the 6 CRM tools at `/crm/mcp` and the 6 Desk tools at `/desk/mcp`, so each resource is handed only the tools its token is valid for. Point a resource at the wrong path and its tools come back rejected with `Audience doesn't match`. That's also why VantageDesk needs its **own** resource in Lab 4 — not a second connection bolted onto this one.*
+
+*NOTE: The signing credential matters here. The adapter signs the XAA client assertion (Lab 4) with your agent's private key, and it must be the one whose public key is **ACTIVE** in Okta (2.5) — same `kid` — or Lab 4 fails with `client_assertion_invalid_kid`. The setup helper uses the credential the lab pre-staged for your agent; if you regenerated the key in 2.5, re-stage the matching private key.*
+
+**Lab 4 returns here.** After you build `vantage-desk-as` and its managed connection in Lab 4, you'll add a **second** resource — by hand in the adapter console — pointing at `https://{{mcp_host}}/desk/mcp`, then re-sync. The adapter caches connections, so new scopes take effect only after a sync.
+
+### 2.11 Verify the configuration
 
 Spend a minute confirming the agent is set up correctly. Lab 3 will fail in confusing ways if anything is missing.
 
-**In the Admin Console**, your agent's profile should show:
+**In the Okta Admin Console**, your agent's profile should show:
 
 | Field | Expected Value |
 | --- | --- |
@@ -169,11 +184,19 @@ Spend a minute confirming the agent is set up correctly. Lab 3 will fail in conf
 | User sign-on app | TaskVantage Agent UI (User sign-on tab) |
 | Managed connections | 1 connection to `vantage-crm-as` (Managed connections tab) |
 
+**In the adapter admin console** (2.10), confirm:
+
+| Field | Expected Value |
+| --- | --- |
+| Agent | `TaskVantage Sales Agent` imported, principal id (`wlp…`) populated |
+| DCR-selectable | On |
+| Resource | 1 resource for `vantage-crm-as`, URL `https://{{mcp_host}}/crm/mcp`, **enabled**, auth `okta-cross-app` |
+
 **In the System Log** (Reports > System Log), filter on `target.type eq "AIAgent"` and confirm you see lifecycle events: agent created, owner added, key added, key activated, app linked, agent activated, managed connection created.
 
 ---
 
-### 2.11 (Optional) Import from Bedrock AgentCore instead
+### 2.12 (Optional) Import from Bedrock AgentCore instead
 
 If you're using Bedrock (and AI agent imports are enabled on the AWS IAM Identity Center provider — confirmed in Lab 1.8), you can register the agent by import instead of the manual flow in 2.3:
 
@@ -185,6 +208,6 @@ From 2.4 onward (owner, credential, sign-on app, activation, managed connection)
 
 ---
 
-**End of lab.** Your agent is registered, owned, active, credentialed, scoped to a sign-on app, and connected to VantageCRM. In Lab 3, you will see this agent in action: the MCP Adapter will route a user's prompt through the agent, filter the tool catalog based on the user's entitlements, and demonstrate that the same prompt issued by Alex Martinez versus Susan Potter results in different tool sets and different data — driven entirely by the user's authorization, not the agent's.
+**End of lab.** Your agent is registered, owned, active, credentialed, and scoped to a sign-on app — and its VantageCRM access is wired and reviewed: an INCLUDE_ONLY managed connection plus a DCR-selectable agent and an enabled CRM resource at `/crm/mcp` in your adapter. In Lab 3, you will see this agent in action: the MCP Adapter will route a user's prompt through the agent, filter the tool catalog based on the user's entitlements, and demonstrate that the same prompt issued by Alex Martinez versus Susan Potter results in different tool sets and different data — driven entirely by the user's authorization, not the agent's.
 
-A reminder of the camp's pattern: the VantageDesk authorization server and managed connection do not exist yet. You will build both in Lab 4, modeled on what you just built for VantageCRM.
+A reminder of the camp's pattern: the VantageDesk authorization server, managed connection, and adapter resource do not exist yet. You will build all three in Lab 4, modeled on what you just built for VantageCRM — and re-sync the adapter so the new `/desk/mcp` resource comes online.
