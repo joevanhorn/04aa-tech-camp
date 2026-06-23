@@ -172,20 +172,16 @@ Open the adapter admin console at `https://{{adapter_admin_host}}`, sign in, and
 
 ### 2.11 Add your agent to the VantageCRM access policy
 
-The managed connection (2.9) lets your agent *request* `crm.*` scopes; the **access policy** on `vantage-crm-as` decides whether to *issue* them. That policy was seeded with rules keyed to the persona groups (Lab 1.10), but its rules also have to name **your agent as an allowed client** — otherwise the token exchange your agent performs in Lab 3 is rejected with `no_matching_policy`, even though every scope and group looks correct.
+The managed connection (2.9) lets your agent *request* `crm.*` scopes; the **access policy** on `vantage-crm-as` decides whether to *issue* them. That policy was seeded keyed to the persona groups (Lab 1.10), but it also has to name **your agent as an allowed client** — otherwise the token exchange your agent performs in Lab 3 is rejected with `no_matching_policy`, even though every scope and group looks correct.
 
-*NOTE: Why isn't "Any client" enough? The XAA flow your agent uses (Lab 3/4) exchanges a **JWT-bearer client assertion** signed as the agent **principal** — a distinct client identity from a normal app. Okta's "Any client" rule condition does **not** match that agent-principal assertion, so the rule has to list the agent's clients explicitly. This is the single most common reason a correctly-scoped agent still gets zero tools.*
+*NOTE: Why isn't "Any client" enough? The XAA flow your agent uses (Lab 3/4) exchanges a **JWT-bearer client assertion** signed as the agent **principal** — a distinct client identity from a normal app. Okta's "Any client" condition does **not** match that agent-principal assertion, so the policy has to name the agent explicitly. This is the single most common reason a correctly-scoped agent still gets zero tools.*
 
 1. Go to **Security** > **API** > **Authorization Servers** > `vantage-crm-as` > **Access Policies**.
-2. Open the policy that governs CRM access and edit each rule that should apply to your agent (at minimum the **Sales managers — full access** rule your owner persona falls under).
-3. Under **AND the following clients**, switch from *Any client* to **The following clients** and add **both** of your agent's client identities:
-   - your agent's **user-sign-on app** (the OIDC `client_id` from 2.6 — `TaskVantage Agent UI`), and
-   - your agent's **principal client** (the `wlp…` shown as the imported agent's principal id in the adapter, 2.10).
-4. **Save** the rule.
+2. Open the CRM access policy and edit its **Assign to** clients (the client condition lives on the *policy*, not the individual rules).
+3. Switch from *Any client* to **The following clients** and add **your agent** — select `TaskVantage Sales Agent` from the list. This is the agent **principal**; you do **not** add the user-sign-on app (2.6). The principal is the identity Okta evaluates during the XAA exchange, exactly as you'll do for VantageDesk in Lab 4.5.
+4. **Save**.
 
-*{HumanReview}: confirm the exact Admin UI label for the agent-principal client in the rule's client picker (it surfaces by agent name / `wlp…` id), and whether both entries are required in your tenant's build or only the principal — validation needed both.*
-
-> The lab seeds these rules with `ALL_CLIENTS` so the org provisions cleanly, but `ALL_CLIENTS` does **not** cover the agent-principal assertion — this step is what actually entitles *your* agent. Skipping it is fine until Lab 3, where it surfaces as an empty tool list with `no_matching_policy` in the System Log.
+> The lab seeds the policy with `ALL_CLIENTS` so the org provisions cleanly, but `ALL_CLIENTS` does **not** cover the agent-principal assertion — this step is what actually entitles *your* agent. Skipping it is fine until Lab 3, where it surfaces as an empty tool list with `no_matching_policy` in the System Log.
 
 ### 2.12 Verify the configuration
 
@@ -200,7 +196,7 @@ Spend a minute confirming the agent is set up correctly. Lab 3 will fail in conf
 | Credentials | 1 public key, ACTIVE (Credentials tab) |
 | User sign-on app | TaskVantage Agent UI (User sign-on tab) |
 | Managed connections | 1 connection to `vantage-crm-as` (Managed connections tab) |
-| Access policy | Your agent listed as an allowed client on the `vantage-crm-as` CRM rule(s) (2.11) |
+| Access policy | Your agent (`TaskVantage Sales Agent`) listed in the `vantage-crm-as` policy's **Assign to** clients (2.11) |
 
 **In the adapter admin console** (2.10), confirm:
 
