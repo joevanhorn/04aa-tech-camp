@@ -85,6 +85,31 @@ Both bit the lab platform's bridge CFN during testing — flagging for the team 
    the stack at a region with headroom, raise the `L-F678F1CE` (VPC) + `L-A4707A72` (IGW) quotas, or
    free a VPC. Ideally the CFN supports a **bring-your-own-VPC** parameter to avoid creating one.
 
+## Follow-ups (known limitations, deferred by decision)
+
+1. **Per-user access is BINARY (0-or-all), not graduated.** Today, membership in any
+   `vantage-crm-as` policy group grants the *full* `crm.*` tool set; non-members get nothing
+   (validated: Alex/Susan = 6 tools, Frank = 0). We initially tried graduated rules (Sales reps =
+   read-only subset) but they **deny those users entirely**: the adapter requests the connection's
+   full `INCLUDE_ONLY` scope set for every user, and Okta returns `no_matching_policy` when the
+   request isn't a subset of a matched rule — so a per-group subset rule fails the whole token
+   rather than narrowing it. Graduated filtering (e.g. Sales reps see only read tools) needs either
+   **adapter-side scope narrowing** (request only the rule's scopes per user) or an **Okta
+   intersection-grant**. Until then `provision_lab_org.py` grants `_ALL_CRM` on every rule.
+
+2. **The attendee's agent client must be added to the `vantage-crm-as` access-policy clients —
+   this is a required Module step, not `ALL_CLIENTS`.** `ALL_CLIENTS` does **not** cover the
+   agent-principal `jwt-bearer` exchange (STEP 3 of XAA), so the resource-AS leg fails with
+   `no_matching_policy` until the agent's OIDC client_id **and** its `agt…` principal client are
+   listed explicitly on the policy. Module 2/3 should walk the attendee through adding their
+   freshly-registered agent to the policy clients after registration (this is the same gotcha 6 from
+   `../reference/xaa-bridge-wiring-lessons.md`).
+
+3. **Example-agent resource duplication.** The pre-loaded `VantageCRM Example Agent` materializes
+   its own CRM adapter resource (e.g. `aus…-2`), which doubles the catalog if left enabled. We
+   disable that duplicate after provisioning; `setup-crm-resource.sh` should ensure only the
+   attendee's agent resource is active, or skip wiring the example agent's resource entirely.
+
 ## Notes
 - Persona row-level visibility keys on the token `sub` (= the user's Okta `userName`) matching the seed
   owner emails, and on the **`groups` claim** — both vantage AS must emit `groups` (Module 3/5). The

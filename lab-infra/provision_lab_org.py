@@ -9,14 +9,16 @@ Creates:
   • Groups: Sales Management, Sales Reps, IT Help Desk, CRM Read - Cross-Functional, Engineering.
   • Persona users (password-set, activated) mapped to those groups:
       susan.potter@atko.email  → Sales Management        (full CRM)
-      alex.martinez@atko.email → Sales Reps               (read-only CRM)
-      kim.liu@atko.email       → IT Help Desk             (limited CRM read; full ITSM in Lab 4)
+      alex.martinez@atko.email → Sales Reps               (full CRM — see binary-model note)
+      kim.liu@atko.email       → IT Help Desk             (full CRM; full ITSM in Lab 4)
       frank.boone@atko.email   → Engineering              (no CRM/ITSM by default; OIG round-trip in Lab 5)
   • `vantage-crm-as` authorization server: audience api://vantage-crm, the 5 crm.* scopes, a
     `groups` claim, and the access policy with the 4 group-keyed rules that drive Module 3's
     per-user tool filtering (Sales mgmt / Sales reps / IT help desk / Cross-functional). The policy
     is assigned to ALL_CLIENTS so the attendee's (yet-to-be-registered) agent is governed by it; the
-    rules allow the XAA grant types (token-exchange + jwt-bearer).
+    rules allow the XAA grant types (token-exchange + jwt-bearer). Access is currently BINARY
+    (group membership = full CRM tools / none) — graduated per-user filtering is a follow-up; see
+    the CRM_RULES note below and lab-infra/README.md "Follow-ups".
 
 Does NOT create: the attendee's agent, its sign-on OIDC app, or `vantage-desk-as` — those are built
 during the lab (Modules 2 + 4). Tenant enrollment in the apps is separate (`enroll_tenant.py`).
@@ -59,17 +61,27 @@ USERS = [
 CRM_SCOPES = ["crm.accounts.read", "crm.accounts.write", "crm.contacts.read",
               "crm.opportunities.read", "crm.opportunities.write"]
 
+# BINARY (0-or-all) ACCESS MODEL — see "Follow-ups" note below and lab-infra/README.md.
+# Each rule grants either the FULL crm.* scope set or nothing (membership in a rule's group =
+# full CRM tools; no membership = no CRM tools — validated as Alex/Susan=6 tools, Frank=0).
+#
+# Why binary and not graduated (e.g. Sales reps = read-only subset): the adapter requests the
+# connection's FULL INCLUDE_ONLY scope set for EVERY user, and Okta DENIES the whole token
+# (no_matching_policy) when the request isn't a subset of a matched rule. A per-group *subset*
+# rule (e.g. 3 read scopes for Sales reps) therefore denies those users entirely rather than
+# granting a narrower tool set — it's all-or-nothing at the token layer, not graduated.
+# Graduated per-user filtering (Sales reps see only read tools) is a documented FOLLOW-UP:
+# it needs adapter-side scope narrowing or an Okta intersection-grant. Until then every rule
+# below grants the full set so group membership cleanly maps to "has CRM access / doesn't".
+_ALL_CRM = ["crm.accounts.read", "crm.accounts.write", "crm.contacts.read",
+            "crm.opportunities.read", "crm.opportunities.write"]
+
 # (rule name, group name, granted scopes) — order is the policy priority (Module 3.2 table).
 CRM_RULES = [
-    ("Sales managers — full access", "Sales Management",
-     ["crm.accounts.read", "crm.accounts.write", "crm.contacts.read",
-      "crm.opportunities.read", "crm.opportunities.write"]),
-    ("Sales reps — read access", "Sales Reps",
-     ["crm.accounts.read", "crm.contacts.read", "crm.opportunities.read"]),
-    ("IT help desk — limited read", "IT Help Desk",
-     ["crm.accounts.read", "crm.contacts.read"]),
-    ("Cross-functional readers — read access", "CRM Read - Cross-Functional",
-     ["crm.accounts.read", "crm.contacts.read", "crm.opportunities.read"]),
+    ("Sales managers — full access", "Sales Management", _ALL_CRM),
+    ("Sales reps — full access", "Sales Reps", _ALL_CRM),
+    ("IT help desk — full access", "IT Help Desk", _ALL_CRM),
+    ("Cross-functional readers — full access", "CRM Read - Cross-Functional", _ALL_CRM),
 ]
 
 XAA_GRANTS = ["urn:ietf:params:oauth:grant-type:token-exchange",
