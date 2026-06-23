@@ -155,29 +155,31 @@ The new connection appears on the **Managed connections** tab.
 
 *NOTE: Choose **"Only allow"** with the granular scope list — **not "Allow all".** The managed connection caps which scopes the agent may *request*; which scopes a given **user** is granted still comes from `vantage-crm-as`'s access policy (Lab 1.10 / Lab 3), keyed on group membership — that policy is what drives Lab 3's per-user tool filtering. "Allow all" is not just broader: with the Okta MCP Adapter it makes the agent fall back to requesting a generic `mcp:read` scope that the custom auth server doesn't define, and the token exchange fails (`no_matching_scope`). In Lab 5, OIG layers time-bound scope-down on top via certification.*
 
-### 2.10 Wire your agent into the MCP Adapter
+### 2.10 Bring your CRM tool resource online in the adapter
 
-Everything so far lives in Okta. But OpenCode doesn't call Okta — or VantageCRM — directly. It calls the **Okta MCP Adapter**: the broker that authenticates the agent, performs the XAA token exchange, and routes each tool call to the right backend. The adapter is **provisioned for you but starts empty** — it doesn't yet know about your agent or which backend it may reach. You wire that up now, so the managed connection you built in 2.9 actually carries tool calls. These are *your* adapter's steps; do them in the adapter's own admin console, not the Okta Admin Console.
+Everything so far lives in Okta. But OpenCode doesn't call Okta — or VantageCRM — directly. It calls the **Okta MCP Adapter**: the broker that authenticates the agent, performs the XAA token exchange, and routes each tool call to the right backend. Your adapter is **provisioned but empty** — it doesn't yet know about your agent or which backend it may reach. Two things have to be true before a tool call can flow: the adapter must know your **agent** (and have it marked *DCR-selectable*, so OpenCode can link to it on first connect), and it must have a **resource** — its view of "this agent may reach VantageCRM with these scopes," pointed at the CRM tools.
 
-Open the adapter admin console at `https://{{adapter_admin_host}}` and sign in with your admin account.
+For VantageCRM, the lab does this wiring for you with a one-command setup helper, so you begin with a **working example to study**. In Lab 4 you do the same wiring *by hand* for VantageDesk — that's where you learn the mechanic. This is the camp's review-then-build pattern, applied to the adapter.
 
-**a. Import your agent.** {HumanReview: confirm exact menu labels in the deployed adapter Admin UI}
-- Go to **Agents** and choose **Import from Okta** — the adapter reads your org's AI Agents Registry.
-- Select `TaskVantage Sales Agent` and import it. The adapter records the agent's Okta principal id (`wlp…`) and the client id of its linked sign-on app.
+**Run the CRM resource setup** from your Virtual Desktop:
 
-*NOTE: If your lab provisioned an Okta event hook for agent sync, your agent may already be listed — confirm it's there rather than importing a duplicate.*
+```bash
+~/Desktop/setup-crm-resource.sh
+```
 
-**b. Make the agent DCR-selectable.** On the imported agent, turn on **DCR-selectable** (Dynamic Client Registration). OpenCode registers itself with the adapter on first connect via DCR, and the adapter links that just-registered client to a *selectable* agent. If no agent is marked selectable, OpenCode's first sign-in fails with `temporarily_unavailable` — "No agents available for linking."
+The helper imports your agent into the adapter, marks it **DCR-selectable**, syncs your Okta managed connections, and registers a **resource** for `vantage-crm-as` pointed at your central MCP server's **CRM path** — `https://{{mcp_host}}/crm/mcp` — with `okta-cross-app` auth. It prints each step and finishes with `OK: 'vantage-crm' wired …`.
 
-**c. Confirm the signing credential.** The adapter signs the XAA client assertion (Lab 4) with your agent's private key. Confirm the key the adapter holds for this agent is the one whose public key is **ACTIVE** in Okta (2.5) — the `kid` must match. A mismatch surfaces in Lab 4 as `client_assertion_invalid_kid`.
+*{HumanReview}: the VDI helper wraps `deploy/wire_adapter_resource.py --preset crm` (taskvantage-apps), pre-seeded with your adapter host, agent id, `vantage-crm-as` id, MCP host, and an adapter admin token. Confirm the packaging + the admin-token delivery mechanism at lab GA.*
 
-**d. Sync, then register the CRM tool resource.**
-- Click **Sync** on the agent (or the global **Sync connections**). The adapter reads your Okta **managed connections** and materializes the `vantage-crm-as` connection as a **resource** — its view of "this agent may reach VantageCRM with these scopes." {HumanReview: confirm a synced connection auto-creates the resource in the deployed adapter version; if not, the resource is added manually with the connection's auth-server id.}
-- Open that resource and set its **MCP server URL** to your central MCP server's **CRM path**: `https://{{mcp_host}}/crm/mcp`. Leave the auth method as **okta-cross-app** (the adapter derives it from the connection type). **Enable** the resource.
+**Now review what it built** — this is the example you'll replicate for Desk. Open the adapter admin console at `https://{{adapter_admin_host}}`, sign in, and confirm: {HumanReview: confirm adapter Admin UI labels}
+- **Agents** → `TaskVantage Sales Agent` is present, **DCR-selectable** on.
+- **Resources** → one resource for `vantage-crm-as`: URL `https://{{mcp_host}}/crm/mcp`, auth **okta-cross-app**, **enabled**, scopes = your five granular `crm.*` scopes (*not* `mcp:read`).
 
-*NOTE: Why a CRM-specific `/crm/mcp` path? One shared MCP server hosts both VantageCRM and VantageDesk tools, but the adapter mints exactly **one audience-scoped token per resource** — an `api://vantage-crm` token for this CRM resource. The server publishes the 6 CRM tools at `/crm/mcp` and the 6 Desk tools at `/desk/mcp`, so each resource is handed only the tools its token is valid for. Point a resource at the wrong path and its tools come back rejected with `Audience doesn't match`. In Lab 4 you add a second resource for `/desk/mcp`.*
+*NOTE: Why the CRM-specific `/crm/mcp` path? One shared MCP server hosts both VantageCRM and VantageDesk tools, but the adapter binds **one resource to one managed connection and mints one audience-scoped token** — an `api://vantage-crm` token for this CRM resource. The server publishes the 6 CRM tools at `/crm/mcp` and the 6 Desk tools at `/desk/mcp`, so each resource is handed only the tools its token is valid for. Point a resource at the wrong path and its tools come back rejected with `Audience doesn't match`. That's also why VantageDesk needs its **own** resource in Lab 4 — not a second connection bolted onto this one.*
 
-**e. (Lab 4 returns here.)** After you build `vantage-desk-as` and its managed connection in Lab 4, you'll come back, **re-sync**, and register a second resource pointing at `https://{{mcp_host}}/desk/mcp`. The adapter caches connections, so newly added scopes and connections only take effect after a sync.
+*NOTE: The signing credential matters here. The adapter signs the XAA client assertion (Lab 4) with your agent's private key, and it must be the one whose public key is **ACTIVE** in Okta (2.5) — same `kid` — or Lab 4 fails with `client_assertion_invalid_kid`. The setup helper uses the credential the lab pre-staged for your agent; if you regenerated the key in 2.5, re-stage the matching private key.*
+
+**Lab 4 returns here.** After you build `vantage-desk-as` and its managed connection in Lab 4, you'll add a **second** resource — by hand in the adapter console — pointing at `https://{{mcp_host}}/desk/mcp`, then re-sync. The adapter caches connections, so new scopes take effect only after a sync.
 
 ### 2.11 Verify the configuration
 

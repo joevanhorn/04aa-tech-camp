@@ -140,7 +140,7 @@ The agent now shows two managed connections: one to `vantage-crm-as` (from Lab 2
 
 ### 4.7 Re-sync the adapter and add the VantageDesk resource
 
-The Okta side now knows your agent may reach VantageDesk — but your **MCP Adapter** doesn't yet. It caches managed connections, and it routes each backend audience through its own **resource**. Just as in Lab 2.10, you finish the wiring in the adapter admin console. This is the step that makes the ITSM tools appear in 4.8.
+The Okta side now knows your agent may reach VantageDesk — but your **MCP Adapter** doesn't yet. It caches managed connections, and it routes each backend audience through its own **resource**. In Lab 2.10 the setup helper wired your CRM resource for you; now you do the same wiring **by hand** for VantageDesk — the same steps the helper ran for CRM, in your own clicks. This is the step that makes the ITSM tools appear in 4.8.
 
 Open the adapter admin console at `https://{{adapter_admin_host}}`.
 
