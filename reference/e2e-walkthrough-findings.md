@@ -263,15 +263,27 @@ simulating the OIG grant/revoke by adding/removing Frank from `CRM Read - Cross-
   ("Verify Frank's tools are gone") and the §5.8 "kill switch" immediacy.** Fix options: (a) set a
   short resource-token TTL for the lab (e.g. 60–120s) so revocation visibly takes effect; (b) add an
   adapter cache-flush/"revoke now" admin action and have §5.7 call it; (c) document the lag explicitly
-  in §5.7 and have attendees wait out the TTL. Worth confirming whether §5.8 agent-deactivation flushes
-  the token cache (didn't test — kept the agent active to preserve walkthrough state).
-- **[Q/BUG] OIG catalog entry, certification campaign, and approver routing are NOT provisioned.**
-  §5.2–§5.4/§5.6 assume a preconfigured catalog entry for `CRM Read - Cross-Functional` (duration,
-  approver, eligibility), a `Quarterly review — AI agent CRM access` campaign, and the admin
-  configured as Frank's manager. `provision_lab_org.py` creates the group + rule 4 but **none of the
-  OIG governance constructs**. Either the lab platform provisions these, or the provisioner must add
-  them (catalog publish + campaign + manager relationship). Several `{HumanReview}` markers in §5.2–5.6
-  already flag unverified IGA menu paths/labels — those need a real OIG pass once the constructs exist.
+  in §5.7 and have attendees wait out the TTL.
+  **TESTED (kill-switch / deactivate-flush): deactivation does NOT flush the cache.** Warmed Kim's
+  cache (12 tools), deactivated the agent (Okta status → INACTIVE), re-ran Kim → **still 12 tools**;
+  adapter logs show the CRM/Desk resources served from cache with **no fresh ID-JAG attempt**. So
+  agent-deactivation reliably blocks any session that needs a *new* token exchange (cache miss →
+  fresh ID-JAG, which the IdP refuses for a deactivated agent) but does **not** cut off a session
+  already holding a cached resource token — it ages out at the TTL (~1h). For an *immediate* kill the
+  adapter must shorten the resource-token TTL and/or invalidate cached tokens on deactivation
+  (maintainer item). Also confirmed: `lifecycle/activate`/`deactivate` work via the **public API**
+  once the agent has an owner (no GUI needed for the toggle). §5.8 doc updated to state this.
+- **[RESOLVED — option C] OIG catalog entry + approver routing now provisioned; campaign left manual.**
+  `provision_lab_org.py` now creates the requestable-group setup for §5.3–§5.5: an OIN host app
+  (`VantageCRM Access Requests`, `scim2testapp_basic`) with `CRM Read - Cross-Functional` assigned, an
+  active request-condition (requesters=EVERYONE, fixed PT2H, the org's pre-created *Requester's Manager
+  Approval* sequence), and sets the requester's manager via `--approver-login`. Verified live: the
+  child catalog entry is `requestable: true`. The **certification campaign (§5.6) is deliberately NOT
+  created** — it's a manual/lab-platform step (Governance > Access Certifications). OIG model (per Joe):
+  a group is requestable by being **assigned to an app that carries the request-condition** (resource =
+  appId, not the group ORN); the request-conditions list view omits `accessScopeSettings.groups` (dedup
+  by name); conditions are created INACTIVE and need explicit `/activate`. The `{HumanReview}` markers
+  on §5.2–5.6 IGA menu paths/labels still want a UI-label pass.
 - **[DOC] Persona password again.** §5.3 logs in as Frank with `Tra!nme4321` — same mismatch as §1.3
   (provisioner sets `O4aaLab!Tc2026#`). Same fix.
 - **[NOT RUN] §5.6 certification campaign and §5.8/§5.9 deactivate-reactivate kill switch** — require
@@ -303,7 +315,10 @@ independent gaps**, and the MCP server is one of them.
 **Gap 2 — the token never carries narrowed scopes.** The adapter requests the connection's full
 INCLUDE_ONLY scope set for every user; Okta custom-AS rules match only when requested scopes are a
 **subset** of a rule's allowed set, so a per-group subset rule → `no_matching_policy` → 0 tools
-(why we went binary). Even a narrowed token wouldn't help given Gap 1.
+(why we went binary). Even a narrowed token wouldn't help given Gap 1. **CONFIRMED by the adapter
+maintainer: the adapter cannot request a narrowed/per-user scope set today** — it always asks for the
+connection's full INCLUDE_ONLY set. So Gap 2 is not closeable at the adapter currently, which rules
+out option 3 below for now and makes binary the only viable model.
 
 **Both must be closed together** — fixing either alone changes nothing.
 
