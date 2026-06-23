@@ -11,6 +11,13 @@ Both VantageCRM (`api://vantage-crm`) and VantageDesk (`api://vantage-desk`) rea
 registered agent (`TechCamp-Opencode`) through **one** central MCP server, each tool minting its own
 correct-audience XAA token. Robust + supportable for a live ~100-attendee lab.
 
+> **Now codified.** The full validated sequence below is implemented as
+> `taskvantage-apps/deploy/wire_adapter_resource.py` (idempotent, stdlib-only). With `--okta-token` it
+> wires a resource **end-to-end** — creates the agent's INCLUDE_ONLY managed connection in Okta, then
+> import → DCR-selectable → sync → resource at the path-scoped MCP URL. The lab uses `--preset crm` to
+> **pre-wire CRM as the worked example** (Module 2); attendees hand-build the Desk path (Module 4). It's
+> also the one-command fix for the post-restart `mcp:read` regression (it re-syncs every run).
+
 ## Design (confirmed by code, not guesswork)
 
 The adapter binds **one resource = one managed connection = one audience**, and namespaces tools per
