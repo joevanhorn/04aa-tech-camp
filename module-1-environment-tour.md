@@ -172,7 +172,7 @@ This is where you will spend most of Labs 2 through 5.
 - The list is currently empty — no agents have been registered yet. Lab 2 changes this.
 - Click **Settings** (top-right) to review the AI Agents global settings. Note the default credential rotation window and the default agent session duration. Leave these at their preconfigured values.
 
-*NOTE: Your org has **AWS IAM Identity Center** pre-integrated as an AI agent provider app, with imports already enabled. The primary Lab 2 path registers your pre-installed OpenCode agent manually and does not use this provider — it's only needed for the optional Bedrock-import path (Lab 2.11).*
+*NOTE: Your org has **AWS IAM Identity Center** pre-integrated as an AI agent provider app, with imports already enabled. The primary Lab 2 path registers your pre-installed OpenCode agent manually and does not use this provider — it's only needed for the optional Bedrock-import path (Lab 2.13).*
 
 ### 1.9 Review the custom authorization server (VantageCRM)
 
