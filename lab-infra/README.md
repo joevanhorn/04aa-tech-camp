@@ -32,9 +32,16 @@ Python** (plus one bash wrapper); most take `--dry-run`.
    (`--no-example-agent` to skip). It stays STAGED — illustrative only; the bridge won't serve live
    tool calls through it until someone activates it, which the lab doesn't require. To surface its
    resource in the adapter at launch, run `wire_adapter_resource.py --preset crm` against it (step 3a).
+   It also sets up the **Module 5 OIG request-access** (option C): an OIN host app
+   `VantageCRM Access Requests` with `CRM Read - Cross-Functional` assigned + an active
+   request-condition (anyone may request, fixed **PT2H**, the org's pre-created *Requester's Manager
+   Approval* sequence), and sets Frank's **manager** to `--approver-login` so Module 5.4 routes.
+   This makes the 5.3–5.5 request→approve→tools round-trip work. The **certification campaign (5.6)
+   is NOT created** — build it in **Governance > Access Certifications** (lab platform / manual).
    ```bash
    export OKTA_ORG=https://<org>.okta.com OKTA_API_TOKEN=<SSWS super-admin>
    export LAB_USER_PASSWORD='<persona login password>'
+   export LAB_APPROVER_LOGIN='<attendee admin who approves in 5.4>'   # or --no-oig to skip
    python provision_lab_org.py            # --dry-run to preview
    ```
 2. **`enroll_tenant.py`** — trust the org in the central apps (so tokens minted under its issuer are

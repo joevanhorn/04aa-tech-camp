@@ -91,7 +91,7 @@ You will launch this campaign in 5.6, after Frank's membership has been granted.
 Switch perspectives. You will now act as Frank Boone, the requesting user.
 
 - On the Virtual Desktop, open a new Chrome incognito window.
-- Navigate to your Okta End-User Dashboard at `https://{{org_url}}` and sign in as Frank (`frank.boone@atko.email` / `Tra!nme4321`).
+- Navigate to your Okta End-User Dashboard at `https://{{org_url}}` and sign in as Frank (`frank.boone@atko.email` / `{{persona_password}}`).
 - Click the **Requests** tab (or **My Access** depending on the dashboard version `{HumanReview}`) and then **Request Access**.
 - Browse or search for `CRM Read - Cross-Functional`.
 - Click **Request**.
@@ -177,19 +177,21 @@ The campaign is now **In Progress**. As the reviewer, you have a queue of active
 - Reason: `Q2 launch completed — access no longer needed`
 - Click **Confirm**.
 
-OIG immediately removes Frank from the `CRM Read - Cross-Functional` group. His membership is revoked.
+OIG removes Frank from the `CRM Read - Cross-Functional` group immediately — his membership is revoked at the directory right away (check **Directory** > **Groups** to confirm). The agent's *tool access* reflects this a little later: see the timing note in 5.7.
 
 *NOTE: In a real campaign, the reviewer would also have the option to **Certify** — confirming that the membership is still appropriate. For this lab, you exercised the revoke path. The certify outcome leaves the membership in place; revoke removes it. Both decisions are captured in the campaign's audit trail.*
 
-### 5.7 Verify Frank's tools are gone
+### 5.7 Verify Frank's tools fall away
 
-Run the same script one more time:
+Frank's group membership is already gone (5.6). His access *through the agent* falls away on the next token refresh — see the timing note below before you run this.
+
+Run the same script again:
 
 ```bash
 ~/Desktop/list-agent-tools.sh --user frank.boone@atko.email
 ```
 
-Expected output:
+Once the agent re-evaluates Frank's access, you'll see:
 
 ```
 Acting as: frank.boone@atko.email  (groups: Engineering, All Employees)
@@ -205,18 +207,20 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 
 Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again. Round-trip complete: Frank gained access through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
 
+*NOTE — revocation timing: membership changes hit the directory **immediately**, but the MCP Adapter caches each user's resource access token (and so the user's tool set) for the token's lifetime — up to ~1 hour in the current build. Until that cached token expires, the agent keeps serving Frank the tools he had when it was minted, so this script may still show 6 tools right after the revoke. This is expected: governance decisions are enforced at the **next** token exchange, not retroactively on tokens already issued. Two ways to see `0 tools` promptly: re-run after the cached token expires, or have your lab platform shorten the adapter's resource-token TTL (e.g. 60–120s) for snappy classroom feedback. `{HumanReview}` — set the adapter token TTL for the lab build and adjust the "~1 hour" figure here to match.*
+
 ### 5.8 Exercise the kill switch — deactivate the agent
 
 Imagine a scenario where the security team needs to stop the agent immediately. A compromised key, an unexpected behavior, a suspected misuse — whatever the cause, the response should be one action, not a multi-step rollback. That action is deactivation.
 
 - From the Admin Console, go to **Directory** > **AI Agents** > **TaskVantage Sales Agent**.
 - Click **Actions** > **Deactivate**.
-- A confirmation dialog appears. Read it — note that deactivation stops new token issuance but does not retroactively revoke tokens already in flight. The ID-JAG's 5-minute TTL bounds your exposure window.
+- A confirmation dialog appears. Read it — note that deactivation stops **new** token issuance but does not retroactively revoke tokens already issued. This is **tested behavior**: deactivating the agent does **not** flush the adapter's token cache, so a user who already has a cached **resource access token** keeps working until it expires (up to ~1 hour in the current build — the same cache discussed in 5.7). Deactivation reliably blocks any session that needs a *new* token exchange (a cache miss → fresh ID-JAG, which the IdP refuses for a deactivated agent); it does **not** instantly cut off sessions already holding a cached token.
 - Click **Confirm**.
 
 The agent's status changes from **ACTIVE** to **DEACTIVATED**.
 
-Verify the kill is real — attempt to use the agent as Kim Liu, who has full standing access through her IT Help Desk role:
+Verify the kill is real with a **fresh** request — one that forces a new token exchange rather than reusing a cached token. Use Kim Liu (full standing access through IT Help Desk); a clean way to guarantee a fresh exchange is a user/tool the agent hasn't brokered in this session:
 
 ```bash
 ~/Desktop/invoke-agent-tool.sh \
@@ -240,7 +244,7 @@ No call was made to the MCP server. No tool was invoked. The agent is offline.
 
 Kim has done nothing wrong, has lost no group memberships. But because the agent is the broker of all access, deactivating the agent stops all activity through it. That is the operational shape of an agent kill switch.
 
-*NOTE: For real-time revocation of tokens already issued (not just blocking new issuance), Okta's Universal Logout feature targets active sessions across linked apps. Universal Logout coverage for AI agents specifically is on the product roadmap — for today's lab, deactivation plus the short ID-JAG TTL is the practical kill switch. `{HumanReview}` — confirm Universal Logout for AI Agents status at lab GA and update this section if it has shipped.*
+*NOTE: Deactivation blocks **new** brokering immediately but — confirmed by test — does **not** flush the adapter's cached resource tokens, so an already-active session keeps working until its token ages out (~1 hour in the current build). For the kill to read as *immediate* in the lab, the lab build should set a **short resource-token TTL** (e.g. 60–120s) and/or the adapter should **invalidate cached tokens on agent deactivation** — `{HumanReview}`: tracked with the adapter maintainer. To demonstrate the kill cleanly today, use a session that forces a fresh exchange (a user/tool the agent hasn't brokered recently), or set the short TTL. For real-time revocation of tokens already issued, Okta's Universal Logout targets active sessions across linked apps; coverage for AI agents specifically is on the roadmap — `{HumanReview}` confirm its status at lab GA and update if it has shipped.*
 
 ### 5.9 Reactivate the agent
 
