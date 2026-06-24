@@ -272,7 +272,23 @@ simulating the OIG grant/revoke by adding/removing Frank from `CRM Read - Cross-
   already holding a cached resource token — it ages out at the TTL (~1h). For an *immediate* kill the
   adapter must shorten the resource-token TTL and/or invalidate cached tokens on deactivation
   (maintainer item). Also confirmed: `lifecycle/activate`/`deactivate` work via the **public API**
-  once the agent has an owner (no GUI needed for the toggle). §5.8 doc updated to state this.
+  once the agent has an owner (no GUI needed for the toggle).
+  **MAINTAINER UPDATE (resolves this):** the deactivate→no-flush behavior was an **older-build bug,
+  patched in adapter `release/0.15.14`** (porting to main) — there, deactivating the agent **kills all
+  tool calls with a 401** immediately (true kill switch). Our test ran against the older deployed
+  build. The token lifetime comes from **Okta**: ~1h because the adapter uses the **org auth server**;
+  **custom-AS lifetimes are newly supported** (shorter TTL coming). For **single-user** immediate
+  revocation, use **Universal Logout** (admin-triggered from the user's **"User session"** tab). Action
+  items: deploy adapter **≥ 0.15.14** for the lab; §5.7/§5.8 docs updated to reflect 401-kill +
+  Universal Logout + Okta-sourced TTL.
+- **[CONFIRMED via Playwright] Module 5 OIG nav path + campaign entry.** Drove the Okta admin console:
+  certification campaigns live at **Identity Governance > Access Certifications** (left nav) → the
+  **Certification campaigns** tab (siblings: Preconfigured campaigns, Security access reviews,
+  Reporting, Settings); **Create campaign** is a dropdown offering **Resource** vs **User** campaign.
+  Access Requests / Resource Collections are sibling IG nav items (the access *catalog* lives in the
+  Access Requests app). Wizard internals (resource type Group/App/AI-Agent/+Collection, reviewer =
+  Resource owner, remediation On-revoke→Remove access, start defaults ~3h → lands Scheduled) are from
+  the maintainer's walkthrough; §5.6 rewritten to "create the campaign yourself" (option B).
 - **[RESOLVED — option C] OIG catalog entry + approver routing now provisioned; campaign left manual.**
   `provision_lab_org.py` now creates the requestable-group setup for §5.3–§5.5: an OIN host app
   (`VantageCRM Access Requests`, `scim2testapp_basic`) with `CRM Read - Cross-Functional` assigned, an

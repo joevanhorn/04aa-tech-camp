@@ -58,7 +58,7 @@ Together, the rule and the group are the access machinery. They have been in pla
 
 The group has been published to the OIG access catalog so end users can discover and request membership through their End-User Dashboard.
 
-- From the Admin Console, go to **Identity Governance** > **Catalog** `{HumanReview}` — verify exact path and UI label for the access catalog.
+- From the Admin Console, go to **Identity Governance** > **Access Requests** (this opens the governance Access Requests app), and find the access **catalog** there. `{HumanReview: confirm the in-app label/sub-path to the catalog}`
 - Find the entry for the group `CRM Read - Cross-Functional`.
 - Review the catalog configuration attached to the group:
 
@@ -168,26 +168,25 @@ Time passes. The Q2 launch wraps up. Per the security team's quarterly hygiene p
 
 **Create the campaign.**
 
-- From the Admin Console, go to **Identity Governance** > **Access Certifications** > **Campaigns**.
-- Click **Create campaign** `{HumanReview: confirm the button label and whether the flow is a wizard or single form}`.
-- **Name**: `Quarterly review — AI agent CRM access`
-- **Description**: `Quarterly hygiene review of temporary CRM access granted to cross-functional users`
-- **Resources to review** `{HumanReview: confirm the resource-picker labels}`: add the group **`CRM Read - Cross-Functional`**. This scopes the campaign to that group's active memberships — i.e. exactly the people who were granted access through the request flow, including Frank.
-- **Reviewers**: choose **Resource owner**, with **group owner** as the fallback `{HumanReview: confirm the reviewer-type options/labels}`. You are the owner for this lab, so the review lands in your queue.
-- **Duration**: `7 days`.
-- **On revoke (remediation)** `{HumanReview}`: confirm a **Revoke** decision **removes the user from the group automatically** (the default). This is what makes the revoke in this step actually pull Frank's access.
-- Review the summary and click **Create** (or **Save**) `{HumanReview: confirm whether Create lands the campaign in Draft / Ready-to-launch vs. launching immediately}`.
+- From the Admin Console, go to **Identity Governance** > **Access Certifications** (left nav), and stay on the **Certification campaigns** tab.
+- Click **Create campaign** and choose **Resource campaign** (the button is a menu — the other option is a *user* campaign; you want **Resource**). The campaign wizard opens.
+- **Campaign details**: 
+  - **Name**: `Quarterly review — AI agent CRM access`
+  - **Description**: `Quarterly hygiene review of temporary CRM access granted to cross-functional users`
+  - **Start**: the wizard defaults the start time to ~3 hours out. For the lab, set it to **now / the earliest the picker allows** so the campaign starts immediately instead of later. `{HumanReview: confirm the minimum start offset the UI permits}`
+  - **Duration / review period**: `7 days`.
+- **Resource**: pick resource type **Group** (the choices are **Application**, **Group**, **AI Agent** — plus **Collection** if that EA feature is enabled in the org), then select **`CRM Read - Cross-Functional`**. This scopes the campaign to that group's active memberships — exactly the people granted access through the request flow, Frank included.
+- **Reviewer**: choose **Resource owner**. You are the owner for this lab, so the review lands in your queue.
+- **Remediation**: set **On revoke** → **Remove access** (the page has two settings, *On revoke* and *No response*). This is what makes a **Revoke** decision actually pull the user out of the group. Leave **No response** at its default (it governs reviews left unanswered past the deadline).
+- Finish the wizard and **Create**. The campaign lands in **Scheduled** state and becomes **Active** at the start time you set.
 
-The campaign is created in **Draft** / **Ready to launch**.
+> {HumanReview} — Certification campaigns are built in the Admin UI (no provisioning API for them, same as the approval sequences). The nav path (**Identity Governance > Access Certifications > Certification campaigns**) and the **Create campaign → Resource** entry are verified against the live console; the per-step field labels follow the current wizard and are worth a quick confirmation pass at lab GA. The group, catalog entry, and approver routing are preconfigured by org-provisioning — only this campaign is built by hand.
 
-> {HumanReview} — Certification campaigns are built in the Admin UI (no clean provisioning API, like the approval sequences), so the labels above need a pass against the live console at lab GA. The group, catalog entry, and approver routing **are** preconfigured by the lab's org-provisioning; only this campaign is built by hand here.
+**Run it.**
 
-**Launch it.**
+- A campaign starts at its scheduled start time. If you set the start to now, it moves to **Active** shortly — open it from the **Active** tab. (If it's still under **Scheduled**, either wait for the start time or edit it earlier.)
 
-- Open the `Quarterly review — AI agent CRM access` campaign.
-- Click **Launch Campaign**.
-
-The campaign is now **In Progress**. As the reviewer, you have a queue of active memberships to review.
+The campaign is **Active**. As the reviewer, you have a queue of active memberships to review.
 
 - From the campaign's page, find Frank's active membership in `CRM Read - Cross-Functional`.
 - Click **Review** and choose **Revoke**.
@@ -224,7 +223,7 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 
 Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again. Round-trip complete: Frank gained access through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
 
-*NOTE — revocation timing: membership changes hit the directory **immediately**, but the MCP Adapter caches each user's resource access token (and so the user's tool set) for the token's lifetime — up to ~1 hour in the current build. Until that cached token expires, the agent keeps serving Frank the tools he had when it was minted, so this script may still show 6 tools right after the revoke. This is expected: governance decisions are enforced at the **next** token exchange, not retroactively on tokens already issued. Two ways to see `0 tools` promptly: re-run after the cached token expires, or have your lab platform shorten the adapter's resource-token TTL (e.g. 60–120s) for snappy classroom feedback. `{HumanReview}` — set the adapter token TTL for the lab build and adjust the "~1 hour" figure here to match.*
+*NOTE — revocation timing: membership changes hit the directory **immediately**, but the agent keeps serving Frank the tools he had until his access token is re-minted. That token's lifetime comes from **Okta** — currently **~1 hour**, because the adapter brokers against the **org authorization server** (custom-authorization-server lifetimes, which allow a shorter TTL, are newly supported and being rolled in). So right after the revoke this script may still show 6 tools; the revoke is enforced at the **next** token exchange, not retroactively. To make a revoke take effect *now* rather than waiting out the token: terminate the user's sessions with **Universal Logout** (5.8's "User session" tab), or — to stop everything — deactivate the agent (5.8). For snappy classroom feedback, the lab platform can also shorten the token lifetime once custom-AS TTLs land. `{HumanReview}` — confirm the token lifetime for the lab build and adjust the "~1 hour" figure to match.*
 
 ### 5.8 Exercise the kill switch — deactivate the agent
 
@@ -232,12 +231,15 @@ Imagine a scenario where the security team needs to stop the agent immediately. 
 
 - From the Admin Console, go to **Directory** > **AI Agents** > **TaskVantage Sales Agent**.
 - Click **Actions** > **Deactivate**.
-- A confirmation dialog appears. Read it — note that deactivation stops **new** token issuance but does not retroactively revoke tokens already issued. This is **tested behavior**: deactivating the agent does **not** flush the adapter's token cache, so a user who already has a cached **resource access token** keeps working until it expires (up to ~1 hour in the current build — the same cache discussed in 5.7). Deactivation reliably blocks any session that needs a *new* token exchange (a cache miss → fresh ID-JAG, which the IdP refuses for a deactivated agent); it does **not** instantly cut off sessions already holding a cached token.
-- Click **Confirm**.
+- A confirmation dialog appears. Read it, then click **Confirm**.
+
+On the current adapter (**release 0.15.14 or later**), deactivating the agent **immediately kills every tool call through it** — the adapter returns **401** on any further request, including sessions that already hold a cached token. That makes deactivation a true, instant kill switch.
+
+> `{HumanReview}` — The lab build must run **adapter ≥ 0.15.14**, where agent deactivation is patched to enforce this. On older builds, deactivation only blocked *new* token exchanges while a session holding a cached resource token kept working until the token expired (~1h) — i.e. not an immediate kill. Confirm the deployed adapter version at lab GA.
 
 The agent's status changes from **ACTIVE** to **DEACTIVATED**.
 
-Verify the kill is real with a **fresh** request — one that forces a new token exchange rather than reusing a cached token. Use Kim Liu (full standing access through IT Help Desk); a clean way to guarantee a fresh exchange is a user/tool the agent hasn't brokered in this session:
+Verify the kill is real — try to use the agent as Kim Liu, who has full standing access through her IT Help Desk role:
 
 ```bash
 ~/Desktop/invoke-agent-tool.sh \
@@ -252,16 +254,15 @@ Expected output:
 Acting as: kim.liu@atko.email
 Tool: itsm.lookup_ticket
 
-→ Adapter performing XAA token exchange (step 1)
-✗ Token exchange failed: agent TaskVantage Sales Agent is DEACTIVATED.
-   The IdP refused to issue an ID-JAG.
+→ Calling MCP Adapter…
+✗ 401 Unauthorized — agent TaskVantage Sales Agent is DEACTIVATED.
 
-No call was made to the MCP server. No tool was invoked. The agent is offline.
+No tool was invoked. The agent is offline.
 ```
 
-Kim has done nothing wrong, has lost no group memberships. But because the agent is the broker of all access, deactivating the agent stops all activity through it. That is the operational shape of an agent kill switch.
+Kim has done nothing wrong, has lost no group memberships. But because the agent is the broker of all access, deactivating the agent stops all activity through it — every tool call returns 401. That is the operational shape of an agent kill switch.
 
-*NOTE: Deactivation blocks **new** brokering immediately but — confirmed by test — does **not** flush the adapter's cached resource tokens, so an already-active session keeps working until its token ages out (~1 hour in the current build). For the kill to read as *immediate* in the lab, the lab build should set a **short resource-token TTL** (e.g. 60–120s) and/or the adapter should **invalidate cached tokens on agent deactivation** — `{HumanReview}`: tracked with the adapter maintainer. To demonstrate the kill cleanly today, use a session that forces a fresh exchange (a user/tool the agent hasn't brokered recently), or set the short TTL. For real-time revocation of tokens already issued, Okta's Universal Logout targets active sessions across linked apps; coverage for AI agents specifically is on the roadmap — `{HumanReview}` confirm its status at lab GA and update if it has shipped.*
+*NOTE — scope of the kill, and revoking a single user: deactivation kills the **whole agent** (all users, all tools). To cut off **one user** without taking the agent down, use **Universal Logout**: from the user's profile, the **"User session"** tab lets an admin terminate their active sessions, so the next brokered call for that user fails. Use deactivation for "stop the agent," Universal Logout for "stop this person." (Membership/certification revokes like 5.7 still take effect at the next token refresh — the token lifetime comes from Okta and is currently ~1h on the org authorization server; custom-authorization-server lifetimes, which allow a shorter TTL, are newly supported and being rolled in.)*
 
 ### 5.9 Reactivate the agent
 
