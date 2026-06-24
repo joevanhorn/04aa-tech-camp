@@ -17,15 +17,15 @@ Review your TaskVantage environment before introducing any AI agents. You will t
 ## Browser use for this lab
 
 - Use a regular browser tab on your local machine for administrator tasks (Super Admin in your Okta org).
-- Use the terminal on the Virtual Desktop to run the read scripts and the environment check script. The central apps are API-only, so there is no end-user app login.
+- Use the terminal on the Virtual Desktop for all AI usage and for management of the MCP bridge. 
 
 ---
 
 **About this camp — read this before starting.**
 
-Each capability introduced in this camp is delivered in two stages. First, you observe it working on **VantageCRM**, which is fully wired before you begin. Then you build the equivalent configuration on **VantageDesk**, which is intentionally incomplete. By the end of the camp, VantageDesk will be configured identically to VantageCRM — with your hands. Watch for this pattern in every module.
+Each capability introduced in this camp is delivered in two stages. First, you observe it working on **VantageCRM**, which is fully wired before you begin. Then you build the equivalent configuration on **VantageDesk**, which is intentionally incomplete. By the end of the camp, VantageDesk will be configured identically to VantageCRM. Watch for this pattern in every module.
 
-When you see a step that asks you to *review* something on VantageCRM, look closely. The follow-up step on VantageDesk will assume you understood what you just saw.
+When you see a step that asks you to *review* something on VantageCRM, look closely. The follow-up step on VantageDesk will assume you understood what you just saw. If anything is unclear, please ask your lab facilitator to help explain. AI Security is new to everyone, so don't be embarassed if something is unclear!
 
 ---
 
