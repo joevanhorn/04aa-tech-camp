@@ -54,8 +54,6 @@ The full picture is below.
 
 In Lab 2 you bring an agent under Okta management. The agent is **OpenCode** — an open-source AI coding agent that is **already installed and configured on your Virtual Desktop**. You don't install or build anything; you register the OpenCode instance waiting on your VM as a first-class identity in Okta and govern it. This is the path the rest of the camp assumes.
 
-If you'd rather bring a different agent — importing one from AWS Bedrock AgentCore, or registering another custom runtime — that's at your discretion (Lab 2.11). The Okta steps are identical regardless of runtime; only the agent itself differs. Either way you end at the same point: an active agent in your AI Agents Registry.
-
 ---
 
 ## The camp's arc
@@ -96,9 +94,9 @@ A few conventions appear throughout the labs.
 
 Confirm these are all true:
 
-- [ ] Your Heropa allocation is active and you can reach the Virtual Desktop.
-- [ ] You have your Okta org URL and admin credentials in hand.
-- [ ] You know which Lab 2 path you intend to take (A or B). If unsure, default to whichever the proctor recommends for your cohort.
-- [ ] You have at least three uninterrupted hours ahead of you. The labs build on each other; stopping in the middle of Lab 4 and resuming the next day is doable but adds friction.
+- [ ] You can reach the Virtual Desktop provided in the launchpad.
+- [ ] You have accepted the invite to your Okta org and have logged in as an admin.
+- [ ] You have opencode available on the desktop of your VDI. 
+- [ ] You see all the noted users in your lab tenant and you see yourself listed as the manager for all users. 
 
 When all four are checked, open Lab Module 1 and begin.
