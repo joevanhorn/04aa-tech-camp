@@ -47,7 +47,8 @@ confirmation pass against the live build at GA:
   provisioning decision.
 - **Module 3**: System Log event names / filter for `target.type eq "AIAgent"`.
 - **Module 4**: the `Token Exchange` grant-type selector label; XAA grant-type URIs / token endpoints /
-  claim names; whether a synced Desk connection auto-creates the adapter resource.
+  claim names; whether a synced Desk connection auto-creates the adapter resource; that
+  `api://vantage-desk` is the constant audience the central app validates.
 - **Module 5**: the in-app access-**catalog** label/sub-path under Access Requests; the end-user
   dashboard **Requests / My Access** label; **Pending my approval** sub-path; the campaign wizard's
   per-step field labels and minimum start offset. *(Verified already: nav path is Identity Governance >

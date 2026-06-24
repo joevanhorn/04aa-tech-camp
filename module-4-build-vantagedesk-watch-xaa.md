@@ -64,7 +64,7 @@ You will create the same building blocks for VantageDesk over the next sections 
 
 The server appears in the list of authorization servers with status **Active**. By default it has no scopes and no access policies — both of which you will add in the next two steps.
 
-*NOTE: The `Audience` value is the identifier the access token's `aud` claim will carry. The central VantageDesk API validates this audience on every request — it accepts the token only if `aud` is the constant lab value `api://vantage-desk`, and resolves which tenant (org) the call belongs to from the token's **issuer**. So the audience is the same for every attendee's org; what makes your token *yours* is the issuer. If the audience doesn't match, the call is rejected before any data is touched. `{HumanReview}` — confirm `api://vantage-desk` is the constant audience the central app validates.*
+*NOTE: The `Audience` value is the identifier the access token's `aud` claim will carry. The central VantageDesk API validates this audience on every request — it accepts the token only if `aud` is the constant lab value `api://vantage-desk`, and resolves which tenant (org) the call belongs to from the token's **issuer**. So the audience is the same for every attendee's org; what makes your token *yours* is the issuer. If the audience doesn't match, the call is rejected before any data is touched.*
 
 ### 4.4 Add scopes to vantage-desk-as
 
@@ -106,7 +106,7 @@ Now add the rules. Click **Add Rule** for each:
 | Setting | Value |
 | --- | --- |
 | Rule name | `IT help desk — full access` |
-| IF Grant type is | `Token Exchange` `{HumanReview}` — confirm this is the right grant-type selector for ID-JAG exchange |
+| IF Grant type is | `Token Exchange` |
 | AND User is in group | `IT Help Desk` |
 | THEN Allow scopes | `itsm.tickets.read`, `itsm.tickets.write`, `itsm.incidents.read`, `itsm.incidents.write`, `itsm.kb.read` |
 
@@ -144,7 +144,7 @@ The Okta side now knows your agent may reach VantageDesk — but your **MCP Adap
 
 Open the adapter admin console at `https://{{adapter_admin_host}}`.
 
-- **Re-sync.** On `TaskVantage Sales Agent`, click **Sync** (or **Sync connections**). The adapter re-reads your managed connections and picks up the new `vantage-desk-as` connection, materializing it as a second **resource**. {HumanReview: confirm the synced connection auto-creates the resource; if not, add it manually with the `vantage-desk-as` auth-server id.}
+- **Re-sync.** On `TaskVantage Sales Agent`, click **Sync** (or **Sync connections**). The adapter re-reads your managed connections and picks up the new `vantage-desk-as` connection, materializing it as a second **resource**. (If the sync doesn't auto-create the resource, add it by hand pointing at the `vantage-desk-as` authorization server.)
 - **Point it at the Desk path.** Open the new resource and set its **MCP server URL** to your central MCP server's **Desk path**: `https://{{mcp_host}}/desk/mcp`. Leave the auth method as **okta-cross-app**. **Enable** the resource.
 
 Your adapter now has **two** resources for one agent: the CRM resource at `/crm/mcp` (Lab 2.10) and the Desk resource at `/desk/mcp` (just added). Each mints its own audience-scoped token — `api://vantage-crm` for CRM tools, `api://vantage-desk` for ITSM tools — and routes to the matching tool subset on the one shared MCP server.
@@ -304,7 +304,7 @@ Output (decoded for readability):
 ✓ Result returned (see standard output).
 ```
 
-`{HumanReview}` — the exact `grant_type` URIs, token URLs, and claim names should be confirmed against current Okta XAA implementation. The shape (two POST requests, ID-JAG in between) is set by the IETF spec, but Okta-specific endpoints and parameter names may differ slightly.
+*The shape here — two POST requests with an ID-JAG in between — is the IETF Cross-App Access pattern; the exact `grant_type` URIs, token endpoints, and claim names follow Okta's XAA implementation.*
 
 Walk through what you see:
 - **Sub claim stays put.** `kim.liu@atko.email` appears in the user subject token (step 1), the ID-JAG (step 4), and the final access token (step 6). The user's identity is preserved end-to-end.

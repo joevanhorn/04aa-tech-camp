@@ -85,7 +85,6 @@ Two patterns repeat throughout the camp. Watching for them makes the structure e
 A few conventions appear throughout the labs.
 
 - ***NOTE: italic blocks*** are context — explanation of why a step matters, or what to watch for. Read them; they often save you a frustrating debugging session two labs later.
-- **`{HumanReview}`** is a flag for things being verified against live Okta during lab GA — System Log event names, exact menu paths, etc. The shape of the lesson is correct; the specific text may shift before final release.
 - **`{{double_brace_placeholders}}`** are values that vary per-attendee or per-lab-environment, like `{{org_url}}` or `{{lab_domain}}`. Your environment provides the real values; the guide uses placeholders so a single guide works across deployments.
 - **Code blocks** show commands you run on the VDI terminal and the output you should see back. If your output diverges substantially, raise it with a proctor before continuing — later labs often fail in confusing ways when an earlier one quietly went wrong.
 

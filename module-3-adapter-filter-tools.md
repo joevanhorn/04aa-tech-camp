@@ -189,10 +189,10 @@ Frank is in `Engineering` — a group with no rule on `vantage-crm-as`. The catc
 The runs you just performed each generated a chain of events in the Okta System Log. Walk through them now while they're fresh.
 
 - From the Admin Console, go to **Reports** > **System Log**.
-- In the search bar, filter on `target.type eq "AIAgent" and actor.id eq "{agent_id}"` `{HumanReview}` (use your agent's ID from Lab 2). Set the time range to the last 15 minutes.
+- In the search bar, filter on `target.type eq "AIAgent" and actor.id eq "{agent_id}"` (use your agent's ID from Lab 2). Set the time range to the last 15 minutes.
 - You should see, for each of the three script runs, a sequence similar to:
 
-| Event `{HumanReview}` | Actor | Target | What it tells you |
+| Event | Actor | Target | What it tells you |
 | --- | --- | --- | --- |
 | `app.oauth2.token.grant.access_token` | the agent's OAuth client | the user | The user-context token the script simulated |
 | `ai_agent.token_exchange.request` | `TaskVantage Sales Agent` | `vantage-crm-as` | The adapter asking Okta what this user can request |

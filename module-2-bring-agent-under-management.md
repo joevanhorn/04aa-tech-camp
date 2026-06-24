@@ -69,8 +69,6 @@ The agent cannot be activated without at least one owner. This is enforced by Ok
 
 *NOTE: Production deployments typically assign 2–3 individual owners or a group of 2+ members. For this lab, a single owner is enough to satisfy activation. In Lab 5, OIG will demonstrate ownership-driven access certification.*
 
-> **[FLAG — to resolve before lab GA]** When AI agent imports are enabled on the AWS IAM Identity Center provider app, a default owner *can* be configured to apply to all imported agents. If Heropa provisioning sets a default owner for the optional Bedrock-import path (2.13), this step changes for those users: their agent arrives with an owner already populated, and 2.4 becomes "review the default owner and add yourself as an additional owner." The primary OpenCode flow registers manually, so no default owner applies. Decision needed on provisioning approach.
-
 ### 2.5 Add a public-key credential
 
 Okta uses a public key to verify the agent's identity when it requests tokens. The agent holds the matching private key.
@@ -150,8 +148,6 @@ Run the setup helper from your Virtual Desktop:
 
 It creates your agent's **INCLUDE_ONLY** `crm.*` managed connection in Okta, imports the agent into your adapter, marks it **DCR-selectable**, and registers the CRM **resource** at `https://{{mcp_host}}/crm/mcp`. It prints each step and finishes with `OK: 'vantage-crm' wired …`.
 
-*{HumanReview}: the VDI helper wraps `deploy/wire_adapter_resource.py --preset crm --okta-token …` (taskvantage-apps), pre-seeded with your agent id (resolved from its name), `vantage-crm-as` id, adapter + MCP hosts, and the Okta + adapter admin tokens. Confirm packaging + token delivery at lab GA.*
-
 **Review the managed connection it created.** From **Directory** > **AI Agents** > `TaskVantage Sales Agent` > **Managed connections**, open the `vantage-crm-as` entry. Confirm it is **Only allow** (INCLUDE_ONLY) with the five granular `crm.*` scopes.
 
 *NOTE: Why "Only allow" with the granular list — **not "Allow all"**? The managed connection caps which scopes the agent may *request*; which scopes a given **user** actually gets still comes from `vantage-crm-as`'s access policy (Lab 1.10 / Lab 3), keyed on group membership — that policy drives Lab 3's per-user tool filtering. "Allow all" is not just broader: with the Okta MCP Adapter it makes the agent fall back to requesting a generic `mcp:read` scope the custom auth server doesn't define, and the token exchange fails (`no_matching_scope` / `invalid_scope`). You set this yourself for VantageDesk in Lab 4 — remember **"Only allow"**.*
@@ -160,7 +156,7 @@ It creates your agent's **INCLUDE_ONLY** `crm.*` managed connection in Okta, imp
 
 The other half the helper wired lives in your **Okta MCP Adapter** — the broker OpenCode actually calls (OpenCode never reaches Okta or VantageCRM directly). It authenticates the agent, performs the XAA token exchange, and routes each tool call to the right backend. Two things had to become true for a CRM call to flow, and the helper did both: the adapter now **knows your agent** (imported, and marked **DCR-selectable** so OpenCode can link to it on first connect), and it has a **resource** — its view of "this agent may reach VantageCRM with these scopes" — pointed at the CRM tools.
 
-Open the adapter admin console at `https://{{adapter_admin_host}}`, sign in, and review — this is the example you'll replicate for Desk: {HumanReview: confirm adapter Admin UI labels}
+Open the adapter admin console at `https://{{adapter_admin_host}}`, sign in, and review — this is the example you'll replicate for Desk:
 - **Agents** → `TaskVantage Sales Agent` is present, **DCR-selectable** on.
 - **Resources** → one resource for `vantage-crm-as`: URL `https://{{mcp_host}}/crm/mcp`, auth **okta-cross-app**, **enabled**, scopes = your five granular `crm.*` scopes (*not* `mcp:read`).
 

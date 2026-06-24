@@ -58,7 +58,7 @@ Together, the rule and the group are the access machinery. They have been in pla
 
 The group has been published to the OIG access catalog so end users can discover and request membership through their End-User Dashboard.
 
-- From the Admin Console, go to **Identity Governance** > **Access Requests** (this opens the governance Access Requests app), and find the access **catalog** there. `{HumanReview: confirm the in-app label/sub-path to the catalog}`
+- From the Admin Console, go to **Identity Governance** > **Access Requests** (this opens the governance Access Requests app), and find the access **catalog** there.
 - Find the entry for the group `CRM Read - Cross-Functional`.
 - Review the catalog configuration attached to the group:
 
@@ -92,7 +92,7 @@ Switch perspectives. You will now act as Frank Boone, the requesting user.
 
 - On the Virtual Desktop, open a new Chrome incognito window.
 - Navigate to your Okta End-User Dashboard at `https://{{org_url}}` and sign in as Frank (`frank.boone@atko.email` / `{{persona_password}}`).
-- Click the **Requests** tab (or **My Access** depending on the dashboard version `{HumanReview}`) and then **Request Access**.
+- Click the **Requests** tab (or **My Access**, depending on your dashboard version) and then **Request Access**.
 - Browse or search for `CRM Read - Cross-Functional`.
 - Click **Request**.
 - Fill in:
@@ -104,9 +104,9 @@ Frank now sees the request status as **Pending Approval**. Close the incognito w
 
 ### 5.4 Approve the request as Frank's manager
 
-Switch back to your admin browser session. For this lab, the admin user (you) is configured as Frank's manager in the approval chain `{HumanReview}` — confirm how approver routing is set up in the lab's preconfigured directory.
+Switch back to your admin browser session. For this lab, the admin user (you) is configured as Frank's manager, so the approval routes to you.
 
-- From the Admin Console, go to **Identity Governance** > **Access Requests** > **Pending my approval** `{HumanReview}` — verify menu path.
+- From the Admin Console, go to **Identity Governance** > **Access Requests** > **Pending my approval**.
 - Click into Frank's request.
 - Review:
   - The requester (`frank.boone@atko.email`)
@@ -173,7 +173,7 @@ Time passes. The Q2 launch wraps up. Per the security team's quarterly hygiene p
 - **Campaign details**: 
   - **Name**: `Quarterly review — AI agent CRM access`
   - **Description**: `Quarterly hygiene review of temporary CRM access granted to cross-functional users`
-  - **Start**: the wizard defaults the start time to ~3 hours out. For the lab, set it to **now / the earliest the picker allows** so the campaign starts immediately instead of later. `{HumanReview: confirm the minimum start offset the UI permits}`
+  - **Start**: the wizard defaults the start time to ~3 hours out. For the lab, set it to **now / the earliest the picker allows** so the campaign starts immediately instead of later.
   - **Duration / review period**: `7 days`.
 - **Resource**: pick resource type **Group** (the choices are **Application**, **Group**, **AI Agent** — plus **Collection** if that EA feature is enabled in the org), then select **`CRM Read - Cross-Functional`**. This scopes the campaign to that group's active memberships — exactly the people granted access through the request flow, Frank included.
 - **Reviewer**: choose **Resource owner**. You are the owner for this lab, so the review lands in your queue.
