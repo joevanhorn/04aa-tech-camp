@@ -37,7 +37,8 @@ Python** (plus one bash wrapper); most take `--dry-run`.
    request-condition (anyone may request, fixed **PT2H**, the org's pre-created *Requester's Manager
    Approval* sequence), and sets Frank's **manager** to `--approver-login` so Module 5.4 routes.
    This makes the 5.3–5.5 request→approve→tools round-trip work. The **certification campaign (5.6)
-   is NOT created** — build it in **Governance > Access Certifications** (lab platform / manual).
+   is intentionally NOT provisioned** — the **attendee builds it by hand** as part of Module 5.6
+   (the camp's review-then-build pattern), so provisioning leaves it out by design.
    ```bash
    export OKTA_ORG=https://<org>.okta.com OKTA_API_TOKEN=<SSWS super-admin>
    export LAB_USER_PASSWORD='<persona login password>'

@@ -284,7 +284,7 @@ def ensure_example_agent(base, token, asid, name=EXAMPLE_AGENT_NAME) -> str:
 # --- OIG: make CRM Read - Cross-Functional requestable (Module 5.3–5.5) -----------------------
 # Mirrors the prod "Privileged AD Group Request" pattern: an OIN host app with the group assigned,
 # plus an access request-condition. The certification campaign (Module 5.6) is intentionally NOT
-# created here — build it in the Admin UI / lab platform (Governance > Access Certifications). The
+# created here — the attendee builds it by hand in Module 5.6 (the lab's review-then-build pattern). The
 # approval sequence is also not created (Okta pre-creates a "Requester's Manager Approval" sequence
 # per org); we just reference it.
 REQUEST_APP_OIN = "scim2testapp_basic"          # same OIN integration prod uses as the host app
@@ -402,11 +402,11 @@ def main() -> int:
               f"--org-domain <org>  (adapter token via ADAPTER_ADMIN_TOKEN)")
 
     if not args.no_oig:
-        print("OIG request access (Module 5.3–5.5; certification campaign 5.6 is a manual/platform step) …")
+        print("OIG request access (Module 5.3–5.5; the attendee builds the cert campaign in 5.6) …")
         appid, rcid, seqid = ensure_oig_request_access(base, token, gids, args.approver_login)
         print(f"  request app = {appid}  | request-condition = {rcid}  | sequence = {seqid}")
         print(f"  '{XFUNC_GROUP}' is now requestable ({REQUEST_DURATION}, manager approval). "
-              f"NOTE: create the certification campaign (5.6) in Governance > Access Certifications.")
+              f"The certification campaign (5.6) is built by the attendee in the lab, not provisioned.")
 
     print("\nLab pre-state provisioned. Next: enroll the org in the apps (enroll_tenant.py); the example "
           "agent's CRM resource materializes once the adapter imports it (wire_adapter_resource.py). "

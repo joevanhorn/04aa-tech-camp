@@ -41,7 +41,7 @@ The point is not to replace access policies. The point is to make the inputs the
 
 ### 5.2 Review the preconfigured OIG setup
 
-The OIG building blocks for this lab — the requestable group Frank will ask for, its catalog configuration, and the certification campaign you will launch later — have all been preconfigured in your tenant. The pattern is plain Okta IGA: groups are the unit of access, OIG layers the request/approval/time-bound/certification workflow directly on top of group membership. The access policy rule you reviewed in Lab 3.2 already handles the scope grant. No additional access constructs are involved.
+The OIG building blocks for this lab — the requestable group Frank will ask for and its catalog configuration — have been preconfigured in your tenant. (The certification campaign is the one piece you'll build yourself, in 5.6.) The pattern is plain Okta IGA: groups are the unit of access, OIG layers the request/approval/time-bound/certification workflow directly on top of group membership. The access policy rule you reviewed in Lab 3.2 already handles the scope grant. No additional access constructs are involved.
 
 Review what's there now.
 
@@ -72,19 +72,19 @@ The group has been published to the OIG access catalog so end users can discover
 
 *NOTE: The requestable resource here is the group itself. There is no entitlement bundle, no wrapper, no separate access construct. The catalog configuration — duration, approver, eligibility — attaches directly to the group. When approved, OIG adds the requester to this group with the configured duration. When the duration expires (or the membership is revoked via certification), OIG removes them. The access policy is unchanged through the whole lifecycle — only the membership moves.*
 
-**The certification campaign:**
+**The certification campaign (you'll build this one in 5.6):**
 
-- Still in **Identity Governance**, go to **Access Certifications** > **Campaigns** `{HumanReview}` — verify menu path.
-- Find the campaign named `Quarterly review — AI agent CRM access`. Status should be **Draft** or **Ready to launch**.
-- Click into it and review its configuration:
+The group and its catalog entry are preconfigured for you. The **certification campaign is not** — you'll create it yourself in 5.6, then launch it. That's the camp's review-then-build pattern again: you reviewed the access machinery above; now you'll build the governance review that sits over it.
 
-| Property | Value |
+A certification campaign is a time-boxed review in which a reviewer confirms (certifies) or revokes each user's access to a resource. The one you'll build reviews active memberships in `CRM Read - Cross-Functional`:
+
+| Property | Value (you'll set these in 5.6) |
 | --- | --- |
 | Scope | Active memberships in `CRM Read - Cross-Functional` |
-| Reviewers | Resource owner (fallback: group owner) |
+| Reviewers | Resource owner (you), fallback group owner |
 | Review duration | 7 days |
 
-You will launch this campaign in 5.6, after Frank's membership has been granted.
+No need to create anything yet — you'll do it in 5.6, after Frank's membership has been granted (so the campaign has something to review).
 
 ### 5.3 Submit an access request as Frank
 
@@ -162,11 +162,28 @@ Compare to Lab 3.6: 0 tools then, the full CRM set now. The agent did not change
 
 *NOTE: Frank gets the **full** CRM tool set, not a read-only slice, because access is binary today: matching any CRM rule grants all `crm.*` scopes (see Module 3.1). His row-level data visibility is still bounded by what `CRM Read - Cross-Functional` can see. A future graduated model would let the cross-functional grant be genuinely read-only at the tool level; that isn't wired yet — see `lab-infra/README.md`.*
 
-### 5.6 Launch the certification campaign
+### 5.6 Create and launch the certification campaign
 
-Time passes. The Q2 launch wraps up. Per the security team's quarterly hygiene process, an access review fires — does Frank still need this access? You will launch the preconfigured campaign you reviewed in 5.2 and act as the reviewer.
+Time passes. The Q2 launch wraps up. Per the security team's quarterly hygiene process, an access review fires — does Frank still need this access? You'll **create** the certification campaign you scoped out in 5.2, **launch** it, and act as the reviewer.
+
+**Create the campaign.**
 
 - From the Admin Console, go to **Identity Governance** > **Access Certifications** > **Campaigns**.
+- Click **Create campaign** `{HumanReview: confirm the button label and whether the flow is a wizard or single form}`.
+- **Name**: `Quarterly review — AI agent CRM access`
+- **Description**: `Quarterly hygiene review of temporary CRM access granted to cross-functional users`
+- **Resources to review** `{HumanReview: confirm the resource-picker labels}`: add the group **`CRM Read - Cross-Functional`**. This scopes the campaign to that group's active memberships — i.e. exactly the people who were granted access through the request flow, including Frank.
+- **Reviewers**: choose **Resource owner**, with **group owner** as the fallback `{HumanReview: confirm the reviewer-type options/labels}`. You are the owner for this lab, so the review lands in your queue.
+- **Duration**: `7 days`.
+- **On revoke (remediation)** `{HumanReview}`: confirm a **Revoke** decision **removes the user from the group automatically** (the default). This is what makes the revoke in this step actually pull Frank's access.
+- Review the summary and click **Create** (or **Save**) `{HumanReview: confirm whether Create lands the campaign in Draft / Ready-to-launch vs. launching immediately}`.
+
+The campaign is created in **Draft** / **Ready to launch**.
+
+> {HumanReview} — Certification campaigns are built in the Admin UI (no clean provisioning API, like the approval sequences), so the labels above need a pass against the live console at lab GA. The group, catalog entry, and approver routing **are** preconfigured by the lab's org-provisioning; only this campaign is built by hand here.
+
+**Launch it.**
+
 - Open the `Quarterly review — AI agent CRM access` campaign.
 - Click **Launch Campaign**.
 
