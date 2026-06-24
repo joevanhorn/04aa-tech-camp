@@ -9,6 +9,11 @@ MCP server (see `../reference/crm-path-validation-runbook.md` for the full play-
 `../reference/xaa-bridge-wiring-lessons.md` for the failure modes). All are **idempotent, stdlib-only
 Python** (plus one bash wrapper); most take `--dry-run`.
 
+> **Environment prerequisites** the platform must satisfy for the user-facing modules to behave as
+> written (adapter version, token TTL, OIG provisioning, verify-at-GA label checklist) live in
+> **[`LAB-REQUIREMENTS.md`](LAB-REQUIREMENTS.md)** — those build requirements are kept out of the
+> attendee modules on purpose.
+
 ## The lab environment, end to end
 
 ```

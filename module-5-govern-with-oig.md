@@ -180,8 +180,6 @@ Time passes. The Q2 launch wraps up. Per the security team's quarterly hygiene p
 - **Remediation**: set **On revoke** → **Remove access** (the page has two settings, *On revoke* and *No response*). This is what makes a **Revoke** decision actually pull the user out of the group. Leave **No response** at its default (it governs reviews left unanswered past the deadline).
 - Finish the wizard and **Create**. The campaign lands in **Scheduled** state and becomes **Active** at the start time you set.
 
-> {HumanReview} — Certification campaigns are built in the Admin UI (no provisioning API for them, same as the approval sequences). The nav path (**Identity Governance > Access Certifications > Certification campaigns**) and the **Create campaign → Resource** entry are verified against the live console; the per-step field labels follow the current wizard and are worth a quick confirmation pass at lab GA. The group, catalog entry, and approver routing are preconfigured by org-provisioning — only this campaign is built by hand.
-
 **Run it.**
 
 - A campaign starts at its scheduled start time. If you set the start to now, it moves to **Active** shortly — open it from the **Active** tab. (If it's still under **Scheduled**, either wait for the start time or edit it earlier.)
@@ -223,7 +221,7 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 
 Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again. Round-trip complete: Frank gained access through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
 
-*NOTE — revocation timing: membership changes hit the directory **immediately**, but the agent keeps serving Frank the tools he had until his access token is re-minted. That token's lifetime comes from **Okta** — currently **~1 hour**, because the adapter brokers against the **org authorization server** (custom-authorization-server lifetimes, which allow a shorter TTL, are newly supported and being rolled in). So right after the revoke this script may still show 6 tools; the revoke is enforced at the **next** token exchange, not retroactively. To make a revoke take effect *now* rather than waiting out the token: terminate the user's sessions with **Universal Logout** (5.8's "User session" tab), or — to stop everything — deactivate the agent (5.8). For snappy classroom feedback, the lab platform can also shorten the token lifetime once custom-AS TTLs land. `{HumanReview}` — confirm the token lifetime for the lab build and adjust the "~1 hour" figure to match.*
+*NOTE — revocation timing: the membership change hits the directory **immediately**, but the agent keeps serving Frank the tools from his current access token until it's re-minted (a token lasts up to ~1 hour). So right after the revoke this script may still show 6 tools — the revoke is enforced at the **next** token exchange, not retroactively on a token already issued. To make a revoke take effect **now** instead of waiting out the token: end the user's sessions with **Universal Logout** (the "User session" tab, see 5.8), or deactivate the agent to stop everything (5.8).*
 
 ### 5.8 Exercise the kill switch — deactivate the agent
 
@@ -233,9 +231,7 @@ Imagine a scenario where the security team needs to stop the agent immediately. 
 - Click **Actions** > **Deactivate**.
 - A confirmation dialog appears. Read it, then click **Confirm**.
 
-On the current adapter (**release 0.15.14 or later**), deactivating the agent **immediately kills every tool call through it** — the adapter returns **401** on any further request, including sessions that already hold a cached token. That makes deactivation a true, instant kill switch.
-
-> `{HumanReview}` — The lab build must run **adapter ≥ 0.15.14**, where agent deactivation is patched to enforce this. On older builds, deactivation only blocked *new* token exchanges while a session holding a cached resource token kept working until the token expired (~1h) — i.e. not an immediate kill. Confirm the deployed adapter version at lab GA.
+Deactivating the agent **immediately kills every tool call through it** — the adapter returns **401** on any further request. That makes deactivation a true, instant kill switch.
 
 The agent's status changes from **ACTIVE** to **DEACTIVATED**.
 
