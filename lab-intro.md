@@ -1,8 +1,8 @@
 # Lab Intro: TaskVantage AI Agents Tech Camp
 
-Welcome. Over the next three to four hours, you will take an unmanaged AI agent and turn it into an Okta-governed identity with controlled access to two business applications, then watch every dimension of that governance — static, dynamic, and emergency — work end to end. By the time you finish, you will have done the actual work that makes "we have AI agents in production" and "we know what our AI agents can do" the same sentence.
+Welcome. Over the next three to four hours, you will take an unmanaged AI agent and turn it into an Okta-governed identity with controlled access to two business applications, then watch every dimension of that governance work end to end. By the time you finish, you will have done the actual work that makes "we have AI agents in production" and "we know what our AI agents can do" the same sentence.
 
-This guide is the introduction. It sets the world you are about to operate in, introduces the people in it, and points you at the structure that follows. The work itself happens in Labs 1 through 5.
+This module is the introduction. It sets the world you are about to operate in, introduces the people in it, and points you at the structure that follows. The work itself happens in Labs 1 through 5.
 
 ---
 
@@ -40,11 +40,13 @@ The exact passwords and account details are in Lab 1.3 — no need to memorize a
 
 ## The two business applications
 
-TaskVantage runs on a custom-built CRM (**VantageCRM**) and a custom-built ITSM (**VantageDesk**). They are deliberately not Salesforce and not ServiceNow — fake apps the camp can configure freely without licensing costs. Think of them as stand-ins for whatever your real organization uses.
+TaskVantage runs on a custom-built CRM (**VantageCRM**) and a custom-built ITSM (**VantageDesk**). They are deliberately fake apps that offer similar capabilities to real applications you may be familiar with. Think of them as stand-ins for whatever your real organization uses.
 
-Both apps are **one central, multi-tenant, API-only deployment** shared by every attendee — VantageCRM lives at `https://vantagecrm.taskvantage-demo.com` and VantageDesk at `https://vantagedesk.taskvantage-demo.com`. They are resource servers only: there is no app UI and no human sign-in to them. Every interaction is an agentic API call carrying a Bearer access token, and each app resolves which tenant (your org) a call belongs to from the token's **issuer**. The agent never talks to either app directly. It talks to a central MCP server through the **Okta MCP Adapter**, which is the policy enforcement point you will see in action repeatedly. Your **agent and Okta MCP Adapter — and your Okta org — are per-attendee**; the **MCP server and the two apps are central/shared** (see ADR-0002).
+They are resource servers only: there is no app UI and no human sign-in to them. Every interaction for today's lab will be an agentic API call carrying a Bearer access token, and each app resolves which tenant (your org) a call belongs to from the token's **issuer**. The agent never talks to either app directly. It talks to a MCP server through the **Okta MCP Adapter**, which is the policy enforcement point you will see in action repeatedly. Your **agent and Okta MCP Adapter — and your Okta org — are per-attendee**; the **MCP server and the two apps are central/shared** (see ADR-0002).
 
-The full picture is in `lab-architecture.md`. Open it now if you have not — it is your map for everything that follows.
+The full picture is below.
+
+[embed architecture image here]
 
 ---
 
