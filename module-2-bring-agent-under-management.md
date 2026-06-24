@@ -39,8 +39,6 @@ The agent you bring under management is **OpenCode** — an open-source AI codin
 
 Register it with the manual flow in 2.3. The rest of the camp assumes this OpenCode agent.
 
-> **Optional — bring your own / Bedrock (at your discretion).** If your Heropa allocation includes AWS Bedrock AgentCore (with imports enabled on the AWS IAM Identity Center provider), or you'd rather register a different agent runtime, you can — **the Okta steps from 2.4 on are identical**; only the agent runtime differs. The Bedrock *import* shortcut is in 2.13.
-
 ---
 
 ### 2.3 Register your OpenCode agent
@@ -203,18 +201,6 @@ Spend a minute confirming the agent is set up correctly. Lab 3 will fail in conf
 | Resource | 1 resource for `vantage-crm-as`, URL `https://{{mcp_host}}/crm/mcp`, **enabled**, auth `okta-cross-app` |
 
 **In the System Log** (Reports > System Log), filter on `target.type eq "AIAgent"` and confirm you see lifecycle events: agent created, owner added, key added, key activated, app linked, agent activated, managed connection created.
-
----
-
-### 2.13 (Optional) Import from Bedrock AgentCore instead
-
-If you're using Bedrock (and AI agent imports are enabled on the AWS IAM Identity Center provider — confirmed in Lab 1.8), you can register the agent by import instead of the manual flow in 2.3:
-
-- From the Admin Console, go to **Directory** > **AI Agents**.
-- Click **Register AI agent** > **Import from AI agent providers**.
-- Click **Import** next to **AWS IAM Identity Center**. The imported agent (`TaskVantage Sales Agent`) appears with status **STAGED**.
-
-From 2.4 onward (owner, credential, sign-on app, activation, managed connection) the steps are identical regardless of runtime. The Bedrock-side runtime is unchanged by the import; what changes is that Okta can now govern it. Background: [Secure an Imported Amazon Bedrock AgentCore Agent](https://support.okta.com/help/s/article/secure-an-imported-amazon-bedrock-agentcore-agent).
 
 ---
 

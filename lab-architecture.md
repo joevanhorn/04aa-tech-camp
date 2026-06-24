@@ -31,7 +31,6 @@ flowchart TB
         subgraph AgentLayer["Agent Layer"]
             direction LR
             OpenCode[OpenCode<br>pre-installed agent]
-            BYO[Bring your own / Bedrock<br>optional]
         end
 
         subgraph Edge["Per-attendee adapter"]
@@ -83,7 +82,7 @@ flowchart TB
 
     class User trigger
     class Browser,Terminal infra
-    class OpenCode,BYO,Adapter workflow
+    class OpenCode,Adapter workflow
     class MCP action
     class CRM,Desk,Redis governance
     class UD,AIRegistry,CRMAS,DeskAS,OIG oktaCore
@@ -128,7 +127,6 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | **Okta MCP Adapter** | Policy enforcement point between agent and the central MCP server. Verifies agent identity, filters the tool catalog by user entitlement, performs XAA token exchange so backend calls hit the central apps as the user. | Per-attendee (Heropa) | **Prebuilt** but inactive — no agent registered yet, so no requests pass policy. | Lab 3 (filtering); Lab 4 (XAA) |
 | **OpenCode agent (primary)** | Open-source AI coding agent, **pre-installed and configured on the VDI** and pointed at the attendee's adapter. Registered manually in Okta in Lab 2; this is the agent the rest of the camp uses. | VDI (Heropa-provisioned) | **Installed and ready**; identity not yet registered. | Lab 2 |
-| **Bring-your-own / Bedrock (optional)** | At the attendee's discretion: import a Bedrock AgentCore agent, or register another custom runtime (LangChain, Vercel AI, etc.). Same Okta steps; only the runtime differs. | AWS / anywhere | Optional; not provisioned by default. | Lab 2.11 |
 
 ---
 

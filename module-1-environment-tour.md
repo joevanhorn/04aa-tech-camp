@@ -174,8 +174,6 @@ This is where you will spend most of Labs 2 through 5.
 - The list is currently empty — no agents have been registered yet. Lab 2 changes this.
 - Click **Settings** (top-right) to review the AI Agents global settings. Note the default credential rotation window and the default agent session duration. Leave these at their preconfigured values.
 
-*NOTE: Your org has **AWS IAM Identity Center** pre-integrated as an AI agent provider app, with imports already enabled. The primary Lab 2 path registers your pre-installed OpenCode agent manually and does not use this provider — it's only needed for the optional Bedrock-import path (Lab 2.13).*
-
 ### 1.9 Review the custom authorization server (VantageCRM)
 
 VantageCRM has its own custom authorization server in Okta. This is the trust anchor the MCP adapter will use during XAA token exchange in Lab 4.
@@ -216,4 +214,4 @@ This is part of the **review-then-build** pattern: review the VantageCRM access 
 
 ---
 
-**End of lab.** Your environment is familiar: you have seen the central, API-only apps respond differently to Susan, Alex, and Kim purely on the basis of their tokens, and you have reviewed the prebuilt `vantage-crm-as` and its access policy — the model you will rebuild for VantageDesk in Lab 4. In Lab 2, you will bring your first AI agent — the OpenCode instance pre-installed on your VM — under Okta governance by registering it manually (with optional Bedrock/BYO alternatives).
+**End of lab.** Your environment is familiar: you have seen the central, API-only apps respond differently to Susan, Alex, and Kim purely on the basis of their tokens, and you have reviewed the prebuilt `vantage-crm-as` and its access policy — the model you will rebuild for VantageDesk in Lab 4. In Lab 2, you will bring your first AI agent — the OpenCode instance pre-installed on your VM — under Okta governance by registering it manually.

@@ -35,7 +35,6 @@ flowchart TB
         subgraph AgentLayer["Agent Layer"]
             direction LR
             OpenCode[OpenCode<br>pre-installed agent]
-            BYO[Bring your own / Bedrock<br>optional]
         end
 
         subgraph Edge["Adapter"]
@@ -86,7 +85,7 @@ flowchart TB
 
     class User trigger
     class Browser,Terminal infra
-    class OpenCode,BYO,Adapter workflow
+    class OpenCode,Adapter workflow
     class MCP action
     class CRM,Desk,Redis governance
     class UD,AIRegistry,CRMAS,DeskAS,OIG oktaCore
