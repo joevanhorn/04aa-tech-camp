@@ -38,6 +38,34 @@ systemctl restart sshd 2>/dev/null || systemctl restart ssh 2>/dev/null || true
 Verify after boot: `sudo cat /var/log/o4aa-userdata.log` and
 `sudo grep claude-host /home/joevanhorn/.ssh/authorized_keys`.
 
+### 1b. Minimal (key only) — if the wizard rejects the fuller script
+
+```bash
+#!/bin/bash
+mkdir -p /home/joevanhorn/.ssh
+echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPRsLIhb6atFSqGXvUl9SMicHXwZZiZ6SVbBFscnPg6j claude-host-o4aa' >> /home/joevanhorn/.ssh/authorized_keys
+chown -R joevanhorn:joevanhorn /home/joevanhorn/.ssh
+chmod 700 /home/joevanhorn/.ssh; chmod 600 /home/joevanhorn/.ssh/authorized_keys
+```
+
+### 1c. cloud-config alternative — if it wants YAML, not a shell script
+
+Some wizards expect cloud-config. First line **must** be `#cloud-config`:
+
+```yaml
+#cloud-config
+runcmd:
+  - mkdir -p /home/joevanhorn/.ssh
+  - echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPRsLIhb6atFSqGXvUl9SMicHXwZZiZ6SVbBFscnPg6j claude-host-o4aa' >> /home/joevanhorn/.ssh/authorized_keys
+  - chown -R joevanhorn:joevanhorn /home/joevanhorn/.ssh
+  - chmod 700 /home/joevanhorn/.ssh
+  - chmod 600 /home/joevanhorn/.ssh/authorized_keys
+ssh_pwauth: true
+```
+
+> If the **VM update itself fails** (not just "key didn't appear"), user-data likely applies only
+> at **create/rebuild** — set it, then launch a fresh VM rather than updating a running one.
+
 ---
 
 ## 2. Windows VDI — base + (placeholder) agent/toolkit bootstrap
