@@ -11,7 +11,7 @@ Only the **Okta MCP Adapter** remains the per-attendee edge.
 **Removed the `Browser → CRM/Desk` direct sign-in concept entirely.** The apps are resource
 servers with no human login and no UI, so there is no direct-sign-in edge to add back. The
 browser is only used for the **Okta Admin Console**; the Module 1.5 / 1.6 "tour the apps" moments
-are delivered out-of-band (screenshots / read scripts), not as a browser app login.
+are delivered out-of-band (screenshots / the Lab Toolkit), not as a browser app login.
 
 This is the canonical source for the rendered diagram in `../lab-architecture.md` — keep the two in
 sync.
@@ -29,7 +29,7 @@ flowchart TB
         subgraph VDI["VDI"]
             direction LR
             Browser[Chrome Browser<br>Okta Admin Console]
-            Terminal[Terminal<br>check-environment.sh<br>read scripts]
+            Toolkit[Lab Toolkit<br>desktop menu utility]
         end
 
         subgraph AgentLayer["Agent Layer"]
@@ -84,7 +84,7 @@ flowchart TB
     classDef governance fill:#ffffff,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
 
     class User trigger
-    class Browser,Terminal infra
+    class Browser,Toolkit infra
     class OpenCode,Adapter workflow
     class MCP action
     class CRM,Desk,Redis governance

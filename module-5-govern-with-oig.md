@@ -20,7 +20,7 @@ Today, Frank Boone — the Engineering Director who saw zero tools in Lab 3.6 �
 
 - Local browser for the Okta Admin Console (approval and certification flows).
 - Virtual Desktop browser for Frank's end-user perspective on the Okta End-User Dashboard.
-- Virtual Desktop terminal for the tool-listing and tool-invocation scripts.
+- Virtual Desktop **Lab Toolkit** for the tool-listing and tool-invocation steps.
 
 ---
 
@@ -125,9 +125,7 @@ The request status moves to **Approved**. OIG adds Frank to the `CRM Read - Cros
 
 This is the round-trip moment. Lab 3.6 returned zero tools for Frank because no rule matched him. Nothing about the access policy or its rules has changed since then. What changed is that Frank is now a member of `CRM Read - Cross-Functional`, so rule 4 fires for him.
 
-```bash
-~/Desktop/list-agent-tools.sh --user frank.boone@atko.email
-```
+- Open the **Lab Toolkit** and choose **4) List the agent's tools**, then select **Frank Boone (Engineering)** when prompted for a persona.
 
 Expected output:
 
@@ -199,11 +197,9 @@ OIG removes Frank from the `CRM Read - Cross-Functional` group immediately — h
 
 Frank's group membership is already gone (5.6). His access *through the agent* falls away on the next token refresh — see the timing note below before you run this.
 
-Run the same script again:
+List the agent's tools for Frank again:
 
-```bash
-~/Desktop/list-agent-tools.sh --user frank.boone@atko.email
-```
+- In the **Lab Toolkit**, choose **4) List the agent's tools** and select **Frank Boone (Engineering)**.
 
 Once the agent re-evaluates Frank's access, you'll see:
 
@@ -221,7 +217,7 @@ Agent: TaskVantage Sales Agent (ACTIVE)
 
 Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again. Round-trip complete: Frank gained access through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
 
-*NOTE — revocation timing: the membership change hits the directory **immediately**, but the agent keeps serving Frank the tools from his current access token until it's re-minted (a token lasts up to ~1 hour). So right after the revoke this script may still show 6 tools — the revoke is enforced at the **next** token exchange, not retroactively on a token already issued. To make a revoke take effect **now** instead of waiting out the token: end the user's sessions with **Universal Logout** (the "User session" tab, see 5.8), or deactivate the agent to stop everything (5.8).*
+*NOTE — revocation timing: the membership change hits the directory **immediately**, but the agent keeps serving Frank the tools from his current access token until it's re-minted (a token lasts up to ~1 hour). So right after the revoke this step may still show 6 tools — the revoke is enforced at the **next** token exchange, not retroactively on a token already issued. To make a revoke take effect **now** instead of waiting out the token: end the user's sessions with **Universal Logout** (the "User session" tab, see 5.8), or deactivate the agent to stop everything (5.8).*
 
 ### 5.8 Exercise the kill switch — deactivate the agent
 
@@ -237,12 +233,7 @@ The agent's status changes from **ACTIVE** to **DEACTIVATED**.
 
 Verify the kill is real — try to use the agent as Kim Liu, who has full standing access through her IT Help Desk role:
 
-```bash
-~/Desktop/invoke-agent-tool.sh \
-    --user kim.liu@atko.email \
-    --tool itsm.lookup_ticket \
-    --args '{"ticket_id":"TKT-1734"}'
-```
+- Open the **Lab Toolkit** and choose **5) Invoke a tool**, then select **Kim Liu (IT Help Desk)** when prompted for a persona. Invoke `itsm.lookup_ticket` for ticket `TKT-1734`.
 
 Expected output:
 
@@ -267,14 +258,9 @@ Leave the environment in a working state for the next attendee or your own furth
 - From **Directory** > **AI Agents** > **TaskVantage Sales Agent**, click **Actions** > **Activate**.
 - Click **Confirm**.
 
-The agent returns to **ACTIVE**. Re-run the same invocation as Kim:
+The agent returns to **ACTIVE**. Invoke the same tool as Kim again:
 
-```bash
-~/Desktop/invoke-agent-tool.sh \
-    --user kim.liu@atko.email \
-    --tool itsm.lookup_ticket \
-    --args '{"ticket_id":"TKT-1734"}'
-```
+- In the **Lab Toolkit**, choose **5) Invoke a tool**, select **Kim Liu (IT Help Desk)**, and invoke `itsm.lookup_ticket` for ticket `TKT-1734`.
 
 Expected output: the same successful ticket lookup you saw at the end of Lab 4. The agent is back online and Kim's standing access works as before. Frank's revoked membership remains revoked — kill switches are reversible, certification decisions are not.
 

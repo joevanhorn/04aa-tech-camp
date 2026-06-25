@@ -60,7 +60,7 @@ In Lab 2 you bring an agent under Okta management. The agent is **OpenCode** —
 
 | Lab | What happens | Time |
 | --- | --- | --- |
-| **1 — Environment Tour** | Sign in to the Okta Admin Console, meet the personas, see both apps (out-of-band screenshots / read scripts), run the env-check script, build your first piece of configuration (the VantageDesk auth server access policy). | 25 min |
+| **1 — Environment Tour** | Sign in to the Okta Admin Console, meet the personas, see both apps (out-of-band screenshots / the Lab Toolkit), run the environment check from the Lab Toolkit, build your first piece of configuration (the VantageDesk auth server access policy). | 25 min |
 | **2 — Bring the Agent Under Management** | Register your pre-installed OpenCode agent, assign an owner, generate a key, create the managed connection to VantageCRM. | 45 min |
 | **3 — See the Adapter Filter Tools by User** | Run the agent's tool-listing call as three different users and watch three different catalogs come back. Inspect the audit trail. | 30 min |
 | **4 — Build VantageDesk and Watch XAA in Flight** | Build the missing half — auth server, scopes, policy, managed connection — then invoke a tool end-to-end and watch the ID-JAG / two-step exchange happen with your own eyes. | 60 min |
@@ -76,7 +76,7 @@ Two patterns repeat throughout the camp. Watching for them makes the structure e
 
 **Review-then-build.** Each major capability is introduced first on VantageCRM, where it is already fully wired before you start, and then built by you on VantageDesk, which is intentionally incomplete. Authorization server, scopes, access policy, managed connection — every one of these you observe on CRM first, then create on Desk. (Access to the API-only apps is gated by the auth server's access policy mapping groups to scopes — there is no per-app sign-in policy, because no human signs in to the apps.) By the end of Lab 4, both columns of the architecture are identically configured. The first instance of the pattern appears in Lab 1.10.
 
-**Same agent, different access.** Throughout the camp, you keep running the same script — `list-agent-tools.sh` or `invoke-agent-tool.sh` — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. What changes is *who is asking* and *what they are currently entitled to do*. The story the camp tells is that agent capability is a property of the user-and-moment, not a property of the agent. (Today the **tool catalog** is gated binary — a user in a relevant group gets the full tool set for that app, a non-member gets none — and **data** is then filtered per user inside the tools; finer per-role tool subsets are a planned enhancement.)
+**Same agent, different access.** Throughout the camp, you keep running the same Lab Toolkit actions — **List the agent's tools** or **Invoke a tool** — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. What changes is *who is asking* and *what they are currently entitled to do*. The story the camp tells is that agent capability is a property of the user-and-moment, not a property of the agent. (Today the **tool catalog** is gated binary — a user in a relevant group gets the full tool set for that app, a non-member gets none — and **data** is then filtered per user inside the tools; finer per-role tool subsets are a planned enhancement.)
 
 ---
 
@@ -86,7 +86,7 @@ A few conventions appear throughout the labs.
 
 - ***NOTE: italic blocks*** are context — explanation of why a step matters, or what to watch for. Read them; they often save you a frustrating debugging session two labs later.
 - **`{{double_brace_placeholders}}`** are values that vary per-attendee or per-lab-environment, like `{{org_url}}` or `{{lab_domain}}`. Your environment provides the real values; the guide uses placeholders so a single guide works across deployments.
-- **Code blocks** show commands you run on the VDI terminal and the output you should see back. If your output diverges substantially, raise it with a proctor before continuing — later labs often fail in confusing ways when an earlier one quietly went wrong.
+- **Lab Toolkit steps** point you at a numbered choice in the desktop **Lab Toolkit** (and a persona, when prompted). The **code blocks** that follow show the output you should see back. If your output diverges substantially, raise it with a proctor before continuing — later labs often fail in confusing ways when an earlier one quietly went wrong.
 
 ---
 

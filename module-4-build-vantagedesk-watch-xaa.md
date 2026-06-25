@@ -13,7 +13,7 @@ Today you build that. You start from the same agent you already registered (no n
 ## Browser use for this lab
 
 - Local browser for the Okta Admin Console (the auth-server / access-policy build steps and Okta System Log inspection).
-- Virtual Desktop for the terminal scripts that invoke tools, trace the protocol, and read the central app's access log.
+- Virtual Desktop for the **Lab Toolkit**, which invokes tools, traces the protocol, and reads the central app's access log.
 
 ---
 
@@ -153,11 +153,9 @@ Your adapter now has **two** resources for one agent: the CRM resource at `/crm/
 
 ### 4.8 Re-list tools — see ITSM appear
 
-Run the tool-listing script again as Kim Liu, who is in `IT Help Desk` and matches both rule 3 on CRM and rule 1 on Desk. Because access is binary today, matching a CRM rule yields the full CRM tool set and matching the Desk rule yields the full Desk tool set — so Kim sees all twelve.
+List the agent's tools again as Kim Liu, who is in `IT Help Desk` and matches both rule 3 on CRM and rule 1 on Desk. Because access is binary today, matching a CRM rule yields the full CRM tool set and matching the Desk rule yields the full Desk tool set — so Kim sees all twelve.
 
-```bash
-~/Desktop/list-agent-tools.sh --user kim.liu@atko.email
-```
+- Open the **Lab Toolkit** and choose **4) List the agent's tools**, then select **Kim Liu (IT Help Desk)** when prompted for a persona.
 
 Expected output:
 
@@ -199,12 +197,7 @@ The "resource not yet configured" bucket is empty — every tool the adapter kno
 
 Filtering is done. Time to actually call something.
 
-```bash
-~/Desktop/invoke-agent-tool.sh \
-    --user kim.liu@atko.email \
-    --tool itsm.lookup_ticket \
-    --args '{"ticket_id":"TKT-1734"}'
-```
+- Open the **Lab Toolkit** and choose **5) Invoke a tool**, then select **Kim Liu (IT Help Desk)** when prompted for a persona. Invoke `itsm.lookup_ticket` for ticket `TKT-1734`.
 
 Expected output:
 
@@ -235,15 +228,9 @@ The agent did not just *describe* what calling a tool would look like. It actual
 
 ### 4.10 Inspect XAA in flight (verbose mode)
 
-Re-run the same invocation with `--verbose`. The script will now print every intermediate token so you can see the protocol with your own eyes.
+Run the same invocation again, this time asking the toolkit to show the token exchange. It will now print every intermediate token so you can see the protocol with your own eyes.
 
-```bash
-~/Desktop/invoke-agent-tool.sh \
-    --user kim.liu@atko.email \
-    --tool itsm.lookup_ticket \
-    --args '{"ticket_id":"TKT-1734"}' \
-    --verbose
-```
+- In the **Lab Toolkit**, choose **5) Invoke a tool** again, select **Kim Liu (IT Help Desk)**, and invoke `itsm.lookup_ticket` for ticket `TKT-1734`. When it asks **"Show the XAA token exchange? (y/N)"**, answer **y**.
 
 Output (decoded for readability):
 
@@ -313,11 +300,9 @@ Walk through what you see:
 
 ### 4.11 Verify the request landed as the user
 
-The central VantageDesk is API-only — there is no admin web page to open. Instead, read the access log out-of-band: the central app exposes `GET /admin/access-log`, scoped to *your* tenant (the app picks the partition from your token's issuer), so you only ever see your own org's records. Run the read script on the Virtual Desktop:
+The central VantageDesk is API-only — there is no admin web page to open. Instead, read the access log out-of-band: the central app exposes `GET /admin/access-log`, scoped to *your* tenant (the app picks the partition from your token's issuer), so you only ever see your own org's records. Read it from the **Lab Toolkit** on the Virtual Desktop:
 
-```bash
-~/Desktop/show-access-log.sh --user kim.liu@atko.email --filter TKT-1734
-```
+- Open the **Lab Toolkit** and choose **6) Show the access log**, then look for the entry for `TKT-1734`.
 
 It calls `GET https://vantagedesk.taskvantage-demo.com/admin/access-log` with your tenant-scoped token and prints the matching line:
 
@@ -330,7 +315,7 @@ It calls `GET https://vantagedesk.taskvantage-demo.com/admin/access-log` with yo
   Source:            mcp.taskvantage-demo.com (shared MCP server)
 ```
 
-*(If your environment serves this step as a rendered screenshot instead of a live script, the captured access-log line is identical — same fields, same values.)*
+*(If your environment serves this step as a rendered screenshot instead of the live Lab Toolkit, the captured access-log line is identical — same fields, same values.)*
 
 The `Client` field reads `TaskVantage Sales Agent`, not a raw client ID: the central app resolves the token's `cid` to a display name via its `AGENT_CID_NAME_MAP`. The request hit VantageDesk as Kim — the agent appears in the `Client` field, full attribution preserved, but the *actor* is Kim. If you wanted to know who was looking at TKT-1734 from Kim's perspective in VantageDesk, this log line is your answer. The agent's involvement is a fact, not a substitute for the user.
 
