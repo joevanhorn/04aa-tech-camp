@@ -9,7 +9,7 @@ This is your reference for what is running in your environment, where each compo
 > (org) the call belongs to from the token's **issuer**. Your **agent and Okta MCP Adapter remain
 > per-attendee**, while the **MCP server is one central, shared service** (ADR-0002) that every
 > attendee's adapter connects to. The "tour it in a browser" moments (Modules 1.5 / 1.6 / 4.10) are
-> delivered out-of-band as rendered screenshots or small read scripts that call the API as each user.
+> delivered out-of-band as rendered screenshots or via the **Lab Toolkit**, which calls the API as each user.
 
 ---
 
@@ -25,7 +25,7 @@ flowchart TB
         subgraph VDI["Virtual Desktop (VDI)"]
             direction LR
             Browser[Chrome Browser<br>Okta Admin Console]
-            Terminal[Terminal<br>check-environment.sh<br>read scripts]
+            Toolkit[Lab Toolkit<br>desktop menu utility]
         end
 
         subgraph AgentLayer["Agent Layer"]
@@ -81,7 +81,7 @@ flowchart TB
     classDef governance fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
 
     class User trigger
-    class Browser,Terminal infra
+    class Browser,Toolkit infra
     class OpenCode,Adapter workflow
     class MCP action
     class CRM,Desk,Redis governance
@@ -96,9 +96,9 @@ flowchart TB
 
 | Component | Role | Hosted on | State at lab start | First built / touched |
 | --- | --- | --- | --- | --- |
-| **Virtual Desktop (VDI)** | The attendee's workstation. Runs the browser used for **Okta Admin Console** tasks, plus a terminal for the check script and read scripts. | Heropa | Fully provisioned. | Lab 1 |
+| **Virtual Desktop (VDI)** | The attendee's workstation. Runs the browser used for **Okta Admin Console** tasks, plus the **Lab Toolkit** desktop utility for environment checks, persona reads, and agent tool calls. | Heropa | Fully provisioned. | Lab 1 |
 | **Per-attendee Okta MCP Adapter** | The attendee's own Okta MCP Adapter process. Stays per-attendee — it holds the org's agent secrets and performs per-org XAA token exchange. The MCP server it connects to is **central/shared** (see the central layer below). | Heropa (per attendee) | Provisioned; inactive until an agent is registered. | Lab 1.7 / Lab 3 |
-| **`check-environment.sh`** | One-shot script that verifies reachability of the central apps + the central MCP server, validates TLS, and exports environment variables for subsequent labs. | VDI desktop | Present on the desktop, ready to run. | Lab 1.7 |
+| **Lab Toolkit** | A single desktop menu utility that fronts every command-line action in the camp: environment check, persona-scoped CRM/Desk reads, agent tool listing and invocation (with optional XAA token-exchange view), the access log, and CRM resource setup. Each menu choice prints the underlying call and result. | VDI desktop | Present on the desktop, ready to run. | Lab 1.7 |
 
 ### Central application layer (shared by all attendee orgs)
 

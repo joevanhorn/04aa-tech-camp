@@ -15,7 +15,7 @@ You'll answer that by running the same agent request as three users and observin
 ## Browser use for this lab
 
 - Local browser for the Okta Admin Console (review and audit steps).
-- Virtual Desktop for the terminal script that simulates the agent's tool-listing call.
+- Virtual Desktop for the **Lab Toolkit**, which simulates the agent's tool-listing call.
 
 ---
 
@@ -68,15 +68,11 @@ The adapter knows about six CRM tools, each gated by one scope on `vantage-crm-a
 | `crm.lookup_opportunity` | `crm.opportunities.read` |
 | `crm.update_opportunity` | `crm.opportunities.write` |
 
-*NOTE: The catalog also has six VantageDesk tools, but they are not yet reachable — `vantage-desk-as` does not exist, so the adapter has no scope to gate them against. Every Desk tool will be filtered out for every user until you build the auth server in Lab 4. The script will show this explicitly.*
+*NOTE: The catalog also has six VantageDesk tools, but they are not yet reachable — `vantage-desk-as` does not exist, so the adapter has no scope to gate them against. Every Desk tool will be filtered out for every user until you build the auth server in Lab 4. The Lab Toolkit will show this explicitly.*
 
 ### 3.4 List tools as Alex Martinez (Sales Rep)
 
-- On the Virtual Desktop, open a terminal and run:
-
-```bash
-~/Desktop/list-agent-tools.sh --user alex.martinez@atko.email
-```
+- Open the **Lab Toolkit** (desktop icon) and choose **4) List the agent's tools**, then select **Alex Martinez (Sales Rep)** when prompted for a persona.
 
 - Expected output:
 
@@ -110,11 +106,7 @@ Alex's `Sales Reps` membership matched rule 2, so the agent surfaces the full CR
 
 ### 3.5 List tools as Susan Potter (Sales Manager)
 
-- Run the script again, this time as Susan:
-
-```bash
-~/Desktop/list-agent-tools.sh --user susan.potter@atko.email
-```
+- In the **Lab Toolkit**, choose **4) List the agent's tools** again, this time selecting **Susan Potter (Sales Manager)**.
 
 - Expected output:
 
@@ -150,11 +142,7 @@ Susan's `Sales Management` membership matched rule 1 — full access. Susan and 
 
 ### 3.6 List tools as Frank Boone — see the catch-all in action
 
-- One more run, this time as Frank:
-
-```bash
-~/Desktop/list-agent-tools.sh --user frank.boone@atko.email
-```
+- In the **Lab Toolkit**, choose **4) List the agent's tools** one more time, this time selecting **Frank Boone (Engineering)**.
 
 - Expected output:
 
@@ -182,7 +170,7 @@ Agent: TaskVantage Sales Agent (ACTIVE)
     itsm.lookup_incident, itsm.update_incident, itsm.search_kb
 ```
 
-Frank is in `Engineering` — a group with no rule on `vantage-crm-as`. The catch-all denies, and the agent — for Frank — has nothing to do. In Lab 5, Frank will request access through OIG, get added temporarily to `CRM Read - Cross-Functional`, and this same script will start matching rule 4 instead of falling to the catch-all.
+Frank is in `Engineering` — a group with no rule on `vantage-crm-as`. The catch-all denies, and the agent — for Frank — has nothing to do. In Lab 5, Frank will request access through OIG, get added temporarily to `CRM Read - Cross-Functional`, and this same Lab Toolkit step will start matching rule 4 instead of falling to the catch-all.
 
 ### 3.7 Inspect the audit trail in System Log
 
@@ -190,11 +178,11 @@ The runs you just performed each generated a chain of events in the Okta System 
 
 - From the Admin Console, go to **Reports** > **System Log**.
 - In the search bar, filter on `target.type eq "AIAgent" and actor.id eq "{agent_id}"` (use your agent's ID from Lab 2). Set the time range to the last 15 minutes.
-- You should see, for each of the three script runs, a sequence similar to:
+- You should see, for each of the three tool-listing runs, a sequence similar to:
 
 | Event | Actor | Target | What it tells you |
 | --- | --- | --- | --- |
-| `app.oauth2.token.grant.access_token` | the agent's OAuth client | the user | The user-context token the script simulated |
+| `app.oauth2.token.grant.access_token` | the agent's OAuth client | the user | The user-context token the Lab Toolkit simulated |
 | `ai_agent.token_exchange.request` | `TaskVantage Sales Agent` | `vantage-crm-as` | The adapter asking Okta what this user can request |
 | `ai_agent.token_exchange.scope_evaluation` | the access policy | the user | Which rule matched and which scopes were granted |
 | `ai_agent.tool_catalog.return` | the adapter | the user | The filtered catalog the user received |

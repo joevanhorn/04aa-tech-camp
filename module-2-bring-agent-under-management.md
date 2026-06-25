@@ -13,7 +13,7 @@ Today, you fix that. You will give the agent an identity in your Okta org, an ow
 ## Browser use for this lab
 
 - Local browser for the Okta Admin Console.
-- Virtual Desktop for any terminal work and the agent runtime.
+- Virtual Desktop for the **Lab Toolkit** and the agent runtime.
 
 ---
 
@@ -138,11 +138,9 @@ The access policy on `vantage-crm-as` allows AI agents that hold a valid managed
 
 Your agent has an identity but no authorized resources yet. Bringing VantageCRM online takes two pieces: an Okta **managed connection** (so the agent may *request* `crm.*` scopes at `vantage-crm-as`) and, in your **MCP Adapter**, a **resource** that routes CRM tool calls to the backend. The lab wires **both** for you here — the complete CRM path — so you start with a working example to study. In Lab 4 you build the equivalent for VantageDesk *by hand, from zero* — that's where you learn the mechanic. This is the camp's review-then-build pattern.
 
-Run the setup helper from your Virtual Desktop:
+Run the setup helper from the **Lab Toolkit** on your Virtual Desktop:
 
-```bash
-~/Desktop/setup-crm-resource.sh
-```
+- Open the **Lab Toolkit** (desktop icon) and choose **7) Set up my CRM resource**.
 
 It creates your agent's **INCLUDE_ONLY** `crm.*` managed connection in Okta, imports the agent into your adapter, marks it **DCR-selectable**, and registers the CRM **resource** at `https://{{mcp_host}}/crm/mcp`. It prints each step and finishes with `OK: 'vantage-crm' wired …`.
 

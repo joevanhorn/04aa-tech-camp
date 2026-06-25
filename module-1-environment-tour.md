@@ -11,13 +11,13 @@ Review your TaskVantage environment before introducing any AI agents. You will t
 > tenant (org) the call belongs to from the token's **issuer**. Your **agent and Okta MCP Adapter
 > remain per-attendee**; the **MCP server is one central, shared service** (ADR-0002). The "tour it
 > in a browser" moments below (Modules 1.5 / 1.6)
-> are delivered out-of-band as a provided screenshot or a small read script that calls the API as
-> each user — there is no app to sign into.
+> are delivered out-of-band as a provided screenshot or via the **Lab Toolkit** on the Virtual
+> Desktop, which calls the API as each user — there is no app to sign into.
 
 ## Browser use for this lab
 
 - Use a regular browser tab on your local machine for administrator tasks (Super Admin in your Okta org).
-- Use the terminal on the Virtual Desktop for all AI usage and for management of the MCP bridge. 
+- Use the **Lab Toolkit** (the desktop icon on the Virtual Desktop) for all AI usage and for management of the MCP bridge. 
 
 ---
 
@@ -82,21 +82,13 @@ These personas will be used throughout the lab. The agent will act on behalf of 
 
 VantageCRM is a custom-built CRM application that stands in for Salesforce, HubSpot, or similar. It holds the customer data your agent will read and modify. It is **API-only** — there is no app UI to log into. It lives centrally at `https://vantagecrm.taskvantage-demo.com`, shared by every attendee org, and resolves your tenant from the token issuer.
 
-Because there is no browser app, you tour the data by calling the API as each user. Use the provided screenshot **or** run the small read script on the Virtual Desktop. Both call `GET /api/accounts` with each user's access token.
+Because there is no browser app, you tour the data by calling the API as each user. Use the provided screenshot **or** the **Lab Toolkit** on the Virtual Desktop. Both call `GET /api/accounts` with each user's access token.
 
-- On the Virtual Desktop, open a terminal and run the read script for Susan:
-
-```bash
-~/Desktop/read-crm-accounts.sh susan.potter
-```
+- Open the **Lab Toolkit** (desktop icon) and choose **2) Read CRM accounts**, then select **Susan Potter (Sales Manager)** when prompted for a persona.
 
   Susan Potter is in **Sales Management**, so her token carries `crm.accounts.read` for all accounts — she sees **all 8 accounts**.
 
-- Now run it as Alex:
-
-```bash
-~/Desktop/read-crm-accounts.sh alex.martinez
-```
+- Run it again, this time selecting **Alex Martinez (Sales Rep)**:
 
   Alex Martinez is a Sales Rep, so he sees only the accounts he owns — **2 accounts (ACC-1001 and ACC-1002)**.
 
@@ -108,21 +100,13 @@ Because there is no browser app, you tour the data by calling the API as each us
 
 VantageDesk is a custom-built IT service management app that stands in for ServiceNow or Jira Service Management. Like VantageCRM, it is **API-only** — there is no app UI. It lives centrally at `https://vantagedesk.taskvantage-demo.com`, shared by every attendee org, and resolves your tenant from the token issuer.
 
-Tour it out-of-band — view the provided screenshot, or run the read script on the Virtual Desktop, which calls `GET /api/tickets` with each user's token:
+Tour it out-of-band — view the provided screenshot, or use the **Lab Toolkit** on the Virtual Desktop, which calls `GET /api/tickets` with each user's token:
 
-- On the Virtual Desktop, open a terminal and run the read script for Kim:
-
-```bash
-~/Desktop/read-desk-tickets.sh kim.liu
-```
+- Open the **Lab Toolkit** and choose **3) Read Desk tickets**, then select **Kim Liu (IT Help Desk)** when prompted for a persona.
 
   Kim Liu is in **IT Help Desk**, so her token carries the ITSM scopes — she sees the full ticket queue (Tickets, Incidents, Knowledge Base).
 
-- Now run it as Alex:
-
-```bash
-~/Desktop/read-desk-tickets.sh alex.martinez
-```
+- Run it again, this time selecting **Alex Martinez (Sales Rep)**:
 
   Alex Martinez is not in IT Help Desk, so his token carries **no ITSM scopes at all**. The call returns nothing — and in later labs the adapter will surface **no Desk tools** to the agent when Alex is the user.
 
@@ -130,7 +114,7 @@ Tour it out-of-band — view the provided screenshot, or run the read script on 
 
 *NOTE: VantageDesk has none of the Okta-side wiring yet — no custom authorization server, no scopes, no access policy, no managed connection on the agent, and no OIG entitlements. You will build each of these in later modules, modeled on VantageCRM.*
 
-### 1.7 Run the environment check script
+### 1.7 Check your environment
 
 The MCP server is the single endpoint that fronts both VantageCRM and VantageDesk. It exposes a catalog of tools (e.g., `crm.lookup_account`, `itsm.create_ticket`) that the AI agent will use. In later labs, the **Okta MCP Adapter** sits between the agent and this MCP server and is responsible for:
 
@@ -138,13 +122,9 @@ The MCP server is the single endpoint that fronts both VantageCRM and VantageDes
 2. Filtering the tool catalog based on the requesting user's entitlements
 3. Performing the XAA token exchange so backend calls hit VantageCRM/VantageDesk as the user, not as the agent
 
-For this lab, run the environment check script on your Virtual Desktop. The script verifies reachability of the **central apps** and the **central MCP server**, confirms TLS certificates are valid, and exports environment variables that subsequent labs will use.
+For this lab, run the environment check from the **Lab Toolkit** on your Virtual Desktop. It verifies reachability of the **central apps** and the **central MCP server**, confirms TLS certificates are valid, and sets up the environment that subsequent labs will use.
 
-- On the Virtual Desktop, open a terminal and run:
-
-```bash
-~/Desktop/check-environment.sh
-```
+- Open the **Lab Toolkit** (desktop icon) and choose **1) Check my environment**.
 
 - You should see output similar to:
 
@@ -157,9 +137,9 @@ TaskVantage environment check
 ✓ MCP server reachable      (https://mcp.{{lab_domain}} — 12 tools registered: 6 CRM + 6 Desk)
 ✓ TLS certificates valid
 
-Environment variables exported to ~/.taskvantage.env:
+Environment ready:
   OKTA_ORG, OKTA_DOMAIN, MCP_URL, CRM_URL, DESK_URL
-  (source this file in future lab terminals)
+  (the Lab Toolkit reuses these in future steps)
 
 Ready to proceed to Lab 2.
 ```
