@@ -232,6 +232,82 @@ def ensure_rules(base, token, asid, pid, gids):
         })
 
 
+# ---------------------------------------------------------------------------
+# Lab Toolkit support: a read-only OIDC client + a no-MFA authentication policy
+# so the on-VDI Lab Toolkit can mint per-persona app-audience tokens (and drive
+# the adapter) via the no-browser auth-code flow without a second factor.
+# ---------------------------------------------------------------------------
+TOOLKIT_LABEL = "lab-toolkit"
+TOOLKIT_REDIRECT = "http://localhost:7777/callback"
+TOOLKIT_READ_SCOPES = ["crm.accounts.read", "crm.contacts.read", "crm.opportunities.read"]
+NOMFA_POLICY_NAME = "O4AA lab — password only (no MFA)"
+
+
+def ensure_nomfa_policy(base, token) -> str:
+    """An authentication (ACCESS_POLICY) policy that allows 1FA/password — mapped to the
+    lab-toolkit and agent apps so the no-browser auth-code flow is never MFA-challenged."""
+    code, pols = req("GET", base, "/api/v1/policies?type=ACCESS_POLICY&limit=200", token)
+    for p in (pols if isinstance(pols, list) else []):
+        if p.get("name") == NOMFA_POLICY_NAME:
+            return p["id"]
+    code, p = req("POST", base, "/api/v1/policies", token, {
+        "type": "ACCESS_POLICY", "name": NOMFA_POLICY_NAME, "status": "ACTIVE",
+        "description": "O4AA lab — single-factor (password) so the Lab Toolkit's no-browser flow isn't MFA-challenged."})
+    if code not in (200, 201):
+        raise SystemExit(f"create NOMFA policy failed ({code}): {p}")
+    pid = p.get("id", "DRY")
+    # a single allow rule: 1FA (password), any user, any network.
+    # NB: omit people.groups — in an ACCESS_POLICY rule the literal "EVERYONE" matches
+    # nobody (unlike authorization-server policies), which would silently fall through to
+    # the default 2FA catch-all. `people.users.exclude=[]` matches all users.
+    req("POST", base, f"/api/v1/policies/{pid}/rules", token, {
+        "type": "ACCESS_POLICY", "name": "Password only", "priority": 0,
+        "conditions": {"network": {"connection": "ANYWHERE"},
+                       "people": {"users": {"exclude": []}}},
+        "actions": {"appSignOn": {"access": "ALLOW",
+            "verificationMethod": {"factorMode": "1FA", "type": "ASSURANCE", "reauthenticateIn": "PT43800H"}}}})
+    return pid
+
+
+def ensure_toolkit_client(base, token, nomfa_pid, gids) -> tuple[str, str]:
+    """Create/reuse the lab-toolkit OIDC app, map it to the NOMFA policy, assign persona groups."""
+    code, apps = req("GET", base, "/api/v1/apps?q=lab-toolkit&limit=20", token)
+    app = next((a for a in (apps if isinstance(apps, list) else []) if a.get("label") == TOOLKIT_LABEL), None)
+    if not app:
+        code, app = req("POST", base, "/api/v1/apps", token, {
+            "name": "oidc_client", "label": TOOLKIT_LABEL, "signOnMode": "OPENID_CONNECT",
+            "credentials": {"oauthClient": {"token_endpoint_auth_method": "none"}},
+            "settings": {"oauthClient": {
+                "redirect_uris": [TOOLKIT_REDIRECT], "response_types": ["code"],
+                "grant_types": ["authorization_code", "refresh_token"], "application_type": "native"}}})
+        if code not in (200, 201):
+            raise SystemExit(f"create lab-toolkit app failed ({code}): {app}")
+    app_id = app.get("id", "DRY")
+    client_id = (app.get("credentials", {}).get("oauthClient", {}).get("client_id", "DRY"))
+    if nomfa_pid and not DRY:
+        req("PUT", base, f"/api/v1/apps/{app_id}/policies/{nomfa_pid}", token)
+    for gname in ["Sales Management", "Sales Reps", "IT Help Desk", "CRM Read - Cross-Functional"]:
+        if gids.get(gname):
+            req("PUT", base, f"/api/v1/apps/{app_id}/groups/{gids[gname]}", token)
+    return app_id, client_id
+
+
+def ensure_toolkit_read_rule(base, token, asid, pid, gids):
+    """Add an authorization_code read rule to vantage-crm-as so the lab-toolkit client can mint
+    per-persona api://vantage-crm read tokens (the XAA rules only allow token-exchange/jwt-bearer)."""
+    name = "Lab toolkit — read (auth code)"
+    code, existing = req("GET", base, f"/api/v1/authorizationServers/{asid}/policies/{pid}/rules", token)
+    if isinstance(existing, list) and any(r.get("name") == name for r in existing):
+        return
+    groups = [gids[g] for g in ["Sales Management", "Sales Reps", "IT Help Desk", "CRM Read - Cross-Functional"] if gids.get(g)]
+    req("POST", base, f"/api/v1/authorizationServers/{asid}/policies/{pid}/rules", token, {
+        "type": "RESOURCE_ACCESS", "name": name, "priority": 1,
+        "conditions": {
+            "grantTypes": {"include": ["authorization_code"]},
+            "scopes": {"include": TOOLKIT_READ_SCOPES},
+            "people": {"users": {"exclude": []}, "groups": {"include": groups}}}})
+
+
 EXAMPLE_AGENT_NAME = "VantageCRM Example Agent"
 CRM_AUDIENCE = "api://vantage-crm"
 
@@ -391,6 +467,14 @@ def main() -> int:
     print(f"  policy = {pid}")
     ensure_rules(base, token, asid, pid, gids)
     print(f"  rules = {[r[0] for r in CRM_RULES]}")
+
+    print("Lab Toolkit support (read client + no-MFA policy) …")
+    nomfa_pid = ensure_nomfa_policy(base, token)
+    print(f"  NOMFA policy = {nomfa_pid}")
+    tk_app, tk_client = ensure_toolkit_client(base, token, nomfa_pid, gids)
+    print(f"  lab-toolkit app = {tk_app}  client_id = {tk_client}")
+    ensure_toolkit_read_rule(base, token, asid, pid, gids)
+    print(f"  crm-as auth-code read rule ensured  (toolkit_client_id for toolkit.config.json = {tk_client})")
 
     if not args.no_example_agent:
         print("Example agent (pre-loaded reference; STAGED) …")
