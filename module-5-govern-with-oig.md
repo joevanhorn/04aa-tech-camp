@@ -4,8 +4,8 @@
 
 Watch OIG add dynamic governance on top of the static configuration you built in Modules 2 through 4. By the end of this lab you will have:
 
-- Approved an end-user's access request and seen a new tool appear in the catalog for that user
-- Launched a certification campaign and watched the same tool disappear when the access is revoked
+- Approved an end-user's access request and seen Okta flip that user's tools from blocked to usable (the catalog he sees never changes — what changes is whether Okta authorizes the actions)
+- Launched a certification campaign and watched the same tools go back to blocked when the access is revoked
 - Exercised the kill switch — deactivating the agent and confirming that no user, regardless of standing entitlements, can use it until it is reactivated
 
 This is the round-trip that proves governance is not a separate paperwork process — it is a live control surface over what the agent can do, for whom, right now.
@@ -14,7 +14,7 @@ This is the round-trip that proves governance is not a separate paperwork proces
 
 You have built the static half of the access model: access policy rules tied to group membership, scoped at the authorization server. That governs the *steady state*. But real organizations are not in steady state. Engineering managers occasionally need CRM read access for cross-functional projects. Auditors want quarterly reviews of who has access to what. And when something goes wrong, the security team needs a single switch that stops everything.
 
-Today, Frank Boone — the Engineering Director who saw zero tools in Lab 3.6 — requests temporary CRM access through OIG to support a cross-functional product launch. You'll approve his request, watch the same tool-listing script that returned zero tools in Lab 3 now return the full CRM tool set for Frank (access is binary today — joining the gated group grants all CRM tools), then launch a certification campaign that revokes the access and watch those tools vanish. Finally, you'll deactivate the agent entirely and confirm nobody — not even Kim, who has full standing access — can use it.
+Today, Frank Boone — the Engineering Director whose tools all showed `[BLOCKED]` in Lab 3.6 — requests temporary CRM access through OIG to support a cross-functional product launch. Frank could always *see* the six CRM tools (every user sees the full catalog); what he couldn't do was *use* them, because Okta wouldn't issue him a token. You'll approve his request, watch the same tool-listing script that showed all six `[BLOCKED]` in Lab 3 now show all six `[USABLE]` for Frank (authorization is binary today — joining the gated group means Okta authorizes all CRM tools), then launch a certification campaign that revokes the access and watch those tools flip back to `[BLOCKED]`. Finally, you'll deactivate the agent entirely and confirm nobody — not even Kim, who has full standing access — can use it.
 
 ## Browser use for this lab
 
@@ -121,44 +121,30 @@ The request status moves to **Approved**. OIG adds Frank to the `CRM Read - Cros
 
 *NOTE: If you check **Directory** > **Groups** > `CRM Read - Cross-Functional` now, Frank should appear as a member. He will be automatically removed when the 2-hour clock runs out — or earlier, if you revoke via certification in 5.6.*
 
-### 5.5 Verify Frank's tools appeared
+### 5.5 Verify Frank can now USE the tools
 
-This is the round-trip moment. Lab 3.6 returned zero tools for Frank because no rule matched him. Nothing about the access policy or its rules has changed since then. What changed is that Frank is now a member of `CRM Read - Cross-Functional`, so rule 4 fires for him.
+This is the round-trip moment. In Lab 3.6 Frank could SEE all six CRM tools but every one showed `[BLOCKED]` — no rule matched him, so Okta wouldn't issue him a token. Nothing about the access policy or its rules has changed since then, and the catalog Frank sees hasn't changed either. What changed is that Frank is now a member of `CRM Read - Cross-Functional`, so rule 4 fires for him and Okta now authorizes the tools that were blocked.
 
 - Open the **Lab Toolkit** and choose **4) List the agent's tools**, then select **Frank Boone (Engineering)** when prompted for a persona.
 
 Expected output:
 
 ```
-Acting as: frank.boone@atko.email  (groups: Engineering, All Employees,
-                                            CRM Read - Cross-Functional)
-User-context token: minted for vantage-crm-as (aud api://vantage-crm)
-Agent: TaskVantage Sales Agent (ACTIVE)
-
-→ Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
-→ Adapter resolved effective scopes via vantage-crm-as:
-    Matched rule 4 (Cross-functional readers — access): full crm.* set
-      crm.accounts.read, crm.accounts.write, crm.contacts.read,
-      crm.opportunities.read, crm.opportunities.write
-
-6 tools available to this user:
-  ▸ crm.lookup_account       Look up a customer account by name or ID
-  ▸ crm.create_account       Create a new customer account
-  ▸ crm.update_account       Update an existing account
-  ▸ crm.lookup_contact       Look up a contact by name or email
-  ▸ crm.lookup_opportunity   Look up an opportunity by name or stage
-  ▸ crm.update_opportunity   Update an opportunity's stage, amount, or details
-
-0 tools filtered out (scope not granted to this user).
-
-6 tools filtered out (Desk scope not granted):
-  ✗ itsm.lookup_ticket, itsm.create_ticket, itsm.update_ticket,
-    itsm.lookup_incident, itsm.update_incident, itsm.search_kb
+== The agent's tools - and what Okta lets Frank Boone use ==
+   The agent exposes 6 tools - every user SEES the full catalog.
+   With Frank Boone's entitlements, Okta authorizes 6 of 6:
+     [USABLE]  {{crm_as_id}}__crm.lookup_account
+     [USABLE]  {{crm_as_id}}__crm.create_account
+     [USABLE]  {{crm_as_id}}__crm.update_account
+     [USABLE]  {{crm_as_id}}__crm.lookup_contact
+     [USABLE]  {{crm_as_id}}__crm.lookup_opportunity
+     [USABLE]  {{crm_as_id}}__crm.update_opportunity
+   ^ USABLE = Okta will now issue Frank Boone a token for this resource, so the action is authorized.
 ```
 
-Compare to Lab 3.6: 0 tools then, the full CRM set now. The agent did not change. Rule 4 did not change. The only change is Frank's group membership — and that propagated automatically through the same evaluation path that Alex's and Susan's memberships have always taken.
+Compare to Lab 3.6: all six `[BLOCKED]` then, all six `[USABLE]` now. Frank saw the same six tools in both runs — the catalog never changed. The agent did not change. Rule 4 did not change. The only change is Frank's group membership — and that propagated automatically through the same authorization path that Alex's and Susan's memberships have always taken, flipping each tool from "Okta won't issue a token" to "Okta will."
 
-*NOTE: Frank gets the **full** CRM tool set, not a read-only slice, because access is binary today: matching any CRM rule grants all `crm.*` scopes (see Module 3.1). His row-level data visibility is still bounded by what `CRM Read - Cross-Functional` can see. A future graduated model would let the cross-functional grant be genuinely read-only at the tool level; that isn't wired yet — see `lab-infra/README.md`.*
+*NOTE: Okta now authorizes the **full** CRM tool set for Frank, not a read-only slice, because authorization is binary today: matching any CRM rule grants all `crm.*` scopes (see Module 3.1). His row-level data visibility is still bounded by what `CRM Read - Cross-Functional` can see. A future graduated model would let the cross-functional grant be genuinely read-only at the tool level (some tools would stay `[BLOCKED]`); that isn't wired yet — see `lab-infra/README.md`.*
 
 ### 5.6 Create and launch the certification campaign
 
@@ -193,31 +179,32 @@ OIG removes Frank from the `CRM Read - Cross-Functional` group immediately — h
 
 *NOTE: In a real campaign, the reviewer would also have the option to **Certify** — confirming that the membership is still appropriate. For this lab, you exercised the revoke path. The certify outcome leaves the membership in place; revoke removes it. Both decisions are captured in the campaign's audit trail.*
 
-### 5.7 Verify Frank's tools fall away
+### 5.7 Verify Frank's access is revoked
 
-Frank's group membership is already gone (5.6). His access *through the agent* falls away on the next token refresh — see the timing note below before you run this.
+Frank's group membership is already gone (5.6). His tools are still **visible** — every user always sees the full catalog — but Okta stops authorizing them on the next token exchange, so they flip back to `[BLOCKED]`. See the timing note below before you run this.
 
 List the agent's tools for Frank again:
 
 - In the **Lab Toolkit**, choose **4) List the agent's tools** and select **Frank Boone (Engineering)**.
 
-Once the agent re-evaluates Frank's access, you'll see:
+Once Okta re-evaluates Frank's access at the next token exchange, you'll see:
 
 ```
-Acting as: frank.boone@atko.email  (groups: Engineering, All Employees)
-User-context token: minted for vantage-crm-as (aud api://vantage-crm)
-Agent: TaskVantage Sales Agent (ACTIVE)
-
-→ Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
-→ Adapter resolved effective scopes via vantage-crm-as:
-    (no rule matched — catch-all denies)
-
-0 tools available to this user.
+== The agent's tools - and what Okta lets Frank Boone use ==
+   The agent exposes 6 tools - every user SEES the full catalog.
+   With Frank Boone's entitlements, Okta authorizes 0 of 6:
+     [BLOCKED] {{crm_as_id}}__crm.lookup_account
+     [BLOCKED] {{crm_as_id}}__crm.create_account
+     [BLOCKED] {{crm_as_id}}__crm.update_account
+     [BLOCKED] {{crm_as_id}}__crm.lookup_contact
+     [BLOCKED] {{crm_as_id}}__crm.lookup_opportunity
+     [BLOCKED] {{crm_as_id}}__crm.update_opportunity
+   ^ BLOCKED = the agent HAS the tool, but Okta won't issue Frank Boone a token for that resource, so the action is denied at use-time.
 ```
 
-Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again. Round-trip complete: Frank gained access through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
+Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again — the six tools are still right there in front of Frank, but Okta has stopped authorizing him to use any of them. Round-trip complete: Frank gained the *ability to use* these tools through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration, and without the catalog he sees ever changing. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
 
-*NOTE — revocation timing: the membership change hits the directory **immediately**, but the agent keeps serving Frank the tools from his current access token until it's re-minted (a token lasts up to ~1 hour). So right after the revoke this step may still show 6 tools — the revoke is enforced at the **next** token exchange, not retroactively on a token already issued. To make a revoke take effect **now** instead of waiting out the token: end the user's sessions with **Universal Logout** (the "User session" tab, see 5.8), or deactivate the agent to stop everything (5.8).*
+*NOTE — revocation timing: the membership change hits the directory **immediately**, but Okta keeps honoring Frank's current access token until it's re-minted (a token lasts up to ~1 hour). So right after the revoke this step may still show all six `[USABLE]` — the revoke is enforced at the **next** token exchange, not retroactively on a token already issued. To make a revoke take effect **now** instead of waiting out the token: end the user's sessions with **Universal Logout** (the "User session" tab, see 5.8), or deactivate the agent to stop everything (5.8).*
 
 ### 5.8 Exercise the kill switch — deactivate the agent
 

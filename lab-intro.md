@@ -28,10 +28,10 @@ You spend most of this camp as a TaskVantage admin — your own personal admin a
 
 | Person | Role | Why they matter to the story |
 | --- | --- | --- |
-| **Susan Potter** | Sales Manager | Full CRM access. The standard agent user — full CRM tool set, and sees all accounts. |
-| **Alex Martinez** | Sales Rep | A CRM-group member, so the agent surfaces him the full CRM tool set too — but VantageCRM row-filters his **data** to the accounts he owns. The "same agent, same tools, less data" comparison case. (Tool-level differentiation per role is a future graduated model — not wired today.) |
-| **Kim Liu** | IT Help Desk Tier 1 | Full VantageDesk access; also a CRM-group member (so she gets CRM tools, with role-bounded data). Cross-system user; gets the agent's full ITSM toolkit in Lab 4. |
-| **Frank Boone** | Engineering Director | No CRM or ITSM access by default. The OIG round-trip in Lab 5 happens to him: he requests temporary access, watches it appear, and watches it disappear. |
+| **Susan Potter** | Sales Manager | Full CRM access. The standard agent user — Okta authorizes the full CRM tool set for her, and she sees all accounts. |
+| **Alex Martinez** | Sales Rep | A CRM-group member, so Okta authorizes the full CRM tool set for him too — but VantageCRM row-filters his **data** to the accounts he owns. The "same agent, same tools authorized, less data" comparison case. (Tool-level differentiation per role is a future graduated model — not wired today.) |
+| **Kim Liu** | IT Help Desk Tier 1 | Full VantageDesk access; also a CRM-group member (so Okta authorizes CRM tools for her, with role-bounded data). Cross-system user; Okta authorizes the agent's full ITSM toolkit for her in Lab 4. |
+| **Frank Boone** | Engineering Director | No CRM or ITSM access by default — he can SEE the agent's tools like everyone else, but Okta blocks his use of them until OIG grants access. The OIG round-trip in Lab 5 happens to him: he requests temporary access, watches his tools flip from blocked to usable, and watches them blocked again. |
 | **Sally Field** | Executive | Interacts with the agent rather than the apps directly. Appears in the background — her existence frames why "the agent's access is the user's access" matters. |
 
 The exact passwords and account details are in Lab 1.3 — no need to memorize anything yet.
@@ -62,9 +62,9 @@ In Lab 2 you bring an agent under Okta management. The agent is **OpenCode** —
 | --- | --- | --- |
 | **1 — Environment Tour** | Sign in to the Okta Admin Console, meet the personas, see both apps (out-of-band screenshots / the Lab Toolkit), run the environment check from the Lab Toolkit, build your first piece of configuration (the VantageDesk auth server access policy). | 25 min |
 | **2 — Bring the Agent Under Management** | Register your pre-installed OpenCode agent, assign an owner, generate a key, create the managed connection to VantageCRM. | 45 min |
-| **3 — See the Adapter Filter Tools by User** | Run the agent's tool-listing call as three different users and watch three different catalogs come back. Inspect the audit trail. | 30 min |
+| **3 — See Okta Govern the Agent's Tools by User** | Run the agent's tool-listing call as three different users — every user sees the same full catalog — and watch Okta authorize a different set of those tools for each at use-time. Inspect the audit trail. | 30 min |
 | **4 — Build VantageDesk and Watch XAA in Flight** | Build the missing half — auth server, scopes, policy, managed connection — then invoke a tool end-to-end and watch the ID-JAG / two-step exchange happen with your own eyes. | 60 min |
-| **5 — Govern with OIG** | Submit an access request, approve it, watch tools appear; revoke via certification, watch them disappear; exercise the kill switch. | 50 min |
+| **5 — Govern with OIG** | Submit an access request, approve it, watch Okta start authorizing Frank's tools; revoke via certification, watch the authorization fall away; exercise the kill switch. | 50 min |
 
 About 3.5 hours of actual work. Build in a break after Lab 2 or in the middle of Lab 4 if your group is pacing more slowly.
 
@@ -76,7 +76,7 @@ Two patterns repeat throughout the camp. Watching for them makes the structure e
 
 **Review-then-build.** Each major capability is introduced first on VantageCRM, where it is already fully wired before you start, and then built by you on VantageDesk, which is intentionally incomplete. Authorization server, scopes, access policy, managed connection — every one of these you observe on CRM first, then create on Desk. (Access to the API-only apps is gated by the auth server's access policy mapping groups to scopes — there is no per-app sign-in policy, because no human signs in to the apps.) By the end of Lab 4, both columns of the architecture are identically configured. The first instance of the pattern appears in Lab 1.10.
 
-**Same agent, different access.** Throughout the camp, you keep running the same Lab Toolkit actions — **List the agent's tools** or **Invoke a tool** — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. What changes is *who is asking* and *what they are currently entitled to do*. The story the camp tells is that agent capability is a property of the user-and-moment, not a property of the agent. (Today the **tool catalog** is gated binary — a user in a relevant group gets the full tool set for that app, a non-member gets none — and **data** is then filtered per user inside the tools; finer per-role tool subsets are a planned enhancement.)
+**Same agent, different access.** Throughout the camp, you keep running the same Lab Toolkit actions — **List the agent's tools** or **Invoke a tool** — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. **The catalog every user sees does not change either** — tool *visibility* is a property of the agent, so Alex, Susan, Kim, and Frank all see the same tools. What changes is whether **Okta authorizes** a given user to actually invoke a tool — decided at the token exchange, the moment the user tries to use it. If the user isn't entitled, Okta issues no token and the action is denied ("Authentication failed for resource"); Okta doesn't hide the menu, it refuses the action. The story the camp tells is that agent capability is governed at the moment of action, against the live access policy — a stronger control than hiding tools. (Today **authorization** is binary — a user in a relevant group is authorized for the full tool set for that app, a non-member for none but still sees them all — and **data** is then filtered per user inside the authorized tools; finer per-role tool subsets are a planned enhancement.)
 
 ---
 
