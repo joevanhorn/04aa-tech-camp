@@ -35,7 +35,7 @@ flowchart TB
 
         subgraph Edge["Per-attendee adapter"]
             direction TB
-            Adapter[Okta MCP Adapter<br>XAA token exchange<br>scope-based tool filtering]
+            Adapter[Okta MCP Adapter<br>XAA token exchange<br>per-user use-time authorization]
         end
 
         subgraph Okta["Okta Org (this attendee's tenant)"]
@@ -64,7 +64,7 @@ flowchart TB
     Adapter -->|verify agent identity| AIRegistry
     Adapter -->|ID-JAG / XAA exchange| CRMAS
     Adapter -->|ID-JAG / XAA exchange| DeskAS
-    Adapter -->|filtered tool calls<br>with user-context Bearer tokens| MCP
+    Adapter -->|authorized tool calls<br>with user-context Bearer tokens| MCP
     MCP -->|HTTPS + Bearer| CRM
     MCP -->|HTTPS + Bearer| Desk
     CRM -->|tenant by issuer| Redis
@@ -125,7 +125,7 @@ flowchart TB
 
 | Component | Role | Hosted on | State at lab start | First built / touched |
 | --- | --- | --- | --- | --- |
-| **Okta MCP Adapter** | Policy enforcement point between agent and the central MCP server. Verifies agent identity, filters the tool catalog by user entitlement, performs XAA token exchange so backend calls hit the central apps as the user. | Per-attendee (Heropa) | **Prebuilt** but inactive — no agent registered yet, so no requests pass policy. | Lab 3 (filtering); Lab 4 (XAA) |
+| **Okta MCP Adapter** | Policy enforcement point between agent and the central MCP server. Verifies agent identity, exposes the agent's full tool catalog to every user, and performs per-user authorization at the XAA token exchange (the catalog is the agent's full capability set; Okta decides at invoke-time whether to issue a token, so backend calls hit the central apps as the user only when authorized). | Per-attendee (Heropa) | **Prebuilt** but inactive — no agent registered yet, so no requests pass policy. | Lab 3 (use-time authorization); Lab 4 (XAA) |
 | **OpenCode agent (primary)** | Open-source AI coding agent, **pre-installed and configured on the VDI** and pointed at the attendee's adapter. Registered manually in Okta in Lab 2; this is the agent the rest of the camp uses. | VDI (Heropa-provisioned) | **Installed and ready**; identity not yet registered. | Lab 2 |
 
 ---

@@ -153,45 +153,31 @@ Your adapter now has **two** resources for one agent: the CRM resource at `/crm/
 
 ### 4.8 Re-list tools — see ITSM appear
 
-List the agent's tools again as Kim Liu, who is in `IT Help Desk` and matches both rule 3 on CRM and rule 1 on Desk. Because access is binary today, matching a CRM rule yields the full CRM tool set and matching the Desk rule yields the full Desk tool set — so Kim sees all twelve.
+List the agent's tools again as Kim Liu, who is in `IT Help Desk` and matches both rule 3 on CRM and rule 1 on Desk. Because access is binary today, matching a CRM rule authorizes the full CRM tool set and matching the Desk rule authorizes the full Desk tool set — so Okta authorizes Kim for all twelve.
 
 - Open the **Lab Toolkit** and choose **4) List the agent's tools**, then select **Kim Liu (IT Help Desk)** when prompted for a persona.
 
 Expected output:
 
 ```
-Acting as: kim.liu@atko.email  (groups: IT Help Desk, All Employees)
-User identity asserted via: Okta org (subject token for XAA exchange)
-Agent: TaskVantage Sales Agent (ACTIVE)
-
-→ Calling MCP Adapter at https://mcp.{{lab_domain}}/tools
-→ Adapter resolved effective scopes:
-    From vantage-crm-as:  full crm.* set (crm.accounts.read/write,
-                          crm.contacts.read, crm.opportunities.read/write)
-    From vantage-desk-as: itsm.tickets.read, itsm.tickets.write,
-                          itsm.incidents.read, itsm.incidents.write,
-                          itsm.kb.read
-
-12 tools available to this user:
-  ▸ crm.lookup_account       Look up a customer account by name or ID
-  ▸ crm.create_account       Create a new customer account
-  ▸ crm.update_account       Update an existing account
-  ▸ crm.lookup_contact       Look up a contact by name or email
-  ▸ crm.lookup_opportunity   Look up an opportunity by name or stage
-  ▸ crm.update_opportunity   Update an opportunity's stage, amount, or details
-  ▸ itsm.lookup_ticket       Look up a ticket by ID or queue
-  ▸ itsm.create_ticket       Create a new support ticket
-  ▸ itsm.update_ticket       Update an existing ticket
-  ▸ itsm.lookup_incident     Look up an incident by ID
-  ▸ itsm.update_incident     Update an incident's status or severity
-  ▸ itsm.search_kb           Search the knowledge base
-
-0 tools filtered out (scope not granted to this user).
-
-0 tools filtered out (resource not yet configured).
+== The agent's tools - and what Okta lets Kim Liu (IT Help Desk) use ==
+   The agent exposes 12 tools - every user SEES the full catalog.
+   With Kim Liu (IT Help Desk)'s entitlements, Okta authorizes 12 of 12:
+     [USABLE]  {{crm_as_id}}__crm.lookup_account
+     [USABLE]  {{crm_as_id}}__crm.create_account
+     [USABLE]  {{crm_as_id}}__crm.update_account
+     [USABLE]  {{crm_as_id}}__crm.lookup_contact
+     [USABLE]  {{crm_as_id}}__crm.lookup_opportunity
+     [USABLE]  {{crm_as_id}}__crm.update_opportunity
+     [USABLE]  {{desk_as_id}}__itsm.lookup_ticket
+     [USABLE]  {{desk_as_id}}__itsm.create_ticket
+     [USABLE]  {{desk_as_id}}__itsm.update_ticket
+     [USABLE]  {{desk_as_id}}__itsm.lookup_incident
+     [USABLE]  {{desk_as_id}}__itsm.update_incident
+     [USABLE]  {{desk_as_id}}__itsm.search_kb
 ```
 
-The "resource not yet configured" bucket is empty — every tool the adapter knows about is now gated against an authorization server. Compare this to Lab 3.4 where six ITSM tools sat in that bucket; your work in 4.3 through 4.7 cleared it. (As in Module 3, the per-tool catalog is binary today: Kim is a member of both CRM and Desk groups, so she gets both full tool sets. What scopes a manager-vs-rep distinction would carve out at the tool level is a future graduated model — see `lab-infra/README.md`. Data-level differences still apply: VantageCRM row-filters Kim's CRM results to what her role can see.)
+Before you built VantageDesk, the catalog held only the six CRM tools — there was no Desk resource for the adapter to expose. Wiring `vantage-desk-as` and its resource in 4.3–4.7 added the six ITSM tools to the catalog **for everyone**, and because Kim is a member of both the CRM and Desk groups, Okta authorizes her for all twelve. (As in Module 3, authorization is binary today: a member of a resource's group can use that resource's full tool set; a non-member sees the same tools but Okta won't authorize them. A graduated manager-vs-rep tool subset is a future model — see `lab-infra/README.md`. Data-level differences still apply: VantageCRM row-filters Kim's CRM results to what her role can see.)
 
 ### 4.9 Invoke a tool through the agent
 

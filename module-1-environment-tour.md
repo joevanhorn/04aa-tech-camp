@@ -60,7 +60,7 @@ These personas will be used throughout the lab. The agent will act on behalf of 
 | Frank Boone | Engineering Director | No CRM or ITSM access by default — will request access via OIG in Lab 5 |
 | Sally Field | Executive | Indirect access only — uses the agent rather than apps directly |
 
-*NOTE: The agent's behavior in later labs depends on who is asking. The same prompt issued by Alex and Susan will result in different tool sets and different data — that is the point.*
+*NOTE: The agent's behavior in later labs depends on who is asking. Every user sees the **same** tool catalog — the tools belong to the agent, not the user. What differs is which of those tools Okta lets each user actually USE (authorized at the moment of invocation) and what **data** comes back inside them. The same prompt issued by Alex and Susan can therefore differ in the data returned even when Okta authorizes both for the same tools — that is the point.*
 
 ### 1.4 Review groups
 
@@ -108,7 +108,7 @@ Tour it out-of-band — view the provided screenshot, or use the **Lab Toolkit**
 
 - Run it again, this time selecting **Alex Martinez (Sales Rep)**:
 
-  Alex Martinez is not in IT Help Desk, so his token carries **no ITSM scopes at all**. The call returns nothing — and in later labs the adapter will surface **no Desk tools** to the agent when Alex is the user.
+  Alex Martinez is not in IT Help Desk, so his token carries **no ITSM scopes at all**. The call returns nothing — and in later labs, when Alex is the user, Okta will refuse to authorize any Desk tool: he can see them, but the action is denied because no ITSM token is issued for him.
 
 - The Kim-vs-Alex difference here is purely **scope**: who has the ITSM scopes and who does not. There is no portal, and no self-service ticket form — access is decided entirely by what the token carries.
 
@@ -119,7 +119,7 @@ Tour it out-of-band — view the provided screenshot, or use the **Lab Toolkit**
 The MCP server is the single endpoint that fronts both VantageCRM and VantageDesk. It exposes a catalog of tools (e.g., `crm.lookup_account`, `itsm.create_ticket`) that the AI agent will use. In later labs, the **Okta MCP Adapter** sits between the agent and this MCP server and is responsible for:
 
 1. Verifying the agent is properly registered in Okta
-2. Filtering the tool catalog based on the requesting user's entitlements
+2. Exposing the agent's full tool catalog to every user, while letting Okta authorize *which* tools a given user may actually invoke — enforced at the token exchange, not by hiding tools
 3. Performing the XAA token exchange so backend calls hit VantageCRM/VantageDesk as the user, not as the agent
 
 For this lab, run the environment check from the **Lab Toolkit** on your Virtual Desktop. It verifies reachability of the **central apps** and the **central MCP server**, confirms TLS certificates are valid, and sets up the environment that subsequent labs will use.

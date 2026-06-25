@@ -39,7 +39,7 @@ flowchart TB
 
         subgraph Edge["Adapter"]
             direction TB
-            Adapter[Okta MCP Adapter<br>XAA + tool filtering]
+            Adapter[Okta MCP Adapter<br>XAA + use-time authorization]
         end
 
         subgraph Okta["Okta Org"]
@@ -66,7 +66,7 @@ flowchart TB
 
     AgentLayer -->|MCP protocol| Adapter
     Adapter -.verify agent<br>+ ID-JAG exchange.-> AIRegistry
-    Adapter -->|filtered tool calls<br>with user-context tokens| MCP
+    Adapter -->|authorized tool calls<br>with user-context tokens| MCP
     MCP -->|HTTPS + Bearer| CRM
     MCP -->|HTTPS + Bearer| Desk
     CRM -->|tenant by issuer| Redis
