@@ -31,8 +31,8 @@ When you see a step that asks you to *review* something on VantageCRM, look clos
 
 ### 1.1 Log into your TaskVantage Okta org
 
-- Navigate to your assigned Okta org URL: `{{org_url}}`
-- Sign in with your admin credentials: `{{admin_username}}` / `{{admin_password}}`
+- Navigate to your assigned Okta org URL: `{{org_url}}` (Ensure you accepted the invite in the previous module. If not, do that now.)
+- Sign in with your admin credentials.
 - After logging in, click the **Admin** tab in the upper-right corner to enter the Admin Console.
 
 ### 1.2 Complete your personal admin profile
