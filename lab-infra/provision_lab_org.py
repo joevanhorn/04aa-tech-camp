@@ -326,7 +326,8 @@ def ensure_toolkit_read_rule(base, token, asid, pid, gids):
 ADMIN_UI_LABEL = "okta-mcp-admin-ui"
 ADMIN_UI_REDIRECTS = ["http://localhost:3001/callback",
                       "http://adapter.taskvantage.lab:3001/callback"]
-ADMIN_UI_API_SCOPES = ["okta.aiAgents.manage", "okta.aiAgents.read", "okta.apps.read"]
+ADMIN_UI_API_SCOPES = ["okta.aiAgents.manage", "okta.aiAgents.read", "okta.apps.read",
+                       "okta.authorizationServers.read"]
 
 
 def _everyone_group_id(base, token) -> str | None:
