@@ -2,7 +2,12 @@
 
 ## Objective
 
-Watch Okta govern *which of the agent's tools each user is allowed to use* — enforced at the moment the user invokes a tool, not by hiding the menu. By the end of this lab you will have seen the same agent — the one you registered in Lab 2 — expose its **full** tool catalog to three different users, while Okta authorizes a different set of those tools for each one. The agent's catalog is fixed; what changes per user is whether Okta will issue a token to actually run a tool. Capability is not security-by-obscurity here: every user can *see* the whole menu, and Okta decides — at use-time — what they may *do* with it.
+By the end of this lab you will have run the same agent — the one you registered in Lab 2 — as three different users and watched Okta govern *which of its tools each user is allowed to use*, enforced at the moment a tool is invoked rather than by hiding the menu. Every user sees the **full** catalog; what changes per user is whether Okta will issue a token to actually run a tool — capability here is not security-by-obscurity.
+
+- Review the access policy and tool-to-scope mapping on `vantage-crm-as`
+- List the agent's full CRM tool catalog as Alex Martinez (sales rep) and Susan Potter (sales manager) — and see Okta authorize all six tools for each
+- List the same catalog as Frank Boone (engineering director) — see all six tools, every one blocked, because Okta authorizes none for him
+- Inspect the Okta System Log audit trail that records each authorized and denied attempt
 
 ## Scenario
 

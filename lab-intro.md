@@ -1,5 +1,11 @@
 # Lab Intro: TaskVantage AI Agents Tech Camp
 
+> **START HERE — launch your lab environment right now, before you read anything else.**
+>
+> Go to the launchpad and **spin up your Virtual Desktop (VDI)** as your very first action. A fresh environment — the Windows VDI and its Linux bridge — takes a few minutes to provision, and kicking it off now means it will be ready and waiting by the time you reach Lab 1. You won't sit watching a spinner.
+>
+> ***NOTE: Do this first, then keep reading. The rest of this intro is meant to be read while your environment provisions in the background — by the time you finish it, your Virtual Desktop should be up.***
+
 Welcome. Over the next three to four hours, you will take an unmanaged AI agent and turn it into an Okta-governed identity with controlled access to two business applications, then watch every dimension of that governance work end to end. By the time you finish, you will have done the actual work that makes "we have AI agents in production" and "we know what our AI agents can do" the same sentence.
 
 This module is the introduction. It sets the world you are about to operate in, introduces the people in it, and points you at the structure that follows. The work itself happens in Labs 1 through 5.
@@ -94,7 +100,7 @@ A few conventions appear throughout the labs.
 
 Confirm these are all true:
 
-- [ ] You can reach the Virtual Desktop provided in the launchpad.
+- [ ] The Virtual Desktop you launched from the launchpad at the start of this intro has finished provisioning, and you can reach it.
 - [ ] You have accepted the invite to your Okta org and have logged in as an admin.
 - [ ] You have opencode available on the desktop of your VDI. 
 - [ ] You see all the noted users in your lab tenant and you see yourself listed as the manager for all users. 
