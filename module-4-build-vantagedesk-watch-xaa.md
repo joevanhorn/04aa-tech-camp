@@ -2,7 +2,13 @@
 
 ## Objective
 
-Build the VantageDesk side of the camp end-to-end — authorization server, scopes, access policy, managed connection, and the matching MCP Adapter resource — using your work on VantageCRM as the template. The VantageDesk API itself already exists: it is part of the one central, multi-tenant deployment at `https://vantagedesk.taskvantage-demo.com`, shared by every attendee's org and reached only as an API. You don't stand it up or deploy anything app-side. Your job is the Okta side: build `vantage-desk-as` (a custom authorization server in *your* org) with the ITSM scopes and an access policy. Because enrollment is by org, the central app trusts your new auth server automatically via your org's JWKS — no app-side registration or redeploy. Then invoke a tool through the agent and watch the full XAA token exchange happen: the adapter requests an ID-JAG carrying both agent and user identity, swaps it for a scoped access token at `vantage-desk-as`, and the call lands on the central VantageDesk as the actual user. By the end of this lab, the two halves of TaskVantage are configured identically in your org and you have seen the protocol that makes the whole thing work.
+By the end of this lab the two halves of TaskVantage are configured identically in your org, and you will have watched the XAA protocol carry both agent and user identity all the way to the app. You build the entire VantageDesk side — authorization server, scopes, access policy, managed connection, and the matching MCP Adapter resource — using your VantageCRM work as the template. (The VantageDesk API already exists in the shared central deployment at `https://vantagedesk.taskvantage-demo.com`; you build only the Okta side — your org's new auth server is trusted automatically via JWKS, with no app-side registration or redeploy.)
+
+- Create `vantage-desk-as`, a custom authorization server in your org, and add the ITSM scopes
+- Build the access policy rules mapping the help desk group to those scopes
+- Connect the agent you already registered to VantageDesk (managed connection) and add its MCP Adapter resource
+- Re-list the agent's tools and see the ITSM tools appear
+- Invoke a tool as Kim Liu and trace the two-step XAA exchange — ID-JAG → scoped token at `vantage-desk-as` → the call landing on the central VantageDesk as Kim herself
 
 ## Scenario
 
