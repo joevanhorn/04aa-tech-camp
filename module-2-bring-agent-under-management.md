@@ -2,13 +2,19 @@
 
 ## Objective
 
-Register an AI agent in Okta Universal Directory as a first-class identity, assign a human owner, configure its public-key credential, link it to a user-sign-on app, and activate it — then bring its VantageCRM access online (managed connection + MCP Adapter resource) with the lab's setup helper and review it as the worked example. By the end of this lab, your agent exists in the AI Agents Registry, is owned and active, scoped to a specific user-facing app, authorized to request tokens for VantageCRM via XAA, and reachable through the adapter. Module 3 will exercise this access; in Lab 4 you'll build the VantageDesk equivalent from scratch.
+By the end of this lab, your agent exists in the AI Agents Registry, is owned and active, scoped to a specific user-facing app, authorized to request tokens for VantageCRM via XAA, and reachable through the adapter. Module 3 will exercise this access; in Lab 4 you'll build the VantageDesk equivalent from scratch.
+
+- Register an AI agent in Okta Universal Directory as a first-class identity
+- Assign a human owner to the Agent
+- Configure its public-key/private-key credential
+- Link it to a user-sign-on app for Human login and activate it
+- Bring its VantageCRM access online (managed connection + MCP Adapter resource) with the lab's setup helper and review it as the worked example. 
 
 ## Scenario
 
 It is 2026. TaskVantage's sales operations team has wired up **OpenCode** — an open-source AI coding agent — to help sales reps query and update VantageCRM. It runs on the team's machines, calling APIs, but it has no Okta identity. Security has flagged it as ungoverned: no human owner, no audit trail, and credentials sitting in a local config.
 
-Today, you fix that. You will give the agent an identity in your Okta org, an owner who is accountable for its behavior, a public-key credential it can use to prove who it is, a linked sign-on app that defines which users it can act on behalf of, and a scoped managed connection to VantageCRM.
+Today, you will fix that. You will give the agent an identity in your Okta org, an owner who is accountable for its behavior, a PGP keypair credential it can use to prove who it is, a linked sign-on app that defines which users it can act on behalf of, and a scoped managed connection to VantageCRM.
 
 ## Browser use for this lab
 
