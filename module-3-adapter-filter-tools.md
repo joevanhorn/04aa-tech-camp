@@ -1,4 +1,4 @@
-# Lab Module 3: See Okta Govern the Agent's Tools by User [Estimate: 30 minutes]
+# Lab Module 3: First Day on the Job — See Okta Govern the Agent's Tools by User [Estimate: 30 minutes]
 
 ## Objective
 

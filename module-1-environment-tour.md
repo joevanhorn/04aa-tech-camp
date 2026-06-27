@@ -1,4 +1,4 @@
-# Lab Module 1: TaskVantage Environment Tour [Estimate: 25 minutes]
+# Lab Module 1: The World It'll Operate In — Environment Tour [Estimate: 25 minutes]
 
 ## Objective
 

@@ -1,4 +1,4 @@
-# Lab Module 4: Build VantageDesk and Watch XAA in Flight [Estimate: 60 minutes]
+# Lab Module 4: Getting a Desk — Build VantageDesk and Watch XAA in Flight [Estimate: 60 minutes]
 
 ## Objective
 
