@@ -2,9 +2,10 @@
 
 > **START HERE — launch your lab environment right now, before you read anything else.**
 >
-> Go to the launchpad and **spin up your Virtual Desktop (VDI)** as your very first action. A fresh environment — the Windows VDI and its Linux bridge — takes a few minutes to provision, and kicking it off now means it will be ready and waiting by the time you reach Lab 1. You won't sit watching a spinner.
+> 1. Go to the launchpad.
+> 2. Spin up your **Virtual Desktop (VDI)**.
 >
-> ***NOTE: Do this first, then keep reading. The rest of this intro is meant to be read while your environment provisions in the background — by the time you finish it, your Virtual Desktop should be up.***
+> ***NOTE: Do this first, then keep reading. A fresh environment takes a few minutes to provision, so it will be ready by the time you reach Lab 1.***
 
 Welcome. Over the next three to four hours, you will take an unmanaged AI agent and turn it into an Okta-governed identity with controlled access to two business applications, then watch every dimension of that governance work end to end. By the time you finish, you will have done the actual work that makes "we have AI agents in production" and "we know what our AI agents can do" the same sentence.
 
@@ -48,7 +49,9 @@ The exact passwords and account details are in Lab 1.3 — no need to memorize a
 
 TaskVantage runs on a custom-built CRM (**VantageCRM**) and a custom-built ITSM (**VantageDesk**). They are deliberately fake apps that offer similar capabilities to real applications you may be familiar with. Think of them as stand-ins for whatever your real organization uses.
 
-They are resource servers only: there is no app UI and no human sign-in to them. Every interaction for today's lab will be an agentic API call carrying a Bearer access token, and each app resolves which tenant (your org) a call belongs to from the token's **issuer**. The agent never talks to either app directly. It talks to a MCP server through the **Okta MCP Adapter**, which is the policy enforcement point you will see in action repeatedly. Your **agent and Okta MCP Adapter — and your Okta org — are per-attendee**; the **MCP server and the two apps are central/shared** (see ADR-0002).
+They are resource servers only: no app UI, no human sign-in. Every interaction is an agentic API call carrying a Bearer access token, and each app resolves which tenant (your org) a call belongs to from the token's **issuer**.
+
+The agent never talks to either app directly. It talks to an MCP server through the **Okta MCP Adapter** — the policy enforcement point you will see in action repeatedly. Your agent, Okta MCP Adapter, and Okta org are per-attendee; the MCP server and the two apps are central and shared (see ADR-0002).
 
 The full picture is below.
 
@@ -82,7 +85,11 @@ Two patterns repeat throughout the camp. Watching for them makes the structure e
 
 **Review-then-build.** Each major capability is introduced first on VantageCRM, where it is already fully wired before you start, and then built by you on VantageDesk, which is intentionally incomplete. Authorization server, scopes, access policy, managed connection — every one of these you observe on CRM first, then create on Desk. (Access to the API-only apps is gated by the auth server's access policy mapping groups to scopes — there is no per-app sign-in policy, because no human signs in to the apps.) By the end of Lab 4, both columns of the architecture are identically configured. The first instance of the pattern appears in Lab 1.10.
 
-**Same agent, different access.** Throughout the camp, you keep running the same Lab Toolkit actions — **List the agent's tools** or **Invoke a tool** — against different users, sometimes against the same user at different points in time. The agent's identity does not change. Its configuration does not change between most of the runs. **The catalog every user sees does not change either** — tool *visibility* is a property of the agent, so Alex, Susan, Kim, and Frank all see the same tools. What changes is whether **Okta authorizes** a given user to actually invoke a tool — decided at the token exchange, the moment the user tries to use it. If the user isn't entitled, Okta issues no token and the action is denied ("Authentication failed for resource"); Okta doesn't hide the menu, it refuses the action. The story the camp tells is that agent capability is governed at the moment of action, against the live access policy — a stronger control than hiding tools. (Today **authorization** is binary — a user in a relevant group is authorized for the full tool set for that app, a non-member for none but still sees them all — and **data** is then filtered per user inside the authorized tools; finer per-role tool subsets are a planned enhancement.)
+**Same agent, different access.** Throughout the camp, you keep running the same Lab Toolkit actions — **List the agent's tools** or **Invoke a tool** — against different users. The agent's identity does not change. Neither does its configuration between most runs. The catalog every user sees does not change either: tool *visibility* is a property of the agent, so Alex, Susan, Kim, and Frank all see the same tools.
+
+What changes is whether Okta authorizes a given user to actually invoke a tool — decided at the token exchange, the moment the user tries to use it. If the user isn't entitled, Okta issues no token and the action is denied (*Authentication failed for resource*). Okta doesn't hide the menu; it refuses the action. That is the core story: agent capability is governed at the moment of action, against the live access policy — a stronger control than hiding tools.
+
+*NOTE: Today authorization is binary — a user in a relevant group gets the full tool set for that app, a non-member gets none but still sees them all. Data is then filtered per user inside the authorized tools. Finer per-role tool subsets are a planned enhancement.*
 
 ---
 
@@ -90,9 +97,9 @@ Two patterns repeat throughout the camp. Watching for them makes the structure e
 
 A few conventions appear throughout the labs.
 
-- ***NOTE: italic blocks*** are context — explanation of why a step matters, or what to watch for. Read them; they often save you a frustrating debugging session two labs later.
-- **`{{double_brace_placeholders}}`** are values that vary per-attendee or per-lab-environment, like `{{org_url}}` or `{{lab_domain}}`. Your environment provides the real values; the guide uses placeholders so a single guide works across deployments.
-- **Lab Toolkit steps** point you at a numbered choice in the desktop **Lab Toolkit** (and a persona, when prompted). The **code blocks** that follow show the output you should see back. If your output diverges substantially, raise it with a proctor before continuing — later labs often fail in confusing ways when an earlier one quietly went wrong.
+- ***NOTE: italic blocks*** are context — why a step matters, or what to watch for. Read them; they often save you a frustrating debugging session two labs later.
+- **Double-brace placeholders** like `{{org_url}}` or `{{lab_domain}}` are values that vary per-attendee. Your environment provides the real values.
+- **Lab Toolkit steps** point you at a numbered choice in the desktop **Lab Toolkit** (and a persona, when prompted). The code blocks that follow show the output you should see. If your output diverges substantially, raise it with a proctor before continuing — later labs fail in confusing ways when an earlier one quietly went wrong.
 
 ---
 
@@ -100,9 +107,9 @@ A few conventions appear throughout the labs.
 
 Confirm these are all true:
 
-- [ ] The Virtual Desktop you launched from the launchpad at the start of this intro has finished provisioning, and you can reach it.
-- [ ] You have accepted the invite to your Okta org and have logged in as an admin.
-- [ ] You have opencode available on the desktop of your VDI. 
-- [ ] You see all the noted users in your lab tenant and you see yourself listed as the manager for all users. 
+- [ ] The Virtual Desktop you launched at the start of this intro has finished provisioning, and you can reach it.
+- [ ] You have accepted the invite to your Okta org and logged in as an admin.
+- [ ] OpenCode is available on the desktop of your VDI.
+- [ ] You see all the noted users in your lab tenant, and you are listed as the manager for all of them.
 
 When all four are checked, open Lab Module 1 and begin.
