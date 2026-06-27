@@ -106,6 +106,8 @@ Expected output:
 
 Alex's Sales Reps membership matched a rule on vantage-crm-as, so Okta authorizes the full CRM tool set for him — authorization is binary today (member = all CRM tools usable). He sees all six because every user sees the full catalog; [USABLE] means Okta will issue him a token for that tool. What differs from a manager is the **data**: when Alex calls crm.lookup_account, VantageCRM row-filters results to the accounts he owns (Module 1.5). Tool names are namespaced authServerId__crm.*; Desk tools aren't wired in this build, so they don't appear.
 
+**Why this mattered:** The tools turned `[USABLE]` not because the agent has CRM rights, but because *Alex* does — the agent borrowed the keys Alex already carries. Effective access is the intersection of what the agent can do and what the user may do; here the user side is populated, so the door opens.
+
 ### 3.5 List tools as Susan Potter (Sales Manager)
 
 1. In the **Lab Toolkit**, choose **4) List the agent's tools** again.
@@ -127,6 +129,8 @@ Expected output:
 ```
 
 Susan's Sales Management membership matched a CRM rule — Okta authorizes all six. Susan and Alex see the **same six tools** and Okta authorizes the **same six** for both, because authorization is binary today: both are CRM group members, so both get the full set. Where they diverge is the **data** each tool returns — Susan sees all accounts; Alex sees only his own (Module 1.5). The agent did not change. Okta decided member-vs-non-member at the token exchange; VantageCRM then differentiated the two members by row-level filtering.
+
+**Why this mattered:** Same agent, same catalog, two different users — and the authorization tracked the *user*, not the agent. The agent is one key ring serving whoever it acts for; Susan and Alex each got in on their own authority, and the data each saw stayed bounded by that same identity.
 
 *NOTE: A future graduated model would also differentiate Susan and Alex at the tool level (e.g. Okta would not authorize create/update tools for Alex — they'd show [BLOCKED]). That isn't wired today — see the binary-authorization note in 3.1.*
 
@@ -151,6 +155,8 @@ Expected output:
 ```
 
 This is the heart of the lab. Frank sees the **same six tools** Alex and Susan saw — the catalog is the agent's, not the user's. But Frank is in Engineering, a group with no rule on vantage-crm-as. So when Frank tries to use any tool, the catch-all denies, Okta issues no token, and the action fails. He has the full menu in front of him and can't run a single item.
+
+**Why this mattered:** This is the intersection made concrete. The agent has the tools, but Frank's authority is empty — and the agent can do nothing *for him* that he couldn't do himself. The menu isn't hidden; his badge just won't open the door. This is exactly why a service app with its own API key would have been dangerous: that model drops the user, so it would have let Frank through. You cannot escalate through this agent.
 
 > **NOTE — Frank sees 6, can use 0.** Okta does not hide the tools from Frank. It lets him see exactly what the agent can do, and refuses to authorize any of it. That is governance at the moment of action, not a trimmed-down menu.
 
@@ -187,6 +193,8 @@ For each of the three tool-listing runs, you should see a sequence similar to:
 | `ai_agent.token_exchange.grant` / `…deny` | Okta | the user | Whether a token was issued (action authorized) or refused (action denied) |
 
 *NOTE: The audit trail records the per-user authorization decision at use-time: for each tool the user tried to use, did Okta issue a token or deny it? Every grant and denial is recorded against the user, the agent, and the rule that fired (or didn't). Compliance teams can answer "what was our agent authorized to do for Alex — and what was Frank refused?" with no application-side instrumentation.*
+
+**Why this mattered:** Because the agent acts *as* the user rather than as itself, every attempt is attributable to both — which agent, on whose authority. That is only possible because the user never dropped out of the chain; a shared API key would have logged the agent and erased the person it was acting for.
 
 ---
 

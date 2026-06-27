@@ -35,6 +35,8 @@ When you see a step that asks you to *review* something on VantageCRM, look clos
 
 *NOTE: You must have accepted the org invite from the previous module. If you haven't, do that first.*
 
+**Why this mattered:** You are the identity team that will be accountable for the new hire you're about to onboard — the AI agent. Everything in this camp is configured from this admin seat.
+
 ### 1.2 Complete your personal admin profile
 
 *NOTE: Your personal admin account has no first or last name set yet. Set them now — these fields appear in audit events and access requests later.*
@@ -63,6 +65,8 @@ All personas share the same password, `{{persona_password}}` (provided with your
 | Sally Field | Executive | Indirect access only — uses the agent rather than apps directly |
 
 *NOTE: Every user sees the **same** tool catalog — tools belong to the agent, not the user. What differs is which tools Okta lets each user actually USE (decided at invocation) and what **data** comes back inside them. So the same prompt from Alex and Susan can return different data even when both are authorized for the same tools — that is the point.*
+
+**Why this mattered:** The agent will act *as* these people, bounded by them — its effective access is the intersection of what it may do and what the user may do. Meeting the personas now is meeting the limits the agent will inherit later.
 
 ### 1.4 Review groups
 
@@ -141,6 +145,8 @@ Ready to proceed to Lab 2.
 
 *NOTE: If any line shows a red ✗ instead of a green ✓, raise your hand for a proctor before continuing. Later labs depend on all checks passing.*
 
+**Why this mattered:** The MCP Adapter you just confirmed is the policy enforcement point — the choke where the agent-∩-user-∩-resource intersection actually gets enforced at token exchange. Every governed action in later labs passes through it.
+
 ### 1.8 Tour the Okta AI Agents area
 
 This is where you will spend most of Labs 2 through 5.
@@ -184,6 +190,8 @@ This is why Susan and Alex saw different data in 1.5 even though their tokens ca
 *NOTE: Today every CRM rule grants the same full scope set — access is binary (in a CRM group → all CRM scopes; in none → none). Graduated per-group scopes (e.g. read-only for reps) are a known follow-up — see `lab-infra/README.md`.*
 
 *NOTE: There is no `vantage-desk-as` yet, so no VantageDesk policy to review. In Lab 4 you'll create the VantageDesk authorization server, its ITSM scopes, and the access policy that grants those scopes to IT Help Desk (and withholds them from everyone else, including Alex) — modeled on what you reviewed here.*
+
+**Why this mattered:** This access policy is the layer the agent's tokens will be judged against — the rules of the rooms, set before anyone gets a key. When the agent later borrows a user's access, this is what decides which scopes that user's token can carry at all.
 
 ---
 

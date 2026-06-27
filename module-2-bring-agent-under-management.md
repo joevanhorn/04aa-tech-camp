@@ -59,6 +59,8 @@ Register it with the manual flow in 2.3. The rest of the camp assumes this OpenC
 
 The agent appears on **Directory** > **AI Agents** with status **STAGED**. Proceed to 2.4.
 
+**Why this mattered:** Day one of onboarding — the agent now exists as a first-class identity in the directory, not a credential floating in a local config. This is the move from "API key" to an identity Okta can own, audit, and revoke.
+
 *NOTE: Registering does not change the OpenCode runtime on your VM — it keeps running as before. Okta now knows about it and can govern it. OpenCode is already pointed at your Okta MCP Adapter, so every tool call it makes is brokered by the steps below.*
 
 ### 2.4 Assign a human owner
@@ -70,6 +72,8 @@ The agent cannot be activated without at least one owner. Okta enforces this.
 3. Click **Add owners**.
 4. Select yourself (your personal admin account from Lab 1.2).
 5. Click **Save**.
+
+**Why this mattered:** Like a new hire's manager, an owner is an accountable human — and Okta won't activate an agent nobody owns, so there are no orphaned ghost agents to chase down later.
 
 *NOTE: Production deployments typically assign 2–3 individual owners or a group of 2+ members. A single owner satisfies activation for this lab. Lab 5 demonstrates ownership-driven access certification.*
 
@@ -84,6 +88,8 @@ You only generate and activate the key here. You never handle the private key: t
 3. Click **Generate new key**.
 4. Click **Done**. The public key appears on the **Credentials** tab with status **INACTIVE**.
 5. Click the vertical ellipsis next to the key and select **Activate**. Status changes to **ACTIVE**.
+
+**Why this mattered:** This keypair is the badge that proves who the agent is — far stronger than a shared secret. The bridge holds and syncs the private key, so the human owner never handles it directly.
 
 *NOTE: The key has its own activation status, separate from the agent. Both must be active for the agent to authenticate. If you regenerate or rotate a key later, the new one starts INACTIVE and must be activated explicitly.*
 
@@ -119,6 +125,8 @@ First create a new OIDC web application, then link it to your agent.
 
 The linked app now appears on the **User sign-on** tab. The agent will only honor XAA exchanges for users currently signed in to `TaskVantage Agent UI`.
 
+**Why this mattered:** This sets the first half of the intersection — *which people* the agent may act for (the "user may do" term). Effective access is (agent may do) ∩ (user may do) ∩ (resource exposes); without a linked user, an API-key agent would just act as itself, the privilege-escalation trap this whole model avoids.
+
 ### 2.7 Activate the agent
 
 Activating transitions the agent from STAGED to ACTIVE, which is what makes it usable — no user can broker a token through it until it is ACTIVE (Lab 5's kill switch is the reverse of this).
@@ -128,6 +136,8 @@ Activating transitions the agent from STAGED to ACTIVE, which is what makes it u
 3. Click **Confirm**.
 
 The agent's status changes from **STAGED** to **ACTIVE**.
+
+**Why this mattered:** The badge goes live — until the agent is ACTIVE, nothing can broker a token through it. Lab 5's kill switch is exactly this in reverse: one deactivation revokes everything at once.
 
 ### 2.8 Reference: the VantageCRM authorization server
 
@@ -158,6 +168,8 @@ It creates your agent's **INCLUDE_ONLY** `crm.*` managed connection in Okta, imp
 2. Open the `vantage-crm-as` entry.
 3. Confirm it is **Only allow** (INCLUDE_ONLY) with the five granular `crm.*` scopes.
 
+**Why this mattered:** This is the agent's desk and keys — it may now *request* CRM scopes. But the managed connection only caps what the agent can ask for; the access policy (2.11) decides what each user actually gets. That's the intersection becoming enforceable.
+
 *NOTE: Use **"Only allow"**, not "Allow all". With the Okta MCP Adapter, "Allow all" makes the agent fall back to requesting a generic mcp:read scope the custom auth server doesn't define, and the token exchange fails (no_matching_scope / invalid_scope). The managed connection only caps which scopes the agent may *request* — which scopes a given user actually gets still comes from `vantage-crm-as`'s access policy. You set this yourself for VantageDesk in Lab 4.*
 
 ### 2.10 Review your CRM tool resource in the adapter
@@ -184,6 +196,8 @@ The managed connection (2.9) lets your agent *request* `crm.*` scopes; the **acc
 2. Open the CRM access policy and edit its **Assign to** clients (the client condition lives on the *policy*, not the individual rules).
 3. Switch from *Any client* to **The following clients** and add **your agent** — select `TaskVantage Sales Agent` from the list. This is the agent **principal**; you do **not** add the user-sign-on app (2.6). The principal is the identity Okta evaluates during the XAA exchange, exactly as you'll do for VantageDesk in Lab 4.5.
 4. **Save**.
+
+**Why this mattered:** The connection lets the agent *request*; this policy lets Okta *issue*. Naming the agent here closes the loop on the intersection — a user with no CRM access still gets nothing through the agent, because effective access is (agent may do) ∩ (user may do) ∩ (resource exposes), and all three terms now have an owner.
 
 > The lab seeds the policy with ALL_CLIENTS so the org provisions cleanly, but ALL_CLIENTS does not cover the agent-principal assertion — this step is what entitles *your* agent. Skip it and Lab 3 surfaces an empty tool list with no_matching_policy in the System Log.
 

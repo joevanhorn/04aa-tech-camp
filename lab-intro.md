@@ -29,6 +29,34 @@ You do not have answers for any of these yet. Today, you build them.
 
 ---
 
+## Why an agent needs its own identity
+
+The board's instinct — *"can the agent just have an API key?"* — is the wrong answer, and it's worth one minute to see why before you build the right one. (Other sections call back to this idea; this is the anchor.)
+
+A traditional app does exactly what it was coded to do, and nothing more. An AI agent has a brain: it decides **at runtime** what to call and what to reach, based on whatever a user asks of it. That one difference breaks the old model. Hand an agent a service account or API key and it can do everything that credential can do — for *anyone* who talks to it. A sales rep who may only read their own accounts, working through an agent that holds a broad credential, suddenly reaches data they were never entitled to. You haven't given the agent access; you've built a **privilege-escalation path** into your stack.
+
+The fix is to stop treating the agent as a *credential* and start treating it as an **identity** — its own first-class identity in Okta, bound to the user it acts for. Its effective access then becomes an intersection:
+
+> **what the agent may do  ∩  what the _user_ may do  ∩  what the resource exposes**
+
+The API-key model drops the middle term. First-class identity puts the user back in — so the agent can only ever act where the person it's helping can act, and every action is attributable to both the agent *and* that user. A service-account key is a master key: it opens every lock, but the reader never records who walked through. A first-class identity is a personal key ring — the agent borrows only the keys the user it serves already carries, and the door knows whose they were.
+
+### The mental model: an agent's first day on the job
+
+Everything you do today follows the arc of onboarding a new employee — because governing an agent *is* that:
+
+| Today you... | ...just like a new hire |
+| --- | --- |
+| Register the agent as an identity in Okta, with an accountable owner | Day one: a record in the directory, and a manager responsible for them |
+| Give it a credential and a sign-on app | A badge, and the set of people it may act for |
+| Wire its access to an app, scoped | A desk, and keys to the rooms the job needs |
+| Watch it act *as* each user, bounded by that user | A new hire can only open the doors their own badge opens |
+| Put its access through review, and keep a kill switch | Access reviews — and the ability to suspend the badge instantly |
+
+By the end, the agent is one of the most governed identities in your org, and the board's three questions are answered: what it is, what it can do and for whom, and how to stop it in one click.
+
+---
+
 ## The people you will work with
 
 You spend most of this camp as a TaskVantage admin — your own personal admin account, which you will finish setting up at the start of Lab 1. But several other identities matter to the story, because the whole point of governance is that *what the agent can do depends on whose behalf it is acting*. You will run flows from their perspective at multiple points in the camp.
