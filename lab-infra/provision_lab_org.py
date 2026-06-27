@@ -237,7 +237,7 @@ def ensure_rules(base, token, asid, pid, gids):
 # so the on-VDI Lab Toolkit can mint per-persona app-audience tokens (and drive
 # the adapter) via the no-browser auth-code flow without a second factor.
 # ---------------------------------------------------------------------------
-TOOLKIT_LABEL = "lab-toolkit"
+TOOLKIT_LABEL = "O4AA Lab Toolkit"   # display name in Okta; also the lookup key the VDI configurator resolves by
 TOOLKIT_REDIRECT = "http://localhost:7777/callback"
 TOOLKIT_READ_SCOPES = ["crm.accounts.read", "crm.contacts.read", "crm.opportunities.read"]
 NOMFA_POLICY_NAME = "O4AA lab — password only (no MFA)"
@@ -271,7 +271,7 @@ def ensure_nomfa_policy(base, token) -> str:
 
 def ensure_toolkit_client(base, token, nomfa_pid, gids) -> tuple[str, str]:
     """Create/reuse the lab-toolkit OIDC app, map it to the NOMFA policy, assign persona groups."""
-    code, apps = req("GET", base, "/api/v1/apps?q=lab-toolkit&limit=20", token)
+    code, apps = req("GET", base, f"/api/v1/apps?q={urllib.parse.quote(TOOLKIT_LABEL)}&limit=20", token)
     app = next((a for a in (apps if isinstance(apps, list) else []) if a.get("label") == TOOLKIT_LABEL), None)
     if not app:
         code, app = req("POST", base, "/api/v1/apps", token, {
@@ -323,7 +323,7 @@ def ensure_toolkit_read_rule(base, token, asid, pid, gids):
 # provisioner can't mint — defer to the bridge automation if a no-user path is
 # ever required.)
 # ---------------------------------------------------------------------------
-ADMIN_UI_LABEL = "okta-mcp-admin-ui"
+ADMIN_UI_LABEL = "O4AA Adapter Admin UI"   # display name in Okta; also the lookup key bind-to-org.sh resolves by
 ADMIN_UI_REDIRECTS = ["http://localhost:3001/callback",
                       "http://adapter.taskvantage.lab:3001/callback"]
 ADMIN_UI_API_SCOPES = ["okta.aiAgents.manage", "okta.aiAgents.read", "okta.apps.read",
@@ -343,7 +343,7 @@ def ensure_admin_ui_client(base, token, nomfa_pid) -> tuple[str, str]:
     path needs, map it to NOMFA (so the VDI's no-browser admin sign-in isn't MFA-challenged), and
     assign it to Everyone (so the attendee's admin account — whoever the platform provisions — can
     sign in). Returns (app_id, client_id); the client_id is the bridge's ADMIN_UI_OKTA_CLIENT_ID."""
-    code, apps = req("GET", base, "/api/v1/apps?q=okta-mcp-admin-ui&limit=20", token)
+    code, apps = req("GET", base, f"/api/v1/apps?q={urllib.parse.quote(ADMIN_UI_LABEL)}&limit=20", token)
     app = next((a for a in (apps if isinstance(apps, list) else []) if a.get("label") == ADMIN_UI_LABEL), None)
     if not app:
         code, app = req("POST", base, "/api/v1/apps", token, {
