@@ -1,4 +1,4 @@
-# Lab Module 5: Govern the Agent's Access with OIG [Estimate: 50 minutes]
+# Lab Module 5: The Performance Review — Govern the Agent's Access with OIG [Estimate: 50 minutes]
 
 ## Objective
 

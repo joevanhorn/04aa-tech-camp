@@ -1,4 +1,4 @@
-# Lab Module 2: Bring an AI Agent Under Management [Estimate: 45 minutes]
+# Lab Module 2: Getting a Badge — Bring an AI Agent Under Management [Estimate: 45 minutes]
 
 ## Objective
 

@@ -69,11 +69,12 @@ In Lab 2 you bring an agent under Okta management. The agent is **OpenCode** —
 
 | Lab | What happens | Time |
 | --- | --- | --- |
-| **1 — Environment Tour** | Sign in to the Okta Admin Console, meet the personas, see both apps (out-of-band screenshots / the Lab Toolkit), run the environment check from the Lab Toolkit, build your first piece of configuration (the VantageDesk auth server access policy). | 25 min |
-| **2 — Bring the Agent Under Management** | Register your pre-installed OpenCode agent, assign an owner, generate a key, create the managed connection to VantageCRM. | 45 min |
-| **3 — See Okta Govern the Agent's Tools by User** | Run the agent's tool-listing call as three different users — every user sees the same full catalog — and watch Okta authorize a different set of those tools for each at use-time. Inspect the audit trail. | 30 min |
-| **4 — Build VantageDesk and Watch XAA in Flight** | Build the missing half — auth server, scopes, policy, managed connection — then invoke a tool end-to-end and watch the ID-JAG / two-step exchange happen with your own eyes. | 60 min |
-| **5 — Govern with OIG** | Submit an access request, approve it, watch Okta start authorizing Frank's tools; revoke via certification, watch the authorization fall away; exercise the kill switch. | 50 min |
+| **1 — The World It'll Operate In** *(Environment Tour)* | Sign in to the Okta Admin Console, meet the personas, see both apps (out-of-band screenshots / the Lab Toolkit), run the environment check from the Lab Toolkit, build your first piece of configuration (the VantageDesk auth server access policy). | 25 min |
+| **2 — Getting a Badge** *(Bring the Agent Under Management)* | Register your pre-installed OpenCode agent, assign an owner, generate a key, create the managed connection to VantageCRM. | 45 min |
+| **3 — First Day on the Job** *(Govern the Agent's Tools by User)* | Run the agent's tool-listing call as three different users — every user sees the same full catalog — and watch Okta authorize a different set of those tools for each at use-time. Inspect the audit trail. | 30 min |
+| **4 — Getting a Desk** *(Build VantageDesk and Watch XAA in Flight)* | Build the missing half — auth server, scopes, policy, managed connection — then invoke a tool end-to-end and watch the ID-JAG / two-step exchange happen with your own eyes. | 60 min |
+| **5 — The Performance Review** *(Govern with OIG)* | Submit an access request, approve it, watch Okta start authorizing Frank's tools; revoke via certification, watch the authorization fall away; exercise the kill switch. | 50 min |
+| **Wings Earned** *(Conclusion)* | Step back: the agent is now one of the most governed identities in your org, and the board's three questions are answered. ~5 min. | 5 min |
 
 About 3.5 hours of actual work. Build in a break after Lab 2 or in the middle of Lab 4 if your group is pacing more slowly.
 
