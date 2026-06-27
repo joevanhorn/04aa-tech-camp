@@ -308,6 +308,71 @@ def ensure_toolkit_read_rule(base, token, asid, pid, gids):
             "people": {"users": {"exclude": []}, "groups": {"include": groups}}}})
 
 
+# ---------------------------------------------------------------------------
+# Adapter Admin-UI client: the OIDC SPA the MCP-adapter bridge's Admin UI signs
+# into (its ADMIN_UI_OKTA_CLIENT_ID) AND the one the VDI's setup-crm-resource
+# helper mints an admin token against (the no-browser brokered flow) to wire the
+# CRM resource. One client serves both the browser GUI and the headless VDI flow.
+#
+# NB: a headless *service* app (client_credentials + private_key_jwt, for the
+# bridge's ADMIN_API_SERVICE_CLIENT_IDS allowlist) is intentionally NOT created
+# here. The adapter admin API accepts any org-issuer *user* token as admin (no
+# scope gate — okta_agent_proxy/admin/auth.py), and the lab's wiring runs under
+# the attendee's own admin sign-in, so the service-app path isn't needed for the
+# end-to-end flow. (It also needs an RSA keypair/JWK, which the stdlib-only
+# provisioner can't mint — defer to the bridge automation if a no-user path is
+# ever required.)
+# ---------------------------------------------------------------------------
+ADMIN_UI_LABEL = "okta-mcp-admin-ui"
+ADMIN_UI_REDIRECTS = ["http://localhost:3001/callback",
+                      "http://adapter.taskvantage.lab:3001/callback"]
+ADMIN_UI_API_SCOPES = ["okta.aiAgents.manage", "okta.aiAgents.read", "okta.apps.read",
+                       "okta.authorizationServers.read"]
+
+
+def _everyone_group_id(base, token) -> str | None:
+    code, body = req("GET", base, "/api/v1/groups?q=Everyone&limit=20", token)
+    for g in (body if isinstance(body, list) else []):
+        if g.get("type") == "BUILT_IN" and g.get("profile", {}).get("name") == "Everyone":
+            return g["id"]
+    return None
+
+
+def ensure_admin_ui_client(base, token, nomfa_pid) -> tuple[str, str]:
+    """Create/reuse the okta-mcp-admin-ui OIDC SPA: grant the Okta API scopes the adapter admin
+    path needs, map it to NOMFA (so the VDI's no-browser admin sign-in isn't MFA-challenged), and
+    assign it to Everyone (so the attendee's admin account — whoever the platform provisions — can
+    sign in). Returns (app_id, client_id); the client_id is the bridge's ADMIN_UI_OKTA_CLIENT_ID."""
+    code, apps = req("GET", base, "/api/v1/apps?q=okta-mcp-admin-ui&limit=20", token)
+    app = next((a for a in (apps if isinstance(apps, list) else []) if a.get("label") == ADMIN_UI_LABEL), None)
+    if not app:
+        code, app = req("POST", base, "/api/v1/apps", token, {
+            "name": "oidc_client", "label": ADMIN_UI_LABEL, "signOnMode": "OPENID_CONNECT",
+            "credentials": {"oauthClient": {"token_endpoint_auth_method": "none"}},
+            "settings": {"oauthClient": {
+                "redirect_uris": ADMIN_UI_REDIRECTS, "response_types": ["code"],
+                "grant_types": ["authorization_code", "refresh_token"], "application_type": "browser"}}})
+        if code not in (200, 201):
+            raise SystemExit(f"create okta-mcp-admin-ui app failed ({code}): {app}")
+    app_id = app.get("id", "DRY")
+    client_id = app.get("credentials", {}).get("oauthClient", {}).get("client_id", "DRY")
+    if DRY:
+        return app_id, client_id
+    # Grant the Okta API scopes the adapter admin path requires (idempotent).
+    code, grants = req("GET", base, f"/api/v1/apps/{app_id}/grants?limit=200", token)
+    granted = {g.get("scopeId") for g in (grants if isinstance(grants, list) else [])}
+    for scope in ADMIN_UI_API_SCOPES:
+        if scope not in granted:
+            req("POST", base, f"/api/v1/apps/{app_id}/grants", token,
+                {"scopeId": scope, "issuer": base.rstrip("/")})
+    if nomfa_pid:
+        req("PUT", base, f"/api/v1/apps/{app_id}/policies/{nomfa_pid}", token)
+    eid = _everyone_group_id(base, token)
+    if eid:
+        req("PUT", base, f"/api/v1/apps/{app_id}/groups/{eid}", token)
+    return app_id, client_id
+
+
 EXAMPLE_AGENT_NAME = "VantageCRM Example Agent"
 CRM_AUDIENCE = "api://vantage-crm"
 
@@ -437,6 +502,9 @@ def main() -> int:
                         "(env LAB_APPROVER_LOGIN); omit to skip the OIG request-access setup")
     p.add_argument("--no-oig", action="store_true",
                    help="skip the Module 5 OIG request-access setup (catalog entry + approver)")
+    p.add_argument("--emit-json", nargs="?", const="-", default=None,
+                   help="emit the created per-org ids as JSON to the given path (or stdout if '-'/no value) — "
+                        "machine-readable hand-off for the bridge automation + the Demo-Platform status callback")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     if not args.org or not args.token:
@@ -476,6 +544,21 @@ def main() -> int:
     ensure_toolkit_read_rule(base, token, asid, pid, gids)
     print(f"  crm-as auth-code read rule ensured  (toolkit_client_id for toolkit.config.json = {tk_client})")
 
+    print("Adapter Admin-UI client (bridge ADMIN_UI_OKTA_CLIENT_ID + VDI admin sign-in) …")
+    au_app, au_client = ensure_admin_ui_client(base, token, nomfa_pid)
+    print(f"  okta-mcp-admin-ui app = {au_app}  client_id = {au_client}")
+
+    result = {
+        "org_url": base.rstrip("/"),
+        "crm_as_id": asid,
+        "crm_policy_id": pid,
+        "nomfa_policy_id": nomfa_pid,
+        "toolkit_client_id": tk_client,
+        "admin_ui_client_id": au_client,
+        "crm_audience": CRM_AUDIENCE,
+        "agent_name": "TaskVantage Sales Agent",
+    }
+
     if not args.no_example_agent:
         print("Example agent (pre-loaded reference; STAGED) …")
         ex = ensure_example_agent(base, token, asid)
@@ -495,6 +578,16 @@ def main() -> int:
     print("\nLab pre-state provisioned. Next: enroll the org in the apps (enroll_tenant.py); the example "
           "agent's CRM resource materializes once the adapter imports it (wire_adapter_resource.py). "
           "The attendee still registers their OWN agent in Module 2.")
+
+    if args.emit_json is not None:
+        blob = json.dumps(result, indent=2)
+        if args.emit_json in ("-", ""):
+            print("\n--- provisioned-ids (json) ---")
+            print(blob)
+        else:
+            with open(args.emit_json, "w") as f:
+                f.write(blob + "\n")
+            print(f"\nWrote provisioned ids -> {args.emit_json}")
     return 0
 
 
