@@ -35,6 +35,8 @@ When you see a step that asks you to *review* something on VantageCRM, look clos
 - Sign in with your admin credentials.
 - After logging in, click the **Admin** tab in the upper-right corner to enter the Admin Console.
 
+**Why this mattered:** You are the identity team that will be accountable for the new hire you're about to onboard — the AI agent. Everything in this camp is configured from this admin seat.
+
 ### 1.2 Complete your personal admin profile
 
 *NOTE: Your personal admin account does not have a first or last name set initially. Resolve this before continuing — these fields appear in audit events and access requests later.*
@@ -61,6 +63,8 @@ These personas will be used throughout the lab. The agent will act on behalf of 
 | Sally Field | Executive | Indirect access only — uses the agent rather than apps directly |
 
 *NOTE: The agent's behavior in later labs depends on who is asking. Every user sees the **same** tool catalog — the tools belong to the agent, not the user. What differs is which of those tools Okta lets each user actually USE (authorized at the moment of invocation) and what **data** comes back inside them. The same prompt issued by Alex and Susan can therefore differ in the data returned even when Okta authorizes both for the same tools — that is the point.*
+
+**Why this mattered:** The agent will act *as* these people, bounded by them — its effective access is the intersection of what it may do and what the user may do. Meeting the personas now is meeting the limits the agent will inherit later.
 
 ### 1.4 Review groups
 
@@ -146,6 +150,8 @@ Ready to proceed to Lab 2.
 
 *NOTE: If any line shows a red ✗ instead of a green ✓, raise your hand for a lab proctor before continuing. Subsequent labs depend on all checks passing.*
 
+**Why this mattered:** The MCP Adapter you just confirmed is the policy enforcement point — the choke where the agent-∩-user-∩-resource intersection actually gets enforced at token exchange. Every governed action in later labs passes through it.
+
 ### 1.8 Tour the Okta AI Agents area
 
 This is where you will spend most of Labs 2 through 5.
@@ -191,6 +197,8 @@ This is part of the **review-then-build** pattern: review the VantageCRM access 
 - This is why Susan and Alex saw different data in 1.5 even though their **tokens carry the same scopes**: the difference is **data-level**, not scope-level. The access policy issues both a read-capable token; VantageCRM then **row-filters** results by the caller's `sub` + `groups` — Susan (`Sales Management`) sees all accounts, Alex (`Sales Reps`) sees only the accounts he owns. There is no MFA-to-app step and no sign-in policy, because no human logs into the app — the policy governs **whether a user's token gets CRM scopes at all**, and the app handles the row-level cut.
 
 *NOTE: There is no `vantage-desk-as` yet, so there is no VantageDesk access policy to review. In Lab 4 you will create the VantageDesk authorization server, its ITSM scopes, and the access policy that grants those scopes to **IT Help Desk** (and withholds them from everyone else, including Alex) — modeled exactly on what you reviewed here.*
+
+**Why this mattered:** This access policy is the layer the agent's tokens will be judged against — the rules of the rooms, set before anyone gets a key. When the agent later borrows a user's access, this is what decides which scopes that user's token can carry at all.
 
 ---
 

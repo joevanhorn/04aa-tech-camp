@@ -119,6 +119,8 @@ Switch back to your admin browser session. For this lab, the admin user (you) is
 
 The request status moves to **Approved**. OIG adds Frank to the `CRM Read - Cross-Functional` group with an expiry timestamp 2 hours from now.
 
+**Why this mattered:** Frank asked for access through the same OIG request-and-approval flow a human employee would use — because the agent is a first-class identity, not an API key, its access is governed like a person's, with a justification and an approver chain, not a config change.
+
 *NOTE: If you check **Directory** > **Groups** > `CRM Read - Cross-Functional` now, Frank should appear as a member. He will be automatically removed when the 2-hour clock runs out — or earlier, if you revoke via certification in 5.6.*
 
 ### 5.5 Verify Frank can now USE the tools
@@ -143,6 +145,8 @@ Expected output:
 ```
 
 Compare to Lab 3.6: all six `[BLOCKED]` then, all six `[USABLE]` now. Frank saw the same six tools in both runs — the catalog never changed. The agent did not change. Rule 4 did not change. The only change is Frank's group membership — and that propagated automatically through the same authorization path that Alex's and Susan's memberships have always taken, flipping each tool from "Okta won't issue a token" to "Okta will."
+
+**Why this mattered:** The agent's effective access is the live intersection of what it may do, what the user may do, and what the resource exposes. Frank's authority grew, so the agent can now act for him — no edit to the agent, just the user's access changing underneath it.
 
 *NOTE: Okta now authorizes the **full** CRM tool set for Frank, not a read-only slice, because authorization is binary today: matching any CRM rule grants all `crm.*` scopes (see Module 3.1). His row-level data visibility is still bounded by what `CRM Read - Cross-Functional` can see. A future graduated model would let the cross-functional grant be genuinely read-only at the tool level (some tools would stay `[BLOCKED]`); that isn't wired yet — see `lab-infra/README.md`.*
 
@@ -204,6 +208,8 @@ Once Okta re-evaluates Frank's access at the next token exchange, you'll see:
 
 Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again — the six tools are still right there in front of Frank, but Okta has stopped authorizing him to use any of them. Round-trip complete: Frank gained the *ability to use* these tools through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration, and without the catalog he sees ever changing. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
 
+**Why this mattered:** The certification campaign is the agent's performance-and-access review — the same periodic check your org runs on humans, catching standing access that's no longer needed. The reviewer revoked it, and the agent's reach for Frank contracted to match.
+
 *NOTE — revocation timing: the membership change hits the directory **immediately**, but Okta keeps honoring Frank's current access token until it's re-minted (a token lasts up to ~1 hour). So right after the revoke this step may still show all six `[USABLE]` — the revoke is enforced at the **next** token exchange, not retroactively on a token already issued. To make a revoke take effect **now** instead of waiting out the token: end the user's sessions with **Universal Logout** (the "User session" tab, see 5.8), or deactivate the agent to stop everything (5.8).*
 
 ### 5.8 Exercise the kill switch — deactivate the agent
@@ -235,6 +241,8 @@ No tool was invoked. The agent is offline.
 ```
 
 Kim has done nothing wrong, has lost no group memberships. But because the agent is the broker of all access, deactivating the agent stops all activity through it — every tool call returns 401. That is the operational shape of an agent kill switch.
+
+**Why this mattered:** This is the board's "how do we stop it?" answered in one click — an emergency suspension. Because the agent is an identity, you freeze its badge and instantly nobody can broker a token through it; and because it's a suspension, not a termination, it's reversible — you bring it back online in 5.9.
 
 *NOTE — scope of the kill, and revoking a single user: deactivation kills the **whole agent** (all users, all tools). To cut off **one user** without taking the agent down, use **Universal Logout**: from the user's profile, the **"User session"** tab lets an admin terminate their active sessions, so the next brokered call for that user fails. Use deactivation for "stop the agent," Universal Logout for "stop this person." (Membership/certification revokes like 5.7 still take effect at the next token refresh — the token lifetime comes from Okta and is currently ~1h on the org authorization server; custom-authorization-server lifetimes, which allow a shorter TTL, are newly supported and being rolled in.)*
 

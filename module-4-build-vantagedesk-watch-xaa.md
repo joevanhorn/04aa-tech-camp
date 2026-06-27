@@ -129,6 +129,8 @@ Save the policy.
 
 *NOTE: This is intentionally narrower than the VantageCRM policy. Sales has no ITSM business by default — Frank Boone, an engineering director, doesn't either. In Lab 5, Frank will request ITSM access through OIG and you will see this exact catch-all start denying him until his entitlement bundle is approved.*
 
+**Why this mattered:** The auth server and its policy are the **"what the _user_ may do"** term of the access intersection — the place Okta decides which scopes each person can borrow at VantageDesk. Building it by hand is setting up the rooms of the agent's second desk before you hand over any keys.
+
 ### 4.6 Connect the agent to VantageDesk
 
 The auth server and policy exist. Now bind them to the agent.
@@ -144,6 +146,8 @@ The auth server and policy exist. Now bind them to the agent.
 
 The agent now shows two managed connections: one to `vantage-crm-as` (from Lab 2) and one to `vantage-desk-as` (just added). The agent's reach has doubled.
 
+**Why this mattered:** This is the **"what the agent may do"** term — the agent's own grant, the second key on its ring. The new hire now holds a badge for one more desk, but only the scopes you explicitly allowed here.
+
 ### 4.7 Re-sync the adapter and add the VantageDesk resource
 
 The Okta side now knows your agent may reach VantageDesk — but your **MCP Adapter** doesn't yet. It caches managed connections, and it routes each backend audience through its own **resource**. In Lab 2.10 the setup helper wired your CRM resource for you; now you do the same wiring **by hand** for VantageDesk — the same steps the helper ran for CRM, in your own clicks. This is the step that makes the ITSM tools appear in 4.8.
@@ -154,6 +158,8 @@ Open the adapter admin console at `https://{{adapter_admin_host}}`.
 - **Point it at the Desk path.** Open the new resource and set its **MCP server URL** to your central MCP server's **Desk path**: `https://{{mcp_host}}/desk/mcp`. Leave the auth method as **okta-cross-app**. **Enable** the resource.
 
 Your adapter now has **two** resources for one agent: the CRM resource at `/crm/mcp` (Lab 2.10) and the Desk resource at `/desk/mcp` (just added). Each mints its own audience-scoped token — `api://vantage-crm` for CRM tools, `api://vantage-desk` for ITSM tools — and routes to the matching tool subset on the one shared MCP server.
+
+**Why this mattered:** Doing the wiring the Lab 2.10 helper had done for CRM is what it means to give the agent its second desk *yourself* — the resource is the live bridge between the agent's grant and the **"what the resource exposes"** term, the last piece before the ITSM tools can actually appear.
 
 *NOTE: One adapter resource maps to exactly one managed connection and one audience. That's why VantageDesk needs its own resource rather than joining the CRM one: a single resource could only ever mint one audience's token, and VantageDesk rejects a CRM-audience token (and vice versa). The `/crm/mcp` and `/desk/mcp` paths exist so each resource is handed only the tools its token is valid for. If the adapter is ever restarted, re-run this sync — a freshly hydrated resource can lose its granular scopes and fall back to `mcp:read`, which `vantage-desk-as` doesn't define.*
 
@@ -217,6 +223,8 @@ Result:
 ```
 
 The agent did not just *describe* what calling a tool would look like. It actually called one. The result came back from the central VantageDesk, where the call was authenticated as Kim, scoped to `itsm.tickets.read`, resolved to your org's tenant partition by the token issuer, and audited against her identity.
+
+**Why this mattered:** This is the intersection resolving to a single real call: the agent acted, but **as Kim**, bounded by what Kim may do. The action is attributable to both — which agent, on whose authority — exactly the property the API-key model can never give you.
 
 ### 4.10 Inspect XAA in flight (verbose mode)
 
@@ -289,6 +297,8 @@ Walk through what you see:
 - **Sub claim stays put.** `kim.liu@atko.email` appears in the user subject token (step 1), the ID-JAG (step 4), and the final access token (step 6). The user's identity is preserved end-to-end.
 - **Audience narrows.** The ID-JAG's audience is `vantage-desk-as`. The access token's audience is the constant lab value `api://vantage-desk` — the same for every attendee's org; the central app tells tenants apart by issuer, not audience. Each step scopes the token further toward its eventual use.
 - **Scope narrows.** Kim is allowed five Desk scopes per the policy. Only `itsm.tickets.read` was requested for this specific tool — that's the only scope in the ID-JAG and access token. Least-privilege by construction.
+
+**Why this mattered:** The two-step ID-JAG exchange is what carries *both* identities to the app at once — the user in `sub`, the agent in `client_id` — so the call lands "as the user" yet stays attributable to both. That dual carriage is the `act` chain from the intro: "which agent, on whose authority," made concrete in the token claims.
 
 ### 4.11 Verify the request landed as the user
 
