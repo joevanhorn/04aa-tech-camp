@@ -7,7 +7,7 @@ You started with an AI agent that had no identity, no owner, and no audit trail 
 | Layer | What you configured | What it proves |
 | --- | --- | --- |
 | **Identity** | Agent registered in Okta UD, a human owner, a public-key credential, a linked sign-on app | The agent is known, owned, and accountable — it can be found, governed, and shut down. |
-| **Access** | `vantage-crm-as` and `vantage-desk-as` authorization servers, scoped policies tied to group membership, one managed connection per app | The agent can only reach what the *user* may reach — no standing privilege, no static keys. Least privilege by construction. |
+| **Access** | **vantage-crm-as** and **vantage-desk-as** authorization servers, scoped policies tied to group membership, one managed connection per app | The agent can only reach what the *user* may reach — no standing privilege, no static keys. Least privilege by construction. |
 | **Governance** | An OIG access request + approval, a certification campaign, and the kill switch | Access is requested, reviewed, time-bound, and revocable — and one click suspends the whole agent. |
 | **Visibility** | System Log capturing every token exchange and tool call, carrying both agent and user identity | Every action is attributable: who asked, what happened, when. Export it to your SIEM. |
 

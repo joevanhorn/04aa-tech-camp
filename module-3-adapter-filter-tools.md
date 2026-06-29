@@ -6,7 +6,7 @@ By the end of this lab you will have run the same agent — the one you register
 
 In this lab you will:
 
-- Review the access policy and tool-to-scope mapping on `vantage-crm-as`.
+- Review the access policy and tool-to-scope mapping on **vantage-crm-as**.
 - List the agent's full CRM tool catalog as Alex Martinez (sales rep) and Susan Potter (sales manager), and see Okta authorize all six tools for each.
 - List the same catalog as Frank Boone (engineering director), and see all six tools blocked, because Okta authorizes none for him.
 - Inspect the Okta System Log audit trail that records each authorized and denied attempt.
@@ -49,24 +49,24 @@ Today every CRM rule grants the **same full crm.* scope set**, so authorization 
 The access policy drives the entire authorization decision — whether Okta will issue a user a token when they invoke a tool. Worth seeing before you watch its consequences.
 
 1. From the Admin Console, go to **Security** > **API**.
-2. Click `vantage-crm-as`.
+2. Click **vantage-crm-as**.
 3. Select the **Access Policies** tab.
 4. Click into the policy that applies to the AI agent client.
 5. Review the rules:
 
 | Rule order | Rule name | If user is in group... | Granted scopes |
 | --- | --- | --- | --- |
-| 1 | Sales managers — full access | `Sales Management` | full `crm.*` set |
-| 2 | Sales reps — access | `Sales Reps` | full `crm.*` set |
-| 3 | IT help desk — access | `IT Help Desk` | full `crm.*` set |
-| 4 | Cross-functional readers — access | `CRM Read - Cross-Functional` | full `crm.*` set |
+| 1 | Sales managers — full access | **Sales Management** | full **crm.\*** set |
+| 2 | Sales reps — access | **Sales Reps** | full **crm.\*** set |
+| 3 | IT help desk — access | **IT Help Desk** | full **crm.\*** set |
+| 4 | Cross-functional readers — access | **CRM Read - Cross-Functional** | full **crm.\*** set |
 | Catch-all | Deny | (anyone else) | (none) |
 
-where the **full crm.* set** is `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write`.
+where the **full crm.* set** is **crm.accounts.read**, **crm.accounts.write**, **crm.contacts.read**, **crm.opportunities.read**, **crm.opportunities.write**.
 
 *NOTE: Okta evaluates rules top to bottom and stops at the first match. Because every CRM rule grants the same full scope set (the binary model — see 3.1), any match authorizes all six tools regardless of which rule fired. The catch-all is what fails Frank Boone — he sees all six tools, but Okta issues him no token, so every invocation is denied.*
 
-*NOTE: Rule 4 gates the `CRM Read - Cross-Functional` group, which is empty right now — no user matches rule 4. It is populated only via OIG access requests in Lab 5, where Frank is added temporarily and his tools flip from blocked to usable and back. The rule exists today; the membership is the dynamic part.*
+*NOTE: Rule 4 gates the **CRM Read - Cross-Functional** group, which is empty right now — no user matches rule 4. It is populated only via OIG access requests in Lab 5, where Frank is added temporarily and his tools flip from blocked to usable and back. The rule exists today; the membership is the dynamic part.*
 
 ### 3.3 Review the tool catalog and scope mapping
 
@@ -74,12 +74,12 @@ The adapter knows about six CRM tools. Every user sees all six — the catalog i
 
 | Tool | Scope Okta must authorize at invoke-time |
 | --- | --- |
-| `crm.lookup_account` | `crm.accounts.read` |
-| `crm.create_account` | `crm.accounts.write` |
-| `crm.update_account` | `crm.accounts.write` |
-| `crm.lookup_contact` | `crm.contacts.read` |
-| `crm.lookup_opportunity` | `crm.opportunities.read` |
-| `crm.update_opportunity` | `crm.opportunities.write` |
+| **crm.lookup_account** | **crm.accounts.read** |
+| **crm.create_account** | **crm.accounts.write** |
+| **crm.update_account** | **crm.accounts.write** |
+| **crm.lookup_contact** | **crm.contacts.read** |
+| **crm.lookup_opportunity** | **crm.opportunities.read** |
+| **crm.update_opportunity** | **crm.opportunities.write** |
 
 *NOTE: The agent also has six VantageDesk tools, but they aren't wired in this build — vantage-desk-as doesn't exist yet, so the adapter has no resource to exchange a token against. Desk tools show nothing ("resource not configured") until you build the auth server in Lab 4.*
 
@@ -106,7 +106,7 @@ Expected output:
 
 Alex's Sales Reps membership matched a rule on vantage-crm-as, so Okta authorizes the full CRM tool set for him — authorization is binary today (member = all CRM tools usable). He sees all six because every user sees the full catalog; [USABLE] means Okta will issue him a token for that tool. What differs from a manager is the **data**: when Alex calls crm.lookup_account, VantageCRM row-filters results to the accounts he owns (Module 1.5). Tool names are namespaced authServerId__crm.*; Desk tools aren't wired in this build, so they don't appear.
 
-**Why this mattered:** The tools turned `[USABLE]` not because the agent has CRM rights, but because *Alex* does — the agent borrowed the keys Alex already carries. Effective access is the intersection of what the agent can do and what the user may do; here the user side is populated, so the door opens.
+**Why this mattered:** The tools turned **[USABLE]** not because the agent has CRM rights, but because *Alex* does — the agent borrowed the keys Alex already carries. Effective access is the intersection of what the agent can do and what the user may do; here the user side is populated, so the door opens.
 
 ### 3.5 List tools as Susan Potter (Sales Manager)
 
@@ -164,7 +164,7 @@ To see the denial at invoke-time:
 
 1. In the **Lab Toolkit**, choose **5) Invoke a tool**.
 2. Select **Frank Boone (Engineering)**.
-3. Invoke `crm.lookup_account`.
+3. Invoke **crm.lookup_account**.
 
 Expected output:
 
@@ -187,10 +187,10 @@ For each of the three tool-listing runs, you should see a sequence similar to:
 
 | Event | Actor | Target | What it tells you |
 | --- | --- | --- | --- |
-| `app.oauth2.token.grant.access_token` | the agent's OAuth client | the user | The user-context token the Lab Toolkit simulated |
-| `ai_agent.token_exchange.request` | `TaskVantage Sales Agent` | `vantage-crm-as` | The adapter asking Okta to issue this user a token for the resource |
-| `ai_agent.token_exchange.scope_evaluation` | the access policy | the user | Which rule matched (or the catch-all) — i.e. whether Okta authorized the action |
-| `ai_agent.token_exchange.grant` / `…deny` | Okta | the user | Whether a token was issued (action authorized) or refused (action denied) |
+| **app.oauth2.token.grant.access_token** | the agent's OAuth client | the user | The user-context token the Lab Toolkit simulated |
+| **ai_agent.token_exchange.request** | **TaskVantage Sales Agent** | **vantage-crm-as** | The adapter asking Okta to issue this user a token for the resource |
+| **ai_agent.token_exchange.scope_evaluation** | the access policy | the user | Which rule matched (or the catch-all) — i.e. whether Okta authorized the action |
+| **ai_agent.token_exchange.grant** / **…deny** | Okta | the user | Whether a token was issued (action authorized) or refused (action denied) |
 
 *NOTE: The audit trail records the per-user authorization decision at use-time: for each tool the user tried to use, did Okta issue a token or deny it? Every grant and denial is recorded against the user, the agent, and the rule that fired (or didn't). Compliance teams can answer "what was our agent authorized to do for Alex — and what was Frank refused?" with no application-side instrumentation.*
 

@@ -47,11 +47,11 @@ Review what's there now.
 
 **The cross-functional group and its access policy rule:**
 
-You saw the rule in Lab 3.2 — it sits as rule 4 on `vantage-crm-as`, gating the group `CRM Read - Cross-Functional`. Confirm both are present:
+You saw the rule in Lab 3.2 — it sits as rule 4 on **vantage-crm-as**, gating the group **CRM Read - Cross-Functional**. Confirm both are present:
 
-1. Go to **Directory** > **Groups** and open `CRM Read - Cross-Functional`. It is empty — no members yet.
-2. Go to **Security** > **API** > `vantage-crm-as` > **Access Policies**.
-3. Confirm rule 4 (`Cross-functional readers — access`) gates this group with the full `crm.*` scope set.
+1. Go to **Directory** > **Groups** and open **CRM Read - Cross-Functional**. It is empty — no members yet.
+2. Go to **Security** > **API** > **vantage-crm-as** > **Access Policies**.
+3. Confirm rule 4 (**Cross-functional readers — access**) gates this group with the full **crm.\*** scope set.
 
 Every CRM rule grants the same scope set today — see Module 3.1.
 
@@ -62,16 +62,16 @@ Together, the rule and the group are the access machinery. They have been in pla
 The group has been published to the OIG access catalog so end users can discover and request membership through their End-User Dashboard.
 
 1. Go to **Identity Governance** > **Access Requests** (this opens the governance Access Requests app).
-2. Open the access **catalog** and find the entry for the group `CRM Read - Cross-Functional`.
+2. Open the access **catalog** and find the entry for the group **CRM Read - Cross-Functional**.
 3. Review the catalog configuration attached to the group:
 
 | Property | Value |
 | --- | --- |
-| Resource | Group `CRM Read - Cross-Functional` |
+| Resource | Group **CRM Read - Cross-Functional** |
 | Description | Temporary read-only access to VantageCRM for engineering and other cross-functional users |
 | Default duration | 2 hours (for this lab; production would be 30+ days) |
 | Approval required from | The requester's manager |
-| Eligible requesters | Anyone in `All Employees` |
+| Eligible requesters | Anyone in **All Employees** |
 
 *NOTE: The requestable resource is the group itself — no entitlement bundle or wrapper. On approval, OIG adds the requester to the group for the configured duration; on expiry or revoke, it removes them. The access policy never changes — only the membership moves.*
 
@@ -79,11 +79,11 @@ The group has been published to the OIG access catalog so end users can discover
 
 The group and its catalog entry are preconfigured for you. The **certification campaign is not** — you'll create it yourself in 5.6, then launch it. That's the camp's review-then-build pattern again: you reviewed the access machinery above; now you'll build the governance review that sits over it.
 
-A certification campaign is a time-boxed review in which a reviewer confirms (certifies) or revokes each user's access to a resource. The one you'll build reviews active memberships in `CRM Read - Cross-Functional`:
+A certification campaign is a time-boxed review in which a reviewer confirms (certifies) or revokes each user's access to a resource. The one you'll build reviews active memberships in **CRM Read - Cross-Functional**:
 
 | Property | Value (you'll set these in 5.6) |
 | --- | --- |
-| Scope | Active memberships in `CRM Read - Cross-Functional` |
+| Scope | Active memberships in **CRM Read - Cross-Functional** |
 | Reviewers | Resource owner (you), fallback group owner |
 | Review duration | 7 days |
 
@@ -96,7 +96,7 @@ Switch perspectives. You will now act as Frank Boone, the requesting user.
 1. On the Virtual Desktop, open a new Chrome incognito window.
 2. Go to your Okta End-User Dashboard at `https://{{org_url}}` and sign in as Frank (`frank.boone@atko.email` / `{{persona_password}}`).
 3. Click the **Requests** tab (or **My Access**, depending on your dashboard version), then **Request Access**.
-4. Search for `CRM Read - Cross-Functional` and click **Request**.
+4. Search for **CRM Read - Cross-Functional** and click **Request**.
 5. Enter the **Justification**: `Supporting Q2 cross-functional product launch — need to review account context for sales team partners`
 6. Leave **Duration** at the default (2 hours).
 7. Click **Submit**.
@@ -109,20 +109,20 @@ Switch back to your admin browser session. For this lab, the admin user (you) is
 
 1. Go to **Identity Governance** > **Access Requests** > **Pending my approval**.
 2. Click into Frank's request.
-3. Review the requester (`frank.boone@atko.email`), the requested access (membership in `CRM Read - Cross-Functional`), the justification, and the duration (2 hours).
+3. Review the requester (**frank.boone@atko.email**), the requested access (membership in **CRM Read - Cross-Functional**), the justification, and the duration (2 hours).
 4. Click **Approve**.
 5. Optionally add an approver note: `Approved for Q2 launch support — please remove when complete`
 6. Click **Confirm**.
 
-The request status moves to **Approved**. OIG adds Frank to the `CRM Read - Cross-Functional` group with an expiry timestamp 2 hours from now.
+The request status moves to **Approved**. OIG adds Frank to the **CRM Read - Cross-Functional** group with an expiry timestamp 2 hours from now.
 
 **Why this mattered:** Frank asked for access through the same OIG request-and-approval flow a human employee would use — because the agent is a first-class identity, not an API key, its access is governed like a person's, with a justification and an approver chain, not a config change.
 
-*NOTE: Check **Directory** > **Groups** > `CRM Read - Cross-Functional` now — Frank appears as a member. He is removed automatically when the 2-hour clock runs out, or earlier if you revoke via certification in 5.6.*
+*NOTE: Check **Directory** > **Groups** > **CRM Read - Cross-Functional** now — Frank appears as a member. He is removed automatically when the 2-hour clock runs out, or earlier if you revoke via certification in 5.6.*
 
 ### 5.5 Verify Frank can now USE the tools
 
-This is the round-trip moment. In Lab 3.6 Frank could SEE all six CRM tools but every one showed BLOCKED — no rule matched him, so Okta wouldn't issue him a token. Nothing about the access policy or its rules has changed since then, and the catalog Frank sees hasn't changed either. What changed is that Frank is now a member of `CRM Read - Cross-Functional`, so rule 4 fires for him and Okta now authorizes the tools that were blocked.
+This is the round-trip moment. In Lab 3.6 Frank could SEE all six CRM tools but every one showed BLOCKED — no rule matched him, so Okta wouldn't issue him a token. Nothing about the access policy or its rules has changed since then, and the catalog Frank sees hasn't changed either. What changed is that Frank is now a member of **CRM Read - Cross-Functional**, so rule 4 fires for him and Okta now authorizes the tools that were blocked.
 
 1. Open the **Lab Toolkit** and choose **4) List the agent's tools**.
 2. Select **Frank Boone (Engineering)** when prompted for a persona.
@@ -146,7 +146,7 @@ Compare to Lab 3.6: all six BLOCKED then, all six USABLE now. Frank saw the same
 
 **Why this mattered:** The agent's effective access is the live intersection of what it may do, what the user may do, and what the resource exposes. Frank's authority grew, so the agent can now act for him — no edit to the agent, just the user's access changing underneath it.
 
-*NOTE: Okta now authorizes the **full** CRM tool set for Frank, not a read-only slice, because authorization is binary today — matching any CRM rule grants all `crm.*` scopes (see Module 3.1). A future graduated model would make the cross-functional grant genuinely read-only at the tool level (some tools would stay BLOCKED); that isn't wired yet — see `lab-infra/README.md`.*
+*NOTE: Okta now authorizes the **full** CRM tool set for Frank, not a read-only slice, because authorization is binary today — matching any CRM rule grants all **crm.\*** scopes (see Module 3.1). A future graduated model would make the cross-functional grant genuinely read-only at the tool level (some tools would stay BLOCKED); that isn't wired yet — see **lab-infra/README.md**.*
 
 ### 5.6 Create and launch the certification campaign
 
@@ -161,7 +161,7 @@ Time passes. The Q2 launch wraps up. Per the security team's quarterly hygiene p
    - **Description**: `Quarterly hygiene review of temporary CRM access granted to cross-functional users`
    - **Start**: set it to **now / the earliest the picker allows** (the wizard defaults to ~3 hours out) so the campaign starts immediately.
    - **Duration / review period**: `7 days`
-4. Under **Resource**, pick resource type **Group**, then select **`CRM Read - Cross-Functional`**.
+4. Under **Resource**, pick resource type **Group**, then select **CRM Read - Cross-Functional**.
 5. Under **Reviewer**, choose **Resource owner**.
 6. Under **Remediation**, set **On revoke** → **Remove access**. Leave **No response** at its default.
 7. Finish the wizard and click **Create**.
@@ -173,12 +173,12 @@ The campaign lands in **Scheduled** state and becomes **Active** at the start ti
 **Run it.**
 
 1. The campaign moves to **Active** shortly after its start time — open it from the **Active** tab. (If it's still under **Scheduled**, wait for the start time or edit it earlier.)
-2. On the campaign's page, find Frank's active membership in `CRM Read - Cross-Functional`.
+2. On the campaign's page, find Frank's active membership in **CRM Read - Cross-Functional**.
 3. Click **Review** and choose **Revoke**.
 4. Enter the reason: `Q2 launch completed — access no longer needed`
 5. Click **Confirm**.
 
-OIG removes Frank from the `CRM Read - Cross-Functional` group immediately at the directory (check **Directory** > **Groups** to confirm). His *tool access* reflects this a little later — see the timing note in 5.7.
+OIG removes Frank from the **CRM Read - Cross-Functional** group immediately at the directory (check **Directory** > **Groups** to confirm). His *tool access* reflects this a little later — see the timing note in 5.7.
 
 *NOTE: A real campaign also offers **Certify**, which leaves the membership in place. You exercised the revoke path here. Both decisions are captured in the campaign's audit trail.*
 
@@ -206,7 +206,7 @@ Once Okta re-evaluates Frank's access at the next token exchange, you'll see:
    ^ BLOCKED = the agent HAS the tool, but Okta won't issue Frank Boone a token for that resource, so the action is denied at use-time.
 ```
 
-Frank is no longer in `CRM Read - Cross-Functional`. Rule 4 no longer matches. The catch-all denies again — the six tools are still right there in front of Frank, but Okta has stopped authorizing him to use any of them. Round-trip complete: Frank gained the *ability to use* these tools through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration, and without the catalog he sees ever changing. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
+Frank is no longer in **CRM Read - Cross-Functional**. Rule 4 no longer matches. The catch-all denies again — the six tools are still right there in front of Frank, but Okta has stopped authorizing him to use any of them. Round-trip complete: Frank gained the *ability to use* these tools through a request, exercised it during his project window, and lost it through certification — all without any edit to the access policy or to the agent's configuration, and without the catalog he sees ever changing. The full lifecycle is in the System Log: request submitted, approved, membership granted with expiry, membership revoked.
 
 **Why this mattered:** The certification campaign is the agent's performance-and-access review — the same periodic check your org runs on humans, catching standing access that's no longer needed. The reviewer revoked it, and the agent's reach for Frank contracted to match.
 
@@ -226,7 +226,7 @@ Verify the kill is real — try to use the agent as Kim Liu, who has full standi
 
 1. Open the **Lab Toolkit** and choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)** when prompted for a persona.
-3. Invoke `itsm.lookup_ticket` for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
 
 Expected output:
 
@@ -257,7 +257,7 @@ The agent returns to **ACTIVE**. Invoke the same tool as Kim again:
 
 1. In the **Lab Toolkit**, choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)**.
-3. Invoke `itsm.lookup_ticket` for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
 
 Expected output: the same successful ticket lookup you saw at the end of Lab 4. The agent is back online and Kim's standing access works as before. Frank's revoked membership remains revoked — kill switches are reversible, certification decisions are not.
 
