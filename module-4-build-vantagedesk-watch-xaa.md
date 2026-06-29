@@ -202,7 +202,7 @@ Filtering is done. Time to actually call something.
 
 1. Open the **Lab Toolkit** and choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)** when prompted for a persona.
-3. Invoke **itsm.lookup_ticket** for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
 
 Expected output:
 
@@ -239,7 +239,7 @@ Run the same invocation again, this time asking the toolkit to show the token ex
 
 1. In the **Lab Toolkit**, choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)**.
-3. Invoke **itsm.lookup_ticket** for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
 4. When it asks **"Show the XAA token exchange? (y/N)"**, answer **y**.
 
 Output (decoded for readability):

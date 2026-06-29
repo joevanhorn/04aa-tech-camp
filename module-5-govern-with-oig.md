@@ -226,7 +226,7 @@ Verify the kill is real — try to use the agent as Kim Liu, who has full standi
 
 1. Open the **Lab Toolkit** and choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)** when prompted for a persona.
-3. Invoke **itsm.lookup_ticket** for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
 
 Expected output:
 
@@ -257,7 +257,7 @@ The agent returns to **ACTIVE**. Invoke the same tool as Kim again:
 
 1. In the **Lab Toolkit**, choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)**.
-3. Invoke **itsm.lookup_ticket** for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
 
 Expected output: the same successful ticket lookup you saw at the end of Lab 4. The agent is back online and Kim's standing access works as before. Frank's revoked membership remains revoked — kill switches are reversible, certification decisions are not.
 
