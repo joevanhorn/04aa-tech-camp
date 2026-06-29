@@ -6,11 +6,11 @@ By the end of this lab the two halves of TaskVantage are configured identically 
 
 The VantageDesk API already exists in the shared central deployment at https://vantagedesk.taskvantage-demo.com. You build only the Okta side; your org's new auth server is trusted automatically via JWKS, with no app-side registration or redeploy.
 
-- Create `vantage-desk-as`, a custom authorization server in your org, and add the ITSM scopes
+- Create **vantage-desk-as**, a custom authorization server in your org, and add the ITSM scopes
 - Build the access policy rules mapping the help desk group to those scopes
 - Connect the agent you already registered to VantageDesk (managed connection) and add its MCP Adapter resource
 - Re-list the agent's tools and see the ITSM tools appear
-- Invoke a tool as Kim Liu and trace the two-step XAA exchange — ID-JAG to scoped token at `vantage-desk-as` to the call landing on the central VantageDesk as Kim herself
+- Invoke a tool as Kim Liu and trace the two-step XAA exchange — ID-JAG to scoped token at **vantage-desk-as** to the call landing on the central VantageDesk as Kim herself
 
 ## Scenario
 
@@ -32,14 +32,14 @@ XAA — Cross App Access — is the protocol your adapter used when you ran Modu
 | Step | At | Inputs | Output | What it means |
 | --- | --- | --- | --- | --- |
 | 1 | Okta org authorization server | Agent client assertion (signed JWT) + user subject token (identity assertion from the org) | ID-JAG (short-lived, ~5 minutes) | "Okta vouches that this agent is authorized to act for this user with these scopes." |
-| 2 | Resource authorization server (e.g., `vantage-desk-as`) | ID-JAG + agent client assertion | Access token (Bearer, audience-scoped) | "Here is a normal Bearer token. Use it to call the resource as the user." |
+| 2 | Resource authorization server (e.g., **vantage-desk-as**) | ID-JAG + agent client assertion | Access token (Bearer, audience-scoped) | "Here is a normal Bearer token. Use it to call the resource as the user." |
 
 The agent then presents the access token to the MCP server, which forwards to VantageDesk. VantageDesk sees a request carrying the user's identity, not the agent's. Audit logs, row-level filtering, and every other user-context behavior work as if Kim had clicked the buttons herself.
 
 Two things make XAA different from a vanilla OAuth on-behalf-of flow:
 
 - **The IdP is the broker, not the resource.** The ID-JAG is issued by your org's authorization server — where the policy lives, the managed connections are defined, and the audit happens. The resource just validates a token it trusts.
-- **Tokens are scoped per resource, not portable.** The step-2 access token is only valid for `vantage-desk-as`. The same ID-JAG can be exchanged again at `vantage-crm-as` for a different, differently-scoped token. The user's identity is preserved; the capability is per-resource.
+- **Tokens are scoped per resource, not portable.** The step-2 access token is only valid for **vantage-desk-as**. The same ID-JAG can be exchanged again at **vantage-crm-as** for a different, differently-scoped token. The user's identity is preserved; the capability is per-resource.
 
 *NOTE: The ID-JAG mechanism is defined in IETF draft draft-ietf-oauth-identity-assertion-authz-grant, co-authored by Okta's Aaron Parecki.*
 
@@ -48,12 +48,12 @@ Two things make XAA different from a vanilla OAuth on-behalf-of flow:
 Before you build the missing half, look at the completed half. Everything you create for VantageDesk has a parallel here.
 
 1. From the Admin Console, go to **Security** > **API**.
-2. Click `vantage-crm-as`.
+2. Click **vantage-crm-as**.
 3. Confirm the four building blocks:
 
 | Building block | Where it lives | What it looks like for CRM |
 | --- | --- | --- |
-| Authorization server | Security > API | `vantage-crm-as`, audience `api://vantage-crm` |
+| Authorization server | Security > API | **vantage-crm-as**, audience **api://vantage-crm** |
 | Scopes | Scopes tab | 5 scopes: crm.accounts.read, crm.accounts.write, crm.contacts.read, crm.opportunities.read, crm.opportunities.write |
 | Access policy rules | Access Policies tab | 4 rules (Sales mgmt, Sales reps, IT help desk, catch-all) — reviewed in Lab 3.2 |
 | Managed connection on the agent | Directory > AI Agents > TaskVantage Sales Agent > Managed connections | One entry pointing at vantage-crm-as, **Only allow** with the five granular CRM scopes |
@@ -72,13 +72,13 @@ You will create the same building blocks for VantageDesk over the next sections 
 
 The server appears with status **Active**, no scopes and no access policies. You add both in the next two steps.
 
-*NOTE: The audience becomes the access token's aud claim. VantageDesk accepts a token only if aud is `api://vantage-desk` — the same for every attendee — and resolves which tenant the call belongs to from the token's **issuer**. The issuer is what makes your token yours. A mismatched audience is rejected before any data is touched.*
+*NOTE: The audience becomes the access token's aud claim. VantageDesk accepts a token only if aud is **api://vantage-desk** — the same for every attendee — and resolves which tenant the call belongs to from the token's **issuer**. The issuer is what makes your token yours. A mismatched audience is rejected before any data is touched.*
 
 ### 4.4 Add scopes to vantage-desk-as
 
 The scopes mirror the action types VantageDesk exposes.
 
-1. On the `vantage-desk-as` page, select the **Scopes** tab.
+1. On the **vantage-desk-as** page, select the **Scopes** tab.
 2. Click **Add Scope** and create each scope below. Leave other settings at their defaults and save after each.
 
 | Name | Display name | Description |
@@ -95,14 +95,14 @@ When done, the **Scopes** tab shows five scopes. These gate every ITSM tool the 
 
 The access policy is what differentiates Kim (full ITSM access) from Alex (no ITSM access) when the adapter asks Okta "what can this user do at vantage-desk-as?"
 
-1. On the `vantage-desk-as` page, select the **Access Policies** tab.
+1. On the **vantage-desk-as** page, select the **Access Policies** tab.
 2. Click **Add Policy**.
 3. Set **Name** to `TaskVantage Sales Agent — Desk policy`.
 4. Set **Description** to `Policy governing how the Sales Agent can request scopes at vantage-desk-as`.
-5. For **Assign to clients**, select `TaskVantage Sales Agent`.
+5. For **Assign to clients**, select **TaskVantage Sales Agent**.
 6. Click **Create Policy**.
 
-*NOTE: The assigned client must be the **AI agent** `TaskVantage Sales Agent`, not its user-sign-on app. During XAA the adapter authenticates as the agent (private_key_jwt with the agent's credential), so the agent is the client Okta evaluates. Assigning only the sign-on app makes the exchange fail with no_matching_policy.*
+*NOTE: The assigned client must be the **AI agent** **TaskVantage Sales Agent**, not its user-sign-on app. During XAA the adapter authenticates as the agent (private_key_jwt with the agent's credential), so the agent is the client Okta evaluates. Assigning only the sign-on app makes the exchange fail with no_matching_policy.*
 
 Now add the rules. Click **Add Rule** for each:
 
@@ -111,16 +111,16 @@ Now add the rules. Click **Add Rule** for each:
 | Setting | Value |
 | --- | --- |
 | Rule name | `IT help desk — full access` |
-| IF Grant type is | `Token Exchange` |
-| AND User is in group | `IT Help Desk` |
-| THEN Allow scopes | `itsm.tickets.read`, `itsm.tickets.write`, `itsm.incidents.read`, `itsm.incidents.write`, `itsm.kb.read` |
+| IF Grant type is | **Token Exchange** |
+| AND User is in group | **IT Help Desk** |
+| THEN Allow scopes | **itsm.tickets.read**, **itsm.tickets.write**, **itsm.incidents.read**, **itsm.incidents.write**, **itsm.kb.read** |
 
 **Rule 2 — Catch-all deny**
 
 | Setting | Value |
 | --- | --- |
 | Rule name | `Catch-all deny` |
-| IF Grant type is | `Token Exchange` |
+| IF Grant type is | **Token Exchange** |
 | AND User is | (any) |
 | THEN Allow scopes | (none) |
 
@@ -138,8 +138,8 @@ The auth server and policy exist. Now bind them to the agent.
 2. Select the **Managed connections** tab. You will see your existing CRM connection from Lab 2.9.
 3. Click **Add connection**.
 4. For **Resource type**, select **Authorization server**.
-5. For **Authorization server**, select `vantage-desk-as`.
-6. For **Scopes**, select **Only allow** and add all five ITSM scopes: `itsm.tickets.read`, `itsm.tickets.write`, `itsm.incidents.read`, `itsm.incidents.write`, `itsm.kb.read`.
+5. For **Authorization server**, select **vantage-desk-as**.
+6. For **Scopes**, select **Only allow** and add all five ITSM scopes: **itsm.tickets.read**, **itsm.tickets.write**, **itsm.incidents.read**, **itsm.incidents.write**, **itsm.kb.read**.
 7. Click **Add**.
 
 Do **not** choose "Allow all" here. As the Lab 2.9 note explains, "Allow all" makes the adapter request a generic mcp:read scope this auth server doesn't define, and the XAA exchange fails.
@@ -154,7 +154,7 @@ The Okta side now knows your agent may reach VantageDesk — but your **MCP Adap
 
 Open the adapter admin console at `https://{{adapter_admin_host}}`.
 
-1. On `TaskVantage Sales Agent`, click **Sync** (or **Sync connections**). The adapter re-reads your managed connections, picks up the new vantage-desk-as connection, and materializes it as a second **resource**. If the sync doesn't auto-create the resource, add it by hand pointing at the vantage-desk-as authorization server.
+1. On **TaskVantage Sales Agent**, click **Sync** (or **Sync connections**). The adapter re-reads your managed connections, picks up the new vantage-desk-as connection, and materializes it as a second **resource**. If the sync doesn't auto-create the resource, add it by hand pointing at the vantage-desk-as authorization server.
 2. Open the new resource. Set its **MCP server URL** to the central server's Desk path: `https://{{mcp_host}}/desk/mcp`.
 3. Leave the auth method as **okta-cross-app**.
 4. **Enable** the resource.
@@ -202,7 +202,7 @@ Filtering is done. Time to actually call something.
 
 1. Open the **Lab Toolkit** and choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)** when prompted for a persona.
-3. Invoke `itsm.lookup_ticket` for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket `TKT-1734`.
 
 Expected output:
 
@@ -239,7 +239,7 @@ Run the same invocation again, this time asking the toolkit to show the token ex
 
 1. In the **Lab Toolkit**, choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)**.
-3. Invoke `itsm.lookup_ticket` for ticket `TKT-1734`.
+3. Invoke **itsm.lookup_ticket** for ticket `TKT-1734`.
 4. When it asks **"Show the XAA token exchange? (y/N)"**, answer **y**.
 
 Output (decoded for readability):
@@ -308,14 +308,14 @@ Walk through what you see:
 - **Audience narrows.** The ID-JAG's audience is vantage-desk-as; the access token's is api://vantage-desk — the same for every attendee, since the central app tells tenants apart by issuer, not audience.
 - **Scope narrows.** Kim is allowed five Desk scopes, but only itsm.tickets.read was requested for this tool — so that's the only scope in the ID-JAG and access token. Least-privilege by construction.
 
-**Why this mattered:** The two-step ID-JAG exchange is what carries *both* identities to the app at once — the user in `sub`, the agent in `client_id` — so the call lands "as the user" yet stays attributable to both. That dual carriage is the `act` chain from the intro: "which agent, on whose authority," made concrete in the token claims.
+**Why this mattered:** The two-step ID-JAG exchange is what carries *both* identities to the app at once — the user in **sub**, the agent in **client_id** — so the call lands "as the user" yet stays attributable to both. That dual carriage is the **act** chain from the intro: "which agent, on whose authority," made concrete in the token claims.
 
 ### 4.11 Verify the request landed as the user
 
 The central VantageDesk is API-only — there is no admin web page to open. Instead, read the access log out-of-band. The central app exposes GET /admin/access-log scoped to *your* tenant (it picks the partition from your token's issuer), so you only ever see your own org's records. Read it from the **Lab Toolkit** on the Virtual Desktop.
 
 1. Open the **Lab Toolkit** and choose **6) Show the access log**.
-2. Look for the entry for `TKT-1734`.
+2. Look for the entry for **TKT-1734**.
 
 It calls GET https://vantagedesk.taskvantage-demo.com/admin/access-log with your tenant-scoped token and prints the matching line:
 
@@ -330,7 +330,7 @@ It calls GET https://vantagedesk.taskvantage-demo.com/admin/access-log with your
 
 *(If your environment serves this step as a rendered screenshot instead of the live Lab Toolkit, the captured access-log line is identical — same fields, same values.)*
 
-The Client field reads `TaskVantage Sales Agent`, not a raw client ID — the central app resolves the token's cid to a display name via `AGENT_CID_NAME_MAP`. The request hit VantageDesk as Kim: the agent is named for attribution, but the *actor* is Kim. The agent's involvement is a fact, not a substitute for the user.
+The Client field reads **TaskVantage Sales Agent**, not a raw client ID — the central app resolves the token's cid to a display name via **AGENT_CID_NAME_MAP**. The request hit VantageDesk as Kim: the agent is named for attribution, but the *actor* is Kim. The agent's involvement is a fact, not a substitute for the user.
 
 ---
 

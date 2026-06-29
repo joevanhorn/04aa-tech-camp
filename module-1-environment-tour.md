@@ -42,7 +42,7 @@ When you see a step that asks you to *review* something on VantageCRM, look clos
 *NOTE: Your personal admin account has no first or last name set yet. Set them now — these fields appear in audit events and access requests later.*
 
 1. From the Admin Console, select **Directory** > **People**.
-2. Find your personal admin account. Because it has no name yet, its **Person & username** column shows **two dashes (`--`)** instead of a name — click that **`--`** account.
+2. Find your personal admin account. Because it has no name yet, its **Person & username** column shows **two dashes (--)** instead of a name — click that **--** account.
 3. Select the **Profile** tab, then click **Edit**.
 4. Enter your **First name** and **Last name**.
 5. Scroll down and click **Save**.
@@ -160,16 +160,16 @@ This is where you will spend most of Labs 2 through 5.
 VantageCRM has its own custom authorization server in Okta. This is the trust anchor the MCP adapter will use during XAA token exchange in Lab 4.
 
 1. From the Admin Console, go to **Security** > **API**.
-2. Confirm `vantage-crm-as` is present:
+2. Confirm **vantage-crm-as** is present:
 
    | Authorization Server | Audience | Scopes |
    | --- | --- | --- |
-   | `vantage-crm-as` | `api://vantage-crm` | `crm.accounts.read`, `crm.accounts.write`, `crm.contacts.read`, `crm.opportunities.read`, `crm.opportunities.write` |
+   | **vantage-crm-as** | **api://vantage-crm** | **crm.accounts.read**, **crm.accounts.write**, **crm.contacts.read**, **crm.opportunities.read**, **crm.opportunities.write** |
 
-3. Click into `vantage-crm-as` and open the **Scopes** tab. Each scope corresponds to a tool category the agent may invoke. Note the constant audience `api://vantage-crm` and the `groups` claim the server adds to tokens — the central app uses both to authorize and tenant-resolve each call.
+3. Click into **vantage-crm-as** and open the **Scopes** tab. Each scope corresponds to a tool category the agent may invoke. Note the constant audience **api://vantage-crm** and the **groups** claim the server adds to tokens — the central app uses both to authorize and tenant-resolve each call.
 4. Click the **Access Policies** tab. You'll look at this policy closely in 1.10. It won't match anything until Lab 2 creates the agent.
 
-*NOTE: There is no `vantage-desk-as` yet. You'll create the VantageDesk authorization server, its scopes, and its access policy in Lab 4 — modeled on what you just reviewed.*
+*NOTE: There is no **vantage-desk-as** yet. You'll create the VantageDesk authorization server, its scopes, and its access policy in Lab 4 — modeled on what you just reviewed.*
 
 ### 1.10 Review the authorization server access policy (VantageCRM)
 
@@ -177,7 +177,7 @@ Because the apps are API-only, there is **no app sign-in policy** — no human s
 
 **Review (VantageCRM):**
 
-1. From the Admin Console, go to **Security** > **API** and click into `vantage-crm-as`.
+1. From the Admin Console, go to **Security** > **API** and click into **vantage-crm-as**.
 2. Open the **Access Policies** tab and review the preconfigured policy and its rules. Each rule maps a group to the scopes its members' tokens may carry:
 
    | If the user is in… | The issued token may carry… |
@@ -187,12 +187,12 @@ Because the apps are API-only, there is **no app sign-in policy** — no human s
 
 This is why Susan and Alex saw different data in 1.5 even though their tokens carry the **same** scopes: the difference is **data-level**, not scope-level. The policy issues both a read-capable token, then VantageCRM row-filters results by the caller's identity — Susan (Sales Management) sees all accounts, Alex (Sales Reps) sees only the accounts he owns.
 
-*NOTE: Today every CRM rule grants the same full scope set — access is binary (in a CRM group → all CRM scopes; in none → none). Graduated per-group scopes (e.g. read-only for reps) are a known follow-up — see `lab-infra/README.md`.*
+*NOTE: Today every CRM rule grants the same full scope set — access is binary (in a CRM group → all CRM scopes; in none → none). Graduated per-group scopes (e.g. read-only for reps) are a known follow-up — see **lab-infra/README.md**.*
 
-*NOTE: There is no `vantage-desk-as` yet, so no VantageDesk policy to review. In Lab 4 you'll create the VantageDesk authorization server, its ITSM scopes, and the access policy that grants those scopes to IT Help Desk (and withholds them from everyone else, including Alex) — modeled on what you reviewed here.*
+*NOTE: There is no **vantage-desk-as** yet, so no VantageDesk policy to review. In Lab 4 you'll create the VantageDesk authorization server, its ITSM scopes, and the access policy that grants those scopes to IT Help Desk (and withholds them from everyone else, including Alex) — modeled on what you reviewed here.*
 
 **Why this mattered:** This access policy is the layer the agent's tokens will be judged against — the rules of the rooms, set before anyone gets a key. When the agent later borrows a user's access, this is what decides which scopes that user's token can carry at all.
 
 ---
 
-**End of lab.** You've seen the central, API-only apps respond differently to Susan, Alex, and Kim purely on the basis of their tokens, and reviewed the prebuilt `vantage-crm-as` and its access policy — the model you'll rebuild for VantageDesk in Lab 4. In Lab 2, you bring your first AI agent — the OpenCode instance pre-installed on your VM — under Okta governance by registering it manually.
+**End of lab.** You've seen the central, API-only apps respond differently to Susan, Alex, and Kim purely on the basis of their tokens, and reviewed the prebuilt **vantage-crm-as** and its access policy — the model you'll rebuild for VantageDesk in Lab 4. In Lab 2, you bring your first AI agent — the OpenCode instance pre-installed on your VM — under Okta governance by registering it manually.
