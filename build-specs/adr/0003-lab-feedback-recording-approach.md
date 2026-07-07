@@ -36,10 +36,11 @@ Two goals for the replacement:
 
 1. **Testers record their full screen with Zoom** and upload the resulting `mp4` to the feedback
    portal after (or during) the lab. No recorder agent runs on the VDI.
-2. **The portal generates its own time-coded transcript** from the uploaded `mp4` (Whisper on the
-   backend). We do **not** depend on Zoom's auto-transcript — that is a cloud-recording feature,
-   licensing/settings-dependent, and often absent on local recordings. If a tester also uploads
-   Zoom's `.vtt`, we accept it; we never require it.
+2. **The portal generates its own time-coded transcript** from the uploaded `mp4` (self-hosted
+   faster-whisper on the backend, audio staying in-account). We do **not** use Zoom's auto-transcript
+   at all — it is a cloud-recording feature (licensing/settings-dependent, absent on the local
+   recordings most testers will make), and requiring a second `.vtt` upload would fight the one-file
+   low-friction decision. Self-transcribing gives uniform, time-coded output for everyone.
 3. **Module boundaries are recovered by inference + confirmation**, not by OS instrumentation:
    scene-change detection (ffmpeg) + a light auto-chapter pass (module title read off the on-screen
    doc page) proposes chapter marks; the tester **confirms** them at upload. That confirmation step
@@ -68,9 +69,11 @@ chapter + tag + feedback + export).
 - **Consent/retention** must be explicit (recordings of people working) → consent gate + S3 lifecycle
   retention window, detailed in the build spec.
 
-## Open decisions (tracked in the build spec)
+## Resolved decisions (see build spec §8)
 
-- Portal authentication: Okta OIDC (via a demo org) vs. lightweight email magic-link.
-- Hosting: reuse the `taskvantage-apps` ECS/ALB/RDS footprint vs. standalone.
-- Home for the code: new repo vs. subfolder in `taskvantage-apps`.
-- Retention window for recordings + who may view them.
+- **Auth:** Auth0 passwordless (email magic-link), dedicated tenant, OIDC via `nextjs-auth0`.
+- **Hosting / code home:** `feedback-portal/` subfolder in `taskvantage-apps`, reusing its
+  ECS/ALB/RDS footprint + deploy pipeline.
+- **Retention:** long-term S3 archive (no expiration) with Glacier lifecycle *transitions* for cost;
+  team-only access.
+- **Recording:** one file per session; **transcript:** always self-transcribed, Zoom `.vtt` unused.

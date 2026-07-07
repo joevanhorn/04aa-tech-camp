@@ -77,10 +77,14 @@ Three logical components:
 
 ### 4.1 Feedback Portal (web)
 
-**Stack (proposed).** Next.js (App Router) + Postgres + S3, containerized on **ECS Fargate behind
-the existing `labapps` ALB** (reuse the `taskvantage-apps/deploy/terraform` footprint + RDS), or
-standalone — see Open Decisions. Rationale: we already operate this stack for the lab apps; another
-small service is low marginal ops.
+**Stack.** Next.js (App Router) + Postgres + S3, containerized on **ECS Fargate behind the existing
+`labapps` ALB**, in a **`feedback-portal/` subfolder of `taskvantage-apps`** reusing that repo's
+`deploy/terraform` footprint + RDS + deploy pipeline (decision §8.2/§8.3). Rationale: we already
+operate this stack for the lab apps; another small service is low marginal ops.
+
+**Auth.** **Auth0 passwordless (email magic-link)** — a dedicated Auth0 tenant, integrated as
+standard OIDC (authorization-code + PKCE via `nextjs-auth0`). No custom auth/token/email code, and it
+dogfoods the sibling devcamp's platform (decision §8.1).
 
 **Surfaces**
 
@@ -97,10 +101,10 @@ small service is low marginal ops.
    - Each free-text item can carry **attached media** (clip / timestamp / screenshot) added from the
      Review & tag surface.
 
-3. **Upload recording** — resumable **multipart upload** straight to S3 via presigned URLs (handles
-   0.5–2 GB files, survives flaky connections). Optional `.vtt` upload accepted but not required.
-   On completion, kicks off the ingest pipeline; shows progress ("transcribing… detecting
-   chapters…").
+3. **Upload recording** — a single resumable **multipart upload** of the mp4 straight to S3 via
+   presigned URLs (handles 0.5–2 GB files, survives flaky connections). **One file only** — no
+   separate transcript upload; we self-transcribe (decision §8.4/§8.6). On completion, kicks off the
+   ingest pipeline; shows progress ("transcribing… detecting chapters…").
 
 4. **Review & tag** — the recording with an **auto-built timeline**: proposed **module chapters**
    and flagged **friction moments** already marked. The tester scrubs, and with one action grabs a
@@ -119,8 +123,10 @@ small service is low marginal ops.
 Triggered when a multipart upload finalizes (S3 event → job):
 
 - **Normalize/transcode** to a web-playable rendition (and keep the original).
-- **Transcript** — Whisper → time-coded **VTT** stored alongside the recording. This is the
-  self-generated transcript that dodges Zoom cloud-recording dependence (ADR-0003).
+- **Transcript** — self-hosted **faster-whisper** → time-coded **VTT** stored alongside the
+  recording (audio never leaves the account). This is the sole transcript source; we do **not**
+  accept or depend on Zoom's `.vtt` (ADR-0003, decision §8.6). Speaker diarization, if ever needed,
+  is added in-pipeline (whisperx/pyannote), not via Zoom.
 - **Scene-change detection** — ffmpeg `select='gt(scene,threshold)'` → a list of scene-boundary
   timestamps + a **keyframe thumbnail** per scene. Cheap, no model.
 - Persist all artifacts + references in RDS.
@@ -165,11 +171,15 @@ Module keys come from a config list mirroring the repo (`lab-intro`, `module-1`�
 
 ## 6. Storage, retention, consent, access
 
-- **Bucket** with per-session prefixes; **lifecycle** rule enforcing the retention window (to set —
-  see Open Decisions). Server-side encryption; block public access; presigned URLs for up/download.
-- **Consent** captured at onboarding (timestamped), with the retention window shown.
+- **Bucket** with per-session prefixes; **long-term archive, no expiration** (decision §8.4).
+  Lifecycle **transitions** manage cost: Standard/Standard-IA during the active review window
+  (~90 days, instant playback) → **Glacier Flexible → Deep Archive** for cheap long-term hold
+  (older recordings restore in minutes-to-hours, acceptable for an archive). Server-side encryption;
+  block public access; presigned URLs for up/download.
+- **Consent** captured at onboarding (timestamped), stating the recording is retained long-term for
+  lab-improvement analysis.
 - **Access** — recordings + analytics visible only to the lab team (admin role); a tester sees only
-  their own session. Auth model in Open Decisions.
+  their own session. Identity via Auth0 passwordless (§4.1).
 - Account/region: reuse the lab footprint (account **959737396568**, us-east-2) unless standalone.
 
 ---
@@ -197,15 +207,18 @@ after Phase 3 (is tag-from-recording smooth enough that testers actually do it?)
 
 ---
 
-## 8. Open decisions (need your call before/at build)
+## 8. Decisions (resolved July 2026)
 
-1. **Portal auth** — Okta OIDC via a demo org (on-brand, SSO) **vs.** lightweight email magic-link
-   (lowest friction for external SE testers). *Lean: magic-link for the pilot, OIDC if it graduates.*
-2. **Hosting** — reuse `taskvantage-apps` ECS/ALB/RDS **vs.** standalone stack. *Lean: reuse.*
-3. **Code home** — new repo **vs.** subfolder in `taskvantage-apps` (e.g. `feedback-portal/`).
-   *Lean: subfolder in `taskvantage-apps` to reuse the deploy pipeline.*
-4. **Retention window** for recordings + who may view them (team-only assumed).
-5. **Recording timing** — record the *whole* session in one file (simplest) vs. per-module clips
-   (cleaner chapters but more tester overhead). *Lean: one file + auto-chapter.*
-6. **Do we require the tester's Zoom `.vtt`** or always self-transcribe? *Lean: self-transcribe;
-   accept theirs if provided.*
+1. **Portal auth — Auth0 passwordless (email magic-link).** A dedicated Auth0 tenant, integrated as
+   standard OIDC (auth-code + PKCE via `nextjs-auth0`). No custom auth code; dogfoods the sibling
+   devcamp platform. (§4.1)
+2. **Hosting — reuse the `taskvantage-apps` ECS/ALB/RDS footprint** and deploy pipeline.
+3. **Code home — a `feedback-portal/` subfolder in `taskvantage-apps`.**
+4. **Retention — long-term S3 archive, no expiration.** Lifecycle *transitions* (Standard/IA →
+   Glacier Flexible → Deep Archive) manage cost; recent recordings stay instantly playable, older
+   ones restore on demand. Team-only access. (§6)
+5. **Recording — one file per session** (whole session), with module boundaries recovered by
+   auto-chapter + tester confirmation. Lowest tester friction. (§4.3)
+6. **Transcript — always self-transcribe (faster-whisper); the tester's Zoom `.vtt` is not used.**
+   Most local recordings have none, requiring it fights the one-file decision, and self-transcribing
+   gives uniform time-coded output for everyone with audio staying in-account. (§4.2)
