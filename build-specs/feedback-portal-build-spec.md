@@ -77,10 +77,12 @@ Three logical components:
 
 ### 4.1 Feedback Portal (web)
 
-**Stack.** Next.js (App Router) + Postgres + S3, containerized on **ECS Fargate behind the existing
-`labapps` ALB**, in a **`feedback-portal/` subfolder of `taskvantage-apps`** reusing that repo's
-`deploy/terraform` footprint + RDS + deploy pipeline (decision §8.2/§8.3). Rationale: we already
-operate this stack for the lab apps; another small service is low marginal ops.
+**Stack.** Next.js (App Router) deployed on **Vercel** (project `o4aa-feedback-portal`, Root
+Directory `feedback-portal/`), with **Neon** serverless Postgres (Vercel Marketplace integration) +
+**S3** for recordings. Lives in a **`feedback-portal/` subfolder of `taskvantage-apps`** (decision
+§8.3). Rationale: Vercel is the native home for a Next.js app — git-push deploys, preview URLs, zero
+container/ALB ops; Neon gives serverless-friendly pooled Postgres. (Supersedes the earlier
+ECS/ALB/RDS plan — see decision §8.2.) Live: `https://o4aa-feedback-portal.vercel.app`.
 
 **Auth.** **Auth0 passwordless (email magic-link)** — a dedicated Auth0 tenant, integrated as
 standard OIDC (authorization-code + PKCE via `nextjs-auth0`). No custom auth/token/email code, and it
@@ -131,8 +133,10 @@ Triggered when a multipart upload finalizes (S3 event → job):
   timestamps + a **keyframe thumbnail** per scene. Cheap, no model.
 - Persist all artifacts + references in RDS.
 
-Runs as an async worker (ECS task / job queue). Whisper can run on CPU for a first cut; revisit GPU
-only if backlog demands it.
+Runs as an async worker **off Vercel** — Vercel functions cap at ~300s, too short for transcribing a
+60–90 min recording, so Whisper runs on an offloaded worker (queue + a container/Lambda, or a managed
+STT). Large mp4 uploads go **direct to S3** via presigned URLs, bypassing Vercel's function payload
+limits. Whisper can run on CPU for a first cut; revisit GPU only if backlog demands it.
 
 ### 4.3 Enrichment & analytics
 
@@ -212,8 +216,11 @@ after Phase 3 (is tag-from-recording smooth enough that testers actually do it?)
 1. **Portal auth — Auth0 passwordless (email magic-link).** A dedicated Auth0 tenant, integrated as
    standard OIDC (auth-code + PKCE via `nextjs-auth0`). No custom auth code; dogfoods the sibling
    devcamp platform. (§4.1)
-2. **Hosting — reuse the `taskvantage-apps` ECS/ALB/RDS footprint** and deploy pipeline.
-3. **Code home — a `feedback-portal/` subfolder in `taskvantage-apps`.**
+2. **Hosting — Vercel** (project `o4aa-feedback-portal`), with **Neon** serverless Postgres via the
+   Vercel Marketplace integration. *(Revised July 2026 — supersedes the original "reuse
+   `taskvantage-apps` ECS/ALB/RDS" decision; Vercel is the native fit for the Next.js app and drops
+   the container/ALB ops.)*
+3. **Code home — a `feedback-portal/` subfolder in `taskvantage-apps`** (Vercel Root Directory).
 4. **Retention — long-term S3 archive, no expiration.** Lifecycle *transitions* (Standard/IA →
    Glacier Flexible → Deep Archive) manage cost; recent recordings stay instantly playable, older
    ones restore on demand. Team-only access. (§6)
