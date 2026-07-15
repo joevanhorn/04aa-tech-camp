@@ -94,7 +94,7 @@ No need to create anything yet — you'll do it in 5.6, after Frank's membership
 Switch perspectives. You will now act as Frank Boone, the requesting user.
 
 1. On the Virtual Desktop, open a new Chrome incognito window.
-2. Go to your Okta End-User Dashboard at `https://{{org_url}}` and sign in as Frank (`frank.boone@atko.email` / `{{persona_password}}`).
+2. Go to your Okta End-User Dashboard at `https://{{idp.tenantDomain}}` and sign in as Frank (`frank.boone@atko.email` / `{{persona_password}}`).
 3. Click the **Requests** tab (or **My Access**, depending on your dashboard version), then **Request Access**.
 4. Search for **CRM Read - Cross-Functional** and click **Request**.
 5. Enter the **Justification**: `Supporting Q2 cross-functional product launch — need to review account context for sales team partners`
@@ -133,12 +133,12 @@ Expected output:
 == The agent's tools - and what Okta lets Frank Boone use ==
    The agent exposes 6 tools - every user SEES the full catalog.
    With Frank Boone's entitlements, Okta authorizes 6 of 6:
-     [USABLE]  {{crm_as_id}}__crm.lookup_account
-     [USABLE]  {{crm_as_id}}__crm.create_account
-     [USABLE]  {{crm_as_id}}__crm.update_account
-     [USABLE]  {{crm_as_id}}__crm.lookup_contact
-     [USABLE]  {{crm_as_id}}__crm.lookup_opportunity
-     [USABLE]  {{crm_as_id}}__crm.update_opportunity
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.create_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_contact
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_opportunity
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_opportunity
    ^ USABLE = Okta will now issue Frank Boone a token for this resource, so the action is authorized.
 ```
 
@@ -197,12 +197,12 @@ Once Okta re-evaluates Frank's access at the next token exchange, you'll see:
 == The agent's tools - and what Okta lets Frank Boone use ==
    The agent exposes 6 tools - every user SEES the full catalog.
    With Frank Boone's entitlements, Okta authorizes 0 of 6:
-     [BLOCKED] {{crm_as_id}}__crm.lookup_account
-     [BLOCKED] {{crm_as_id}}__crm.create_account
-     [BLOCKED] {{crm_as_id}}__crm.update_account
-     [BLOCKED] {{crm_as_id}}__crm.lookup_contact
-     [BLOCKED] {{crm_as_id}}__crm.lookup_opportunity
-     [BLOCKED] {{crm_as_id}}__crm.update_opportunity
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.create_account
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_account
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_contact
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_opportunity
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_opportunity
    ^ BLOCKED = the agent HAS the tool, but Okta won't issue Frank Boone a token for that resource, so the action is denied at use-time.
 ```
 

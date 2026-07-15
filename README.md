@@ -37,7 +37,7 @@ The two business apps — **VantageCRM** and **VantageDesk** — are **one centr
 
 ## Conventions
 
-- `{{double_brace_placeholders}}` — values that vary per-attendee or per-lab-environment (`{{org_url}}`, `{{lab_domain}}`, etc.).
+- `{{double_brace_placeholders}}` — Mustache variables the lab platform injects at runtime from the live demo (e.g. `{{idp.tenantDomain}}` for your org, or `{{<component-uuid>.field}}` for a provisioned resource). See `docs/LabsStyleGuide.md` in the taskvantage-apps repo.
 - `{HumanReview}` — flags for things being verified against live Okta at lab GA. The shape of the lesson is correct; the specific text may shift before final release.
 - *NOTE blocks (italic)* — context, rationale, or things to watch for. Not optional reading.
 

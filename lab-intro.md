@@ -127,7 +127,7 @@ What changes is whether Okta authorizes a given user to actually invoke a tool �
 A few conventions appear throughout the labs.
 
 - ***NOTE: italic blocks*** are context — why a step matters, or what to watch for. Read them; they often save you a frustrating debugging session two labs later.
-- **Double-brace placeholders** like `{{org_url}}` or `{{lab_domain}}` are values that vary per-attendee. Your environment provides the real values.
+- **Double-brace placeholders** like `{{idp.tenantDomain}}` (your org) are Mustache variables the lab platform fills in at runtime from your live demo environment.
 - **Lab Toolkit steps** point you at a numbered choice in the desktop **Lab Toolkit** (and a persona, when prompted). The code blocks that follow show the output you should see. If your output diverges substantially, raise it with a proctor before continuing — later labs fail in confusing ways when an earlier one quietly went wrong.
 
 ---

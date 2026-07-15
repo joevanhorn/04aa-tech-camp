@@ -178,19 +178,21 @@ Expected output:
 == The agent's tools - and what Okta lets Kim Liu (IT Help Desk) use ==
    The agent exposes 12 tools - every user SEES the full catalog.
    With Kim Liu (IT Help Desk)'s entitlements, Okta authorizes 12 of 12:
-     [USABLE]  {{crm_as_id}}__crm.lookup_account
-     [USABLE]  {{crm_as_id}}__crm.create_account
-     [USABLE]  {{crm_as_id}}__crm.update_account
-     [USABLE]  {{crm_as_id}}__crm.lookup_contact
-     [USABLE]  {{crm_as_id}}__crm.lookup_opportunity
-     [USABLE]  {{crm_as_id}}__crm.update_opportunity
-     [USABLE]  {{desk_as_id}}__itsm.lookup_ticket
-     [USABLE]  {{desk_as_id}}__itsm.create_ticket
-     [USABLE]  {{desk_as_id}}__itsm.update_ticket
-     [USABLE]  {{desk_as_id}}__itsm.lookup_incident
-     [USABLE]  {{desk_as_id}}__itsm.update_incident
-     [USABLE]  {{desk_as_id}}__itsm.search_kb
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.create_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_contact
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_opportunity
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_opportunity
+     [USABLE]  <desk-as-id>__itsm.lookup_ticket
+     [USABLE]  <desk-as-id>__itsm.create_ticket
+     [USABLE]  <desk-as-id>__itsm.update_ticket
+     [USABLE]  <desk-as-id>__itsm.lookup_incident
+     [USABLE]  <desk-as-id>__itsm.update_incident
+     [USABLE]  <desk-as-id>__itsm.search_kb
 ```
+
+*NOTE: `<desk-as-id>` is the ID of the **vantage-desk-as** Authorization Server you created earlier in this module (a value like `aus1a2b3c4D5e6F7g8h9`) — the lab can't pre-fill it because you build that resource yourself. The Lab Toolkit namespaces each tool by its resource's AS id, so your ITSM tools appear under your Desk AS id and the CRM tools under the provisioned `vantage-crm-as`.*
 
 Before you built VantageDesk, the catalog held only the six CRM tools — there was no Desk resource to expose. Wiring vantage-desk-as and its resource in 4.3–4.7 added the six ITSM tools to the catalog **for everyone**, and because Kim is in both the CRM and Desk groups, Okta authorizes her for all twelve.
 
@@ -247,7 +249,7 @@ Output (decoded for readability):
 ```
 [1] User subject token (identity assertion from your Okta org):
     {
-      "iss": "https://{{org_url}}",
+      "iss": "https://{{idp.tenantDomain}}",
       "sub": "kim.liu@atko.email",
       "groups": ["IT Help Desk", "All Employees"],
       "exp": 1735200000
@@ -257,11 +259,11 @@ Output (decoded for readability):
     {
       "iss": "TaskVantage Sales Agent client_id",
       "sub": "TaskVantage Sales Agent client_id",
-      "aud": "https://{{org_url}}",
+      "aud": "https://{{idp.tenantDomain}}",
       "exp": 1735196700
     }
 
-[3] Step 1 — POST https://{{org_url}}/oauth2/v1/token
+[3] Step 1 — POST https://{{idp.tenantDomain}}/oauth2/v1/token
     grant_type=urn:ietf:params:oauth:grant-type:token-exchange
     subject_token=<user subject token from step 1>
     actor_token=<agent client assertion from step 2>
@@ -271,7 +273,7 @@ Output (decoded for readability):
 
 [4] ID-JAG issued (decoded):
     {
-      "iss": "https://{{org_url}}",
+      "iss": "https://{{idp.tenantDomain}}",
       "aud": "vantage-desk-as",
       "sub": "kim.liu@atko.email",
       "client_id": "TaskVantage Sales Agent client_id",
@@ -279,14 +281,14 @@ Output (decoded for readability):
       "exp": 1735193700  // ~5 minutes from now
     }
 
-[5] Step 2 — POST https://{{org_url}}/oauth2/vantage-desk-as/v1/token
+[5] Step 2 — POST https://{{idp.tenantDomain}}/oauth2/vantage-desk-as/v1/token
     grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
     assertion=<ID-JAG from step 4>
     client_assertion=<agent client assertion>
 
 [6] Access token issued (decoded):
     {
-      "iss": "https://{{org_url}}/oauth2/vantage-desk-as",
+      "iss": "https://{{idp.tenantDomain}}/oauth2/vantage-desk-as",
       "aud": "api://vantage-desk",
       "sub": "kim.liu@atko.email",
       "scope": "itsm.tickets.read",
