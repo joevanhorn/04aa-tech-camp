@@ -94,7 +94,7 @@ No need to create anything yet — you'll do it in 5.6, after Frank's membership
 Switch perspectives. You will now act as Frank Boone, the requesting user.
 
 1. On the Virtual Desktop, open a new Chrome incognito window.
-2. Go to your Okta End-User Dashboard at `https://{{idp.tenantDomain}}` and sign in as Frank (`frank.boone@atko.email` / `{{persona_password}}`).
+2. Go to your Okta End-User Dashboard at `https://{{idp.tenantDomain}}` and sign in as Frank (`frank.boone@atko.email` / `{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.settings.persona_password}}`).
 3. Click the **Requests** tab (or **My Access**, depending on your dashboard version), then **Request Access**.
 4. Search for **CRM Read - Cross-Functional** and click **Request**.
 5. Enter the **Justification**: `Supporting Q2 cross-functional product launch — need to review account context for sales team partners`
