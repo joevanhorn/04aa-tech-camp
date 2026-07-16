@@ -27,9 +27,33 @@ When you see a step that asks you to *review* something on VantageCRM, look clos
 
 ---
 
+### Set up your Virtual Desktop (run this first)
+
+Your Virtual Desktop needs a one-time setup that installs the tools this lab uses (OpenCode and the **Lab Toolkit**), points it at your paired MCP adapter bridge, and resolves your org's IDs. This is the only command you paste by hand — everything else is done in the Okta Admin Console or the Lab Toolkit.
+
+1. On the Virtual Desktop, open **Windows PowerShell as Administrator** (right-click the Start button → *Windows PowerShell (Admin)*).
+2. Paste this entire block and press **Enter**:
+
+   ```powershell
+   Set-ExecutionPolicy -Scope Process Bypass -Force
+   $b = "$env:TEMP\bootstrap.ps1"
+   Invoke-RestMethod "https://cdn.demo.okta.com/labs/techcamp-o4aa/bootstrap.ps1" -OutFile $b
+   Unblock-File $b
+   & $b -OrgUrl "https://{{idp.tenantDomain}}" `
+        -BridgeAddress "{{bridge_address}}" `
+        -OpenAIApiKey "{{6e623d84-b375-4f4d-a0e0-3cb4d1e34378.credentials.apiKey}}" `
+        -PersonaPassword "{{persona_password}}" `
+        -InstallToolkit
+   ```
+
+3. When prompted, sign in **once** with your Okta admin login and password. This one-time sign-in lets the setup resolve your org's IDs (the Lab Toolkit client and `vantage-crm-as`); nothing is stored beyond this VM.
+4. When it finishes, confirm the **Lab Toolkit** icon is on the desktop — you'll use it starting in step 1.5.
+
+*NOTE: The setup is idempotent — if anything looks off, just re-run the same block. If it reports a missing value, check the highlighted variable and re-run.*
+
 ### 1.1 Log into your TaskVantage Okta org
 
-1. Navigate to your assigned Okta org URL: `{{org_url}}`
+1. Navigate to your assigned Okta org URL: `https://{{idp.tenantDomain}}`
 2. Sign in with your admin credentials.
 3. Click the **Admin** tab in the upper-right corner to enter the Admin Console.
 
@@ -130,7 +154,7 @@ Run the environment check now. It verifies the central apps and central MCP serv
 ```
 TaskVantage environment check
 ─────────────────────────────
-✓ Okta org reachable        (https://{{org_url}})
+✓ Okta org reachable        (https://{{idp.tenantDomain}})
 ✓ VantageCRM reachable      (https://vantagecrm.taskvantage-demo.com — central)
 ✓ VantageDesk reachable     (https://vantagedesk.taskvantage-demo.com — central)
 ✓ MCP server reachable      (https://mcp.{{lab_domain}} — 12 tools registered: 6 CRM + 6 Desk)

@@ -95,12 +95,12 @@ Expected output:
 == The agent's tools - and what Okta lets Alex Martinez use ==
    The agent exposes 6 tools - every user SEES the full catalog.
    With Alex Martinez's entitlements, Okta authorizes 6 of 6:
-     [USABLE]  {{crm_as_id}}__crm.lookup_account
-     [USABLE]  {{crm_as_id}}__crm.create_account
-     [USABLE]  {{crm_as_id}}__crm.update_account
-     [USABLE]  {{crm_as_id}}__crm.lookup_contact
-     [USABLE]  {{crm_as_id}}__crm.lookup_opportunity
-     [USABLE]  {{crm_as_id}}__crm.update_opportunity
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.create_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_contact
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_opportunity
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_opportunity
    ^ USABLE = Okta will issue Alex Martinez a token for this resource, so the action is authorized.
 ```
 
@@ -119,12 +119,12 @@ Expected output:
 == The agent's tools - and what Okta lets Susan Potter use ==
    The agent exposes 6 tools - every user SEES the full catalog.
    With Susan Potter's entitlements, Okta authorizes 6 of 6:
-     [USABLE]  {{crm_as_id}}__crm.lookup_account
-     [USABLE]  {{crm_as_id}}__crm.create_account
-     [USABLE]  {{crm_as_id}}__crm.update_account
-     [USABLE]  {{crm_as_id}}__crm.lookup_contact
-     [USABLE]  {{crm_as_id}}__crm.lookup_opportunity
-     [USABLE]  {{crm_as_id}}__crm.update_opportunity
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.create_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_account
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_contact
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_opportunity
+     [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_opportunity
    ^ USABLE = Okta will issue Susan Potter a token for this resource, so the action is authorized.
 ```
 
@@ -145,12 +145,12 @@ Expected output:
 == The agent's tools - and what Okta lets Frank Boone use ==
    The agent exposes 6 tools - every user SEES the full catalog.
    With Frank Boone's entitlements, Okta authorizes 0 of 6:
-     [BLOCKED] {{crm_as_id}}__crm.lookup_account
-     [BLOCKED] {{crm_as_id}}__crm.create_account
-     [BLOCKED] {{crm_as_id}}__crm.update_account
-     [BLOCKED] {{crm_as_id}}__crm.lookup_contact
-     [BLOCKED] {{crm_as_id}}__crm.lookup_opportunity
-     [BLOCKED] {{crm_as_id}}__crm.update_opportunity
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.create_account
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_account
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_contact
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_opportunity
+     [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_opportunity
    ^ BLOCKED = the agent HAS the tool, but Okta won't issue Frank Boone a token for that resource, so the action is denied at use-time.
 ```
 
@@ -169,7 +169,7 @@ To see the denial at invoke-time:
 Expected output:
 
 ```
-   BLOCKED by Okta: Authentication failed for resource '{{crm_as_id}}'
+   BLOCKED by Okta: Authentication failed for resource '{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}'
    Frank Boone can SEE this tool, but Okta did not authorize the action - no token was issued for this resource.
 ```
 
