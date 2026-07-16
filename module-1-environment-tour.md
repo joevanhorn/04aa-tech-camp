@@ -41,7 +41,7 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
    Unblock-File $b
    & $b -OrgUrl "https://{{idp.tenantDomain}}" `
         -BridgeAddress "{{bridge_address}}" `
-        -OpenAIApiKey "{{openai_api_key}}" `
+        -OpenAIApiKey "{{6e623d84-b375-4f4d-a0e0-3cb4d1e34378.credentials.apiKey}}" `
         -PersonaPassword "{{persona_password}}" `
         -InstallToolkit
    ```
