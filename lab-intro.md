@@ -79,7 +79,7 @@ TaskVantage runs on a custom-built CRM (**VantageCRM**) and a custom-built ITSM 
 
 They are resource servers only: no app UI, no human sign-in. Every interaction is an agentic API call carrying a Bearer access token, and each app resolves which tenant (your org) a call belongs to from the token's **issuer**.
 
-The agent never talks to either app directly. It talks to an MCP server through the **Okta MCP Adapter** — the policy enforcement point you will see in action repeatedly. Your agent, Okta MCP Adapter, and Okta org are per-attendee; the MCP server and the two apps are central and shared (see ADR-0002).
+The agent never talks to either app directly. It talks to each app's **MCP server** through the **Okta MCP Adapter** — the policy enforcement point you will see in action repeatedly. Your agent, Okta MCP Adapter, and Okta org are per-attendee; the two MCP servers (one per app) and the two apps are central and shared.
 
 The full picture is below.
 
