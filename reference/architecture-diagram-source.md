@@ -1,17 +1,14 @@
-# Lab Architecture Diagram — Iteration v10 (central apps + central MCP server)
+# Lab Architecture Diagram — central apps + per-app MCP servers
 
-## Change in this iteration
+VantageCRM and VantageDesk are **one central, multi-tenant, API-only deployment** shared by every
+attendee org, drawn in a separate `Central` subgraph (with Redis for per-tenant state). Each app has
+its **own central, shared MCP server** — the VantageCRM MCP (`mcp-crm.taskvantage.oktademo.app`) and
+the VantageDesk MCP (`mcp-desk.taskvantage.oktademo.app`), each a stateless bearer-forwarding proxy
+every attendee's adapter connects to. Only the **Okta MCP Adapter** remains the per-attendee edge.
 
-**Reflects ADR-0001 + ADR-0002.** VantageCRM and VantageDesk are **one central, multi-tenant,
-API-only deployment** shared by every attendee org, drawn in a separate `Central` subgraph (with
-Redis for per-tenant state). The **MCP server is now also central/shared** (ADR-0002) and sits in
-that `Central` subgraph — a stateless bearer-forwarding proxy every attendee's adapter connects to.
-Only the **Okta MCP Adapter** remains the per-attendee edge.
-
-**Removed the `Browser → CRM/Desk` direct sign-in concept entirely.** The apps are resource
-servers with no human login and no UI, so there is no direct-sign-in edge to add back. The
-browser is only used for the **Okta Admin Console**; the Module 1.5 / 1.6 "tour the apps" moments
-are delivered out-of-band (screenshots / the Lab Toolkit), not as a browser app login.
+The apps are resource servers with no human login and no UI, so there is no direct-sign-in edge. The
+browser is only used for the **Okta Admin Console**; the Module 1.5 / 1.6 "tour the apps" moments are
+delivered out-of-band (screenshots / the Lab Toolkit).
 
 This is the canonical source for the rendered diagram in `../lab-architecture.md` — keep the two in
 sync.
@@ -54,9 +51,10 @@ flowchart TB
 
     subgraph Central["Central — shared by all orgs"]
         direction TB
-        MCP[MCP Server<br>shared — routes CRM and Desk]
-        CRM[VantageCRM API<br>resource server only]
-        Desk[VantageDesk API<br>resource server only]
+        McpCrm[VantageCRM MCP<br>mcp-crm.taskvantage.oktademo.app<br>6 CRM tools]
+        McpDesk[VantageDesk MCP<br>mcp-desk.taskvantage.oktademo.app<br>6 ITSM tools]
+        CRM[VantageCRM API<br>crm.taskvantage.oktademo.app<br>resource server only]
+        Desk[VantageDesk API<br>desk.taskvantage.oktademo.app<br>resource server only]
         Redis[(Redis<br>per-tenant partitions)]
     end
 
@@ -66,9 +64,10 @@ flowchart TB
 
     AgentLayer -->|MCP protocol| Adapter
     Adapter -.verify agent<br>+ ID-JAG exchange.-> AIRegistry
-    Adapter -->|authorized tool calls<br>with user-context tokens| MCP
-    MCP -->|HTTPS + Bearer| CRM
-    MCP -->|HTTPS + Bearer| Desk
+    Adapter -->|authorized CRM tool calls<br>user-context tokens| McpCrm
+    Adapter -->|authorized Desk tool calls<br>user-context tokens| McpDesk
+    McpCrm -->|HTTPS + Bearer| CRM
+    McpDesk -->|HTTPS + Bearer| Desk
     CRM -->|tenant by issuer| Redis
     Desk -->|tenant by issuer| Redis
 
@@ -86,7 +85,7 @@ flowchart TB
     class User trigger
     class Browser,Toolkit infra
     class OpenCode,Adapter workflow
-    class MCP action
+    class McpCrm,McpDesk action
     class CRM,Desk,Redis governance
     class UD,AIRegistry,CRMAS,DeskAS,OIG oktaCore
 
