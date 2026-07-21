@@ -40,6 +40,7 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
    Invoke-RestMethod "https://cdn.demo.okta.com/labs/techcamp-o4aa/bootstrap.ps1" -OutFile $b
    Unblock-File $b
    & $b -OrgUrl "https://{{idp.tenantDomain}}" `
+        -BridgeAddress "{{bridge_address}}" `
         -OpenAIApiKey "{{6e623d84-b375-4f4d-a0e0-3cb4d1e34378.credentials.apiKey}}" `
         -PersonaPassword "{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.settings.persona_password}}" `
         -InstallToolkit
@@ -48,6 +49,8 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
 3. When prompted, sign in **once** with your Okta admin login and password. This one-time sign-in lets the setup resolve your org's IDs (the Lab Toolkit client and `vantage-crm-as`); nothing is stored beyond this VM.
 4. When it finishes, confirm the **Lab Toolkit** icon is on the desktop — you'll use it starting in step 1.5.
 
+[SCREENSHOT: The Virtual Desktop after setup completes, showing the Lab Toolkit icon on the desktop]
+
 *NOTE: The setup is idempotent — if anything looks off, just re-run the same block. If it reports a missing value, check the highlighted variable and re-run.*
 
 ### 1.1 Log into your TaskVantage Okta org
@@ -55,6 +58,8 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
 1. Navigate to your assigned Okta org URL: `https://{{idp.tenantDomain}}`
 2. Sign in with your admin credentials.
 3. Click the **Admin** tab in the upper-right corner to enter the Admin Console.
+
+[SCREENSHOT: The Okta Admin Console dashboard after signing in as admin]
 
 *NOTE: You must have accepted the org invite from the previous module. If you haven't, do that first.*
 
@@ -69,6 +74,8 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
 3. Select the **Profile** tab, then click **Edit**.
 4. Enter your **First name** and **Last name**.
 5. Scroll down and click **Save**.
+
+[SCREENSHOT: The admin's own profile in Directory > People with the First name and Last name fields now filled in]
 
 ### 1.3 Review test users and personas
 
@@ -86,6 +93,8 @@ All personas share the same password, `{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.se
 | Kim Liu | IT Help Desk Tier 1 | Full VantageDesk access; also a CRM-group member (CRM tools with role-bounded data) |
 | Frank Boone | Engineering Director | No CRM or ITSM access by default — will request access via OIG in Lab 5 |
 | Sally Field | Executive | Indirect access only — uses the agent rather than apps directly |
+
+[SCREENSHOT: Directory > People showing the 5 lab personas (Alex Martinez, Susan Potter, Kim Liu, Frank Boone, Sally Field) all ACTIVE]
 
 *NOTE: Every user sees the **same** tool catalog — tools belong to the agent, not the user. What differs is which tools Okta lets each user actually USE (decided at invocation) and what **data** comes back inside them. So the same prompt from Alex and Susan can return different data even when both are authorized for the same tools — that is the point.*
 
@@ -105,6 +114,8 @@ All personas share the same password, `{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.se
 | Engineering | No CRM/ITSM access by default (Frank's group) |
 | Everyone | Built-in default group; baseline only — no app or tool access |
 
+[SCREENSHOT: Directory > Groups showing the lab groups (Sales Management, Sales Reps, IT Help Desk, CRM Read - Cross-Functional, Engineering, Everyone)]
+
 *NOTE: There is intentionally no group that grants "agent powers." Agent access is governed through OIG entitlements, not group membership — you'll see this in Lab 5.*
 
 ### 1.5 Tour VantageCRM (out-of-band)
@@ -116,7 +127,11 @@ Because there is no browser app, you tour the data by calling the API as each us
 1. Open the **Lab Toolkit** (desktop icon).
 2. Choose **2) Read CRM accounts**.
 3. Select **Susan Potter (Sales Manager)** when prompted for a persona. She is in Sales Management, so she sees **all 8 accounts**.
+
+[SCREENSHOT: The Lab Toolkit "Read CRM accounts" output for Susan Potter showing all 8 accounts]
 4. Run it again, this time selecting **Alex Martinez (Sales Rep)**. He sees only the accounts he owns — **2 accounts (ACC-1001 and ACC-1002)**.
+
+[SCREENSHOT: The Lab Toolkit "Read CRM accounts" output for Alex Martinez showing only his 2 accounts, ACC-1001 and ACC-1002]
 
 The difference is row-level filtering enforced by VantageCRM itself, based on each user's token. The agent will inherit these same restrictions in later labs.
 
@@ -130,6 +145,8 @@ Tour it out-of-band, using the provided screenshot or the **Lab Toolkit**, which
 
 1. Open the **Lab Toolkit** and choose **3) Read Desk tickets**.
 2. Select **Kim Liu (IT Help Desk)** when prompted for a persona. She carries the ITSM scopes, so she sees the full ticket queue (Tickets, Incidents, Knowledge Base).
+
+[SCREENSHOT: The Lab Toolkit "Read Desk tickets" output for Kim Liu showing the full ticket queue (Tickets, Incidents, Knowledge Base)]
 3. Run it again, this time selecting **Alex Martinez (Sales Rep)**. He has no ITSM scopes, so the call returns nothing.
 
 The Kim-vs-Alex difference is purely **scope**: who has the ITSM scopes and who does not. In later labs, when Alex is the user, Okta refuses to authorize any Desk tool — he can see them, but the action is denied because no ITSM token is issued for him. There's no portal and no self-service ticket form; access is decided entirely by what the token carries.
@@ -167,6 +184,8 @@ Environment ready:
 Ready to proceed to Lab 2.
 ```
 
+[SCREENSHOT: The Lab Toolkit "Check my environment" output with all checks green — Okta org, VantageCRM, VantageDesk, VantageCRM MCP (6 CRM tools), VantageDesk MCP (6 Desk tools), and TLS certificates]
+
 *NOTE: If any line shows a red ✗ instead of a green ✓, raise your hand for a proctor before continuing. Later labs depend on all checks passing.*
 
 **Why this mattered:** The MCP Adapter you just confirmed is the policy enforcement point — the choke where the agent-∩-user-∩-resource intersection actually gets enforced at token exchange. Every governed action in later labs passes through it.
@@ -176,7 +195,9 @@ Ready to proceed to Lab 2.
 This is where you will spend most of Labs 2 through 5.
 
 1. From the Admin Console, go to **Directory** > **AI Agents**.
-2. Note the one pre-loaded agent, **VantageCRM Example Agent**, with status **STAGED** — a reference agent that ships with the lab environment. You'll register your **own** agent here in Lab 2.
+2. Note the list is empty — no agents registered yet. Lab 2 changes this.
+
+[SCREENSHOT: Directory > AI Agents showing an empty list — no agents registered yet]
 3. Click **Settings** (top-right) to review the AI Agents global settings. Note the default credential rotation window and default agent session duration. Leave these at their preconfigured values.
 
 ### 1.9 Review the custom authorization server (VantageCRM)
@@ -191,6 +212,8 @@ VantageCRM has its own custom authorization server in Okta. This is the trust an
    | **vantage-crm-as** | **api://vantage-crm** | **crm.accounts.read**, **crm.accounts.write**, **crm.contacts.read**, **crm.opportunities.read**, **crm.opportunities.write** |
 
 3. Click into **vantage-crm-as** and open the **Scopes** tab. Each scope corresponds to a tool category the agent may invoke. Note the constant audience **api://vantage-crm** and the **groups** claim the server adds to tokens — the central app uses both to authorize and tenant-resolve each call.
+
+[SCREENSHOT: The vantage-crm-as Scopes tab showing the 5 crm scopes and the constant audience api://vantage-crm]
 4. Click the **Access Policies** tab. You'll look at this policy closely in 1.10. It won't match anything until Lab 2 creates the agent.
 
 *NOTE: There is no **vantage-desk-as** yet. You'll create the VantageDesk authorization server, its scopes, and its access policy in Lab 4 — modeled on what you just reviewed.*
@@ -208,6 +231,8 @@ Because the apps are API-only, there is **no app sign-in policy** — no human s
    | --- | --- |
    | Sales Reps | the full crm.* scope set |
    | Sales Management | the full crm.* scope set |
+
+[SCREENSHOT: The vantage-crm-as Access Policies tab showing the group-to-scope rules (Sales Reps and Sales Management granted the full crm.* scope set)]
 
 This is why Susan and Alex saw different data in 1.5 even though their tokens carry the **same** scopes: the difference is **data-level**, not scope-level. The policy issues both a read-capable token, then VantageCRM row-filters results by the caller's identity — Susan (Sales Management) sees all accounts, Alex (Sales Reps) sees only the accounts he owns.
 
