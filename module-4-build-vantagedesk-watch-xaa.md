@@ -206,111 +206,90 @@ Filtering is done. Time to actually call something.
 2. Select **Kim Liu (IT Help Desk)** when prompted for a persona.
 3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
 
-Expected output:
+Expected output. Every invocation is first-class about *what Okta issued*: the decoded adapter token, the raw HTTP with Okta's correlation id, and the two-hop XAA trace all print before the call is even made — then the tool result and the System Log link:
 
 ```
-Acting as: kim.liu@atko.email
-Tool: itsm.lookup_ticket
-Args: {"ticket_id":"TKT-1734"}
-
-→ Adapter performing XAA token exchange (step 1 + step 2)
-→ Adapter forwarding to the VantageDesk MCP server at https://mcp-desk.taskvantage.oktademo.app/mcp
-→ MCP server routing to VantageDesk as kim.liu@atko.email
-✓ Tool returned in 247 ms.
-
-Result:
-  Ticket: TKT-1734
-  Subject: "Outlook calendar sync failing for Sales team"
-  Status: In Progress
-  Priority: P2
-  Assignee: kim.liu@atko.email
-  Requester: susan.potter@atko.email
-  Created: 2026-04-22 09:14
-  Updated: 2026-04-23 11:02
-  Description: Multiple Sales team members reporting that calendar events
-               created in Outlook aren't syncing to Google Workspace...
+== Invoke a tool as Kim Liu (IT Help Desk) ==
+   --- Adapter token Okta issued to Kim Liu (IT Help Desk) (decoded JWT) ---
+     sub : kim.liu@atko.email
+     aud : api://{{adapter_audience}}
+     scp : openid offline_access
+     cid : {{adapter_dcr_client_id}}
+     iss : https://{{idp.tenantDomain}}
+     iat : 1745405290  (2026-04-23 11:28:10 UTC)
+     exp : 1745408890  (2026-04-23 12:28:10 UTC)
+   --- Raw HTTP + Okta correlation id ---
+     GET  https://{{adapter_admin_host}}/oauth/authorize?...
+          x-okta-request-id: {{authorize_request_id}}
+     POST https://{{adapter_admin_host}}/oauth2/v1/token   -> HTTP 200
+          x-okta-request-id: {{token_request_id}}
+   --- XAA exchange trace: ID-JAG -> scoped token (Story 6) ---
+     Hop 1  persona -> adapter (brokered auth-code/PKCE)
+            token endpoint: https://{{adapter_admin_host}}/oauth2/v1/token
+            -> ID-JAG / user assertion  sub=kim.liu@atko.email aud=api://{{adapter_audience}}
+               iss=https://{{idp.tenantDomain}}
+     Hop 2  adapter -> Okta CRM AS (identity assertion / token exchange, server-side)
+            token endpoint: https://{{idp.tenantDomain}}/oauth2/{{crm_as_id}}/v1/token
+            -> scoped token  aud=api://vantage-crm  scp=crm.accounts.read crm.contacts.read crm.opportunities.read
+            (Hop 2 runs inside the adapter under the agent's managed connection - the
+             scoped token is minted by Okta, exactly to the entitlement, never by the client.)
+   Tools the agent exposes:
+      1) {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
+      ...
+      7) <desk-as-id>__itsm.lookup_ticket
+      ...
+   calling <desk-as-id>__itsm.lookup_ticket with ticket_id=TKT-1734 ...
+   {
+     "result": {
+       "content": [
+         { "type": "text", "text": "Ticket TKT-1734 — \"Outlook calendar sync failing for Sales team\" — Status: In Progress — Priority: P2 — Assignee: kim.liu@atko.email — Requester: susan.potter@atko.email" }
+       ]
+     }
+   }
+   --- Okta System Log correlation (Story 3) ---
+   (no x-okta-request-id on this hop - open the deep link and eyeball the event)
+     Admin console: https://{{org_subdomain}}-admin.okta.com/report/system_log_2?q=kim.liu@atko.email
 ```
+
+*NOTE: The token/HTTP/XAA panels above are the real shape the toolkit prints; the epoch times, request-ids, and the exact JSON result body are illustrative and will differ each run. The result is the raw JSON-RPC response the MCP server returned — the toolkit prints it verbatim (truncated), not a reformatted summary. One honest wrinkle to read closely in §4.10: the built-in XAA trace always narrates the **CRM** token exchange, even on this Desk call.*
 
 The agent did not just *describe* a tool call — it made one. The result came back from the central VantageDesk, where the call was authenticated as Kim, scoped to itsm.tickets.read, resolved to your org's tenant partition by the token issuer, and audited against her identity.
 
 **Why this mattered:** This is the intersection resolving to a single real call: the agent acted, but **as Kim**, bounded by what Kim may do. The action is attributable to both — which agent, on whose authority — exactly the property the API-key model can never give you.
 
-### 4.10 Inspect XAA in flight (verbose mode)
+### 4.10 Inspect XAA in flight
 
-Run the same invocation again, this time asking the toolkit to show the token exchange. It prints every intermediate token so you can see the protocol with your own eyes.
+You don't have to enable anything to see the protocol — the invoke you just ran already printed it. The token exchange is **not** hidden behind a verbose flag; every **5) Invoke a tool** run prints the two-hop XAA trace unconditionally, right after the decoded token and Raw HTTP panels. Run it once more and read that trace closely.
 
 1. In the **Lab Toolkit**, choose **5) Invoke a tool**.
 2. Select **Kim Liu (IT Help Desk)**.
 3. Invoke **itsm.lookup_ticket** for ticket **TKT-1734**.
-4. When it asks **"Show the XAA token exchange? (y/N)"**, answer **y**.
 
-Output (decoded for readability):
+The **XAA exchange trace** block it prints lays out the two hops with the live token endpoints and the observable claims:
 
 ```
-[1] User subject token (identity assertion from your Okta org):
-    {
-      "iss": "https://{{idp.tenantDomain}}",
-      "sub": "kim.liu@atko.email",
-      "groups": ["IT Help Desk", "All Employees"],
-      "exp": 1735200000
-    }
-
-[2] Agent client assertion (signed with agent's private key):
-    {
-      "iss": "TaskVantage Sales Agent client_id",
-      "sub": "TaskVantage Sales Agent client_id",
-      "aud": "https://{{idp.tenantDomain}}",
-      "exp": 1735196700
-    }
-
-[3] Step 1 — POST https://{{idp.tenantDomain}}/oauth2/v1/token
-    grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-    subject_token=<user subject token from step 1>
-    actor_token=<agent client assertion from step 2>
-    requested_token_type=urn:ietf:params:oauth:token-type:id-jag
-    audience=api://vantage-desk
-    scope=itsm.tickets.read
-
-[4] ID-JAG issued (decoded):
-    {
-      "iss": "https://{{idp.tenantDomain}}",
-      "aud": "vantage-desk-as",
-      "sub": "kim.liu@atko.email",
-      "client_id": "TaskVantage Sales Agent client_id",
-      "scope": "itsm.tickets.read",
-      "exp": 1735193700  // ~5 minutes from now
-    }
-
-[5] Step 2 — POST https://{{idp.tenantDomain}}/oauth2/vantage-desk-as/v1/token
-    grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
-    assertion=<ID-JAG from step 4>
-    client_assertion=<agent client assertion>
-
-[6] Access token issued (decoded):
-    {
-      "iss": "https://{{idp.tenantDomain}}/oauth2/vantage-desk-as",
-      "aud": "api://vantage-desk",
-      "sub": "kim.liu@atko.email",
-      "scope": "itsm.tickets.read",
-      "exp": 1735196700
-    }
-
-[7] Tool invocation — adapter → VantageDesk MCP server:
-    POST https://mcp-desk.taskvantage.oktademo.app/mcp  (tools/call: itsm.lookup_ticket)
-    Authorization: Bearer <access token from step 6>
-    Body: {"ticket_id":"TKT-1734"}
-
-✓ Result returned (see standard output).
+   --- XAA exchange trace: ID-JAG -> scoped token (Story 6) ---
+     Hop 1  persona -> adapter (brokered auth-code/PKCE)
+            token endpoint: https://{{adapter_admin_host}}/oauth2/v1/token
+            -> ID-JAG / user assertion  sub=kim.liu@atko.email aud=api://{{adapter_audience}}
+               iss=https://{{idp.tenantDomain}}
+     Hop 2  adapter -> Okta CRM AS (identity assertion / token exchange, server-side)
+            token endpoint: https://{{idp.tenantDomain}}/oauth2/{{crm_as_id}}/v1/token
+            -> scoped token  aud=api://vantage-crm  scp=crm.accounts.read crm.contacts.read crm.opportunities.read
+            (Hop 2 runs inside the adapter under the agent's managed connection - the
+             scoped token is minted by Okta, exactly to the entitlement, never by the client.)
 ```
 
-*The shape — two POST requests with an ID-JAG between them — is the IETF Cross-App Access pattern; the exact grant_type URIs, token endpoints, and claim names follow Okta's XAA implementation.*
+*The shape — a user-carrying assertion (Hop 1) exchanged for a per-resource scoped token at the app's authorization server (Hop 2) — is the IETF Cross-App Access pattern; the endpoints and claim names follow Okta's XAA implementation.*
 
-Walk through what you see:
-- **Sub claim stays put.** kim.liu@atko.email appears in the user subject token (step 1), the ID-JAG (step 4), and the access token (step 6). The user's identity is preserved end-to-end.
-- **Audience narrows.** The ID-JAG's audience is vantage-desk-as; the access token's is api://vantage-desk — the same for every attendee, since the central app tells tenants apart by issuer, not audience.
-- **Scope narrows.** Kim is allowed five Desk scopes, but only itsm.tickets.read was requested for this tool — so that's the only scope in the ID-JAG and access token. Least-privilege by construction.
+**Read Hop 2 honestly — it always narrates the CRM exchange.** The built-in trace illustrates the *canonical* two-hop exchange against the **CRM** authorization server (`aud=api://vantage-crm`, the CRM read scopes), even though this run invoked a **Desk** tool. That is deliberate: the point of the trace is the **shape** of the exchange, and the Desk exchange your `itsm.lookup_ticket` call actually performed is structurally identical — the same two hops, the same server-side mint under the agent's managed connection — differing only in the values you built in this module: Hop 2 lands at **vantage-desk-as**, mints `aud=api://vantage-desk`, and carries the ITSM scope (`itsm.tickets.read`) instead of the CRM scopes. Don't read the literal CRM audience as what your Desk call used; read the two-hop structure.
 
-**Why this mattered:** The two-step ID-JAG exchange is what carries *both* identities to the app at once — the user in **sub**, the agent in **client_id** — so the call lands "as the user" yet stays attributable to both. That dual carriage is the **act** chain from the intro: "which agent, on whose authority," made concrete in the token claims.
+Walk through what the trace shows — and what it means for your Desk call:
+- **Sub claim stays put.** kim.liu@atko.email is the subject of the Hop 1 user assertion and rides through to the Hop 2 scoped token. The user's identity is preserved across both hops — for CRM and, identically, for Desk.
+- **Audience is per-resource.** Hop 2's scoped token is audience-bound: `api://vantage-crm` in the illustrated CRM exchange, `api://vantage-desk` for the Desk exchange your call used. A token minted for one app is never valid at the other — you'll prove exactly this in the conclusion's "prove it can't be faked."
+- **Scope narrows to the entitlement.** The scoped token carries only the scopes the user is entitled to at that resource — the CRM read scopes here; for Desk, Kim's ITSM scope for the ticket lookup. Least-privilege by construction, minted by Okta, never by the client.
+
+**Why this mattered:** The two-hop exchange carries *both* identities to the app at once — the user as the assertion subject, the agent as the managed connection performing Hop 2 — so the call lands "as the user" yet stays attributable to both. That dual carriage is the **act** chain from the intro: "which agent, on whose authority," made concrete in the token the adapter mints, hop by hop.
 
 ### 4.11 Verify the request landed as the user
 

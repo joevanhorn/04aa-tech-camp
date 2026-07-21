@@ -19,7 +19,7 @@ At the start, the board asked three things. You can now answer all three:
 The agent is a first-class identity in Universal Directory, with an accountable owner — not a key in someone's config. It shows up where every other identity does.
 
 **2. What can it do, and on whose behalf?**
-Only what the signed-in user may do. Effective access is the intersection of *(what the agent may do)* ∩ *(what the user may do)* ∩ *(what the resource exposes)*. Alex and Susan reached the CRM tools on their own authority; Frank saw them but couldn't use one until OIG granted him access — and you watched it flip back when the grant was revoked. You cannot escalate through this agent.
+Only what the signed-in user may do. Effective access is the intersection of *(what the agent may do)* ∩ *(what the user may do)* ∩ *(what the resource exposes)*. Alex and Susan reached the CRM tools on their own authority; Frank saw them but couldn't use one until OIG granted him access — and you watched it flip back when the grant was revoked. You cannot escalate through this agent — and it isn't a soft, client-side check: the Lab Toolkit's **9) Prove it can't be faked** shows Okta refusing to mint a token Frank isn't owed, and a resource rejecting a real token minted for the wrong app (a live 401, audience mismatch). Enforcement is server-side.
 
 **3. How do we stop one if it goes wrong?**
 Deactivate it — one click, and instantly no user can broker a token through it, regardless of standing access. It's a reversible suspension, so you bring it back when the incident clears. To stop a single user without taking the agent down, Universal Logout ends their sessions.
@@ -52,9 +52,51 @@ Everything here applies directly to production:
 2. **Swap the resource** — VantageCRM / VantageDesk → ServiceNow, Salesforce, Jira, or any app behind an MCP server or custom authorization server.
 3. **Keep the pattern** — agent identity → managed connection → scoped token exchange (as the user) → OIG governance → full audit trail.
 
+## Prove it can't be faked
+
+Everything above is a claim until you can show enforcement isn't something the client chooses to honor. Before you leave the toolkit, run the one action built to answer the CISO's real question — *what if someone just turns the check off?* — the Lab Toolkit's **9) Prove it can't be faked**. In one keystroke it stages a legit baseline and then two **live** rejections, neither of them a toolkit-computed label:
+
+```
+== Prove it can't be faked (Story 5) ==
+
+-- [0] Legit baseline: Alex Martinez reads CRM --
+   --- Valid CRM token Okta issued to Alex Martinez (decoded JWT) ---
+     sub : alex.martinez@atko.email
+     aud : api://vantage-crm
+     scp : crm.accounts.read crm.contacts.read crm.opportunities.read ...
+     ...
+   GET https://crm.taskvantage.oktademo.app/api/accounts -> HTTP 200 - 2 records. This token is real and current.
+
+-- [1] Okta says no: Frank Boone requests the same token --
+   Okta refused at /authorize - no token was ever minted:
+   --- Okta denial (verbatim response) ---
+     error             : access_denied
+     error_description : User is not assigned to a policy that permits this scope.
+     x-okta-request-id : {{authorize_request_id}}
+     (This is Okta refusing to issue a token at /authorize - not a toolkit label.)
+
+-- [2] The server says no: Alex Martinez's REAL CRM token, presented to Desk --
+   Same unmodified token from step 0 - a real key cut for the wrong door.
+   GET https://desk.taskvantage.oktademo.app/api/tickets  Authorization: Bearer <Alex's CRM token>
+   HTTP 401 (server-side rejection):
+   {"error":"invalid_token","error_description":"Audience doesn't match"}
+   The Desk resource server rejected it - the token's aud says api://vantage-crm, not Desk.
+
+   Both rejections are live HTTP from Okta / the app - not toolkit-computed labels.
+```
+
+Two independent enforcement points, both server-side:
+
+- **Okta refuses to mint.** Frank asks for a CRM token he isn't entitled to, and Okta denies it at `/authorize` — the token never comes into existence. There is nothing to "turn off": the decision lives at the IdP, and the client's opinion of it is irrelevant.
+- **The resource refuses the wrong token.** Alex's token is genuine — freshly issued by Okta in step 0 — but it is audience-bound to `api://vantage-crm`. Present it to VantageDesk and the Desk resource server rejects it with a live `401 Audience doesn't match`. A real key, the wrong door.
+
+That is the whole point for a CISO or a board: enforcement is **server-side, not a client flag**. No amount of clever prompting, tampered tooling, or "just skip the check" changes the outcome, because the check isn't in the agent or the toolkit — it's in Okta and in the resource. What you saw as `[BLOCKED]` in Lab 3 and as a denied invoke in Lab 4 is the same wall, and it holds even when you try to climb it directly.
+
 ## One sentence to take back
 
 > "We can give AI agents to our whole workforce and prove — to auditors, to the board — exactly who authorized what, what the agent did and on whose behalf, and shut any of it down in one click."
+
+You didn't take that on faith — you watched Okta refuse to mint a token it shouldn't, and watched a resource reject a real token cut for the wrong audience. Enforcement you can demonstrate on demand is the difference between telling the board you're governed and *showing* them.
 
 ---
 

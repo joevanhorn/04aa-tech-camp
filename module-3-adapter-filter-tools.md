@@ -89,10 +89,23 @@ The adapter knows about six CRM tools. Every user sees all six — the catalog i
 2. Choose **4) List the agent's tools**.
 3. Select **Alex Martinez (Sales Rep)** when prompted for a persona.
 
-Expected output:
+Expected output (the decoded-token and Raw-HTTP panels print first — that is the real adapter token Okta issued, not a label):
 
 ```
 == The agent's tools - and what Okta lets Alex Martinez use ==
+   --- Adapter token Okta issued to Alex Martinez (decoded JWT) ---
+     sub : alex.martinez@atko.email
+     aud : api://{{adapter_audience}}
+     scp : openid offline_access
+     cid : {{adapter_dcr_client_id}}
+     iss : https://{{idp.tenantDomain}}
+     iat : 1745405048  (2026-04-23 11:24:08 UTC)
+     exp : 1745408648  (2026-04-23 12:24:08 UTC)
+   --- Raw HTTP + Okta correlation id ---
+     GET  https://{{adapter_admin_host}}/oauth/authorize?...
+          x-okta-request-id: {{authorize_request_id}}
+     POST https://{{adapter_admin_host}}/oauth2/v1/token   -> HTTP 200
+          x-okta-request-id: {{token_request_id}}
    The agent exposes 6 tools - every user SEES the full catalog.
    With Alex Martinez's entitlements, Okta authorizes 6 of 6:
      [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
@@ -103,6 +116,8 @@ Expected output:
      [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.update_opportunity
    ^ USABLE = Okta will issue Alex Martinez a token for this resource, so the action is authorized.
 ```
+
+*NOTE: The `sub` is the persona; the `iat`/`exp` epoch values and `x-okta-request-id` strings are illustrative — yours will differ each run. The two request-ids are the live correlation threads into the Okta System Log (§3.7). The token shown is the adapter token Okta minted for Alex's brokered login; the per-tool `[USABLE]`/`[BLOCKED]` decision below comes from Okta actually attempting the CRM token exchange for each tool.*
 
 Alex's Sales Reps membership matched a rule on vantage-crm-as, so Okta authorizes the full CRM tool set for him — authorization is binary today (member = all CRM tools usable). He sees all six because every user sees the full catalog; [USABLE] means Okta will issue him a token for that tool. What differs from a manager is the **data**: when Alex calls crm.lookup_account, VantageCRM row-filters results to the accounts he owns (Module 1.5). Tool names are namespaced authServerId__crm.*; Desk tools aren't wired in this build, so they don't appear.
 
@@ -117,6 +132,19 @@ Expected output:
 
 ```
 == The agent's tools - and what Okta lets Susan Potter use ==
+   --- Adapter token Okta issued to Susan Potter (decoded JWT) ---
+     sub : susan.potter@atko.email
+     aud : api://{{adapter_audience}}
+     scp : openid offline_access
+     cid : {{adapter_dcr_client_id}}
+     iss : https://{{idp.tenantDomain}}
+     iat : 1745405121  (2026-04-23 11:25:21 UTC)
+     exp : 1745408721  (2026-04-23 12:25:21 UTC)
+   --- Raw HTTP + Okta correlation id ---
+     GET  https://{{adapter_admin_host}}/oauth/authorize?...
+          x-okta-request-id: {{authorize_request_id}}
+     POST https://{{adapter_admin_host}}/oauth2/v1/token   -> HTTP 200
+          x-okta-request-id: {{token_request_id}}
    The agent exposes 6 tools - every user SEES the full catalog.
    With Susan Potter's entitlements, Okta authorizes 6 of 6:
      [USABLE]  {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
@@ -143,6 +171,19 @@ Expected output:
 
 ```
 == The agent's tools - and what Okta lets Frank Boone use ==
+   --- Adapter token Okta issued to Frank Boone (decoded JWT) ---
+     sub : frank.boone@atko.email
+     aud : api://{{adapter_audience}}
+     scp : openid offline_access
+     cid : {{adapter_dcr_client_id}}
+     iss : https://{{idp.tenantDomain}}
+     iat : 1745405194  (2026-04-23 11:26:34 UTC)
+     exp : 1745408794  (2026-04-23 12:26:34 UTC)
+   --- Raw HTTP + Okta correlation id ---
+     GET  https://{{adapter_admin_host}}/oauth/authorize?...
+          x-okta-request-id: {{authorize_request_id}}
+     POST https://{{adapter_admin_host}}/oauth2/v1/token   -> HTTP 200
+          x-okta-request-id: {{token_request_id}}
    The agent exposes 6 tools - every user SEES the full catalog.
    With Frank Boone's entitlements, Okta authorizes 0 of 6:
      [BLOCKED] {{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}__crm.lookup_account
@@ -166,24 +207,107 @@ To see the denial at invoke-time:
 2. Select **Frank Boone (Engineering)**.
 3. Invoke **crm.lookup_account**.
 
-Expected output:
+Frank is a valid user, so the adapter still mints him an adapter token and the token/HTTP/XAA panels print exactly as they did for the list — the refusal happens one hop later, when the adapter tries to exchange that token for a **scoped CRM token** at vantage-crm-as and Okta's catch-all denies it. The denial surfaces at the tool call, verbatim from Okta:
 
 ```
-   BLOCKED by Okta: Authentication failed for resource '{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}'
-   Frank Boone can SEE this tool, but Okta did not authorize the action - no token was issued for this resource.
+== Invoke a tool as Frank Boone (Engineering) ==
+   --- Adapter token Okta issued to Frank Boone (Engineering) (decoded JWT) ---
+     sub : frank.boone@atko.email
+     aud : api://{{adapter_audience}}
+     scp : openid offline_access
+     ...
+   --- Raw HTTP + Okta correlation id ---
+     GET  https://{{adapter_admin_host}}/oauth/authorize?...
+          x-okta-request-id: {{authorize_request_id}}
+     POST https://{{adapter_admin_host}}/oauth2/v1/token   -> HTTP 200
+          x-okta-request-id: {{token_request_id}}
+   --- XAA exchange trace: ID-JAG -> scoped token (Story 6) ---
+     Hop 1  persona -> adapter (brokered auth-code/PKCE)
+     Hop 2  adapter -> Okta CRM AS (identity assertion / token exchange, server-side)
+     ...
+   calling crm.lookup_account ...
+   --- Okta/adapter denial (verbatim MCP response) ---
+   {"code":-32603,"message":"Authentication failed for resource '{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.authServerIds.0}}'"}
+   Frank Boone can SEE this tool, but the XAA exchange at the CRM AS was refused
+   (access_denied / Policy evaluation failed) - no scoped token was minted for this resource.
+   --- Okta System Log correlation (Story 3) ---
+   (no x-okta-request-id on this hop - open the deep link and eyeball the event)
+     Admin console: https://{{org_subdomain}}-admin.okta.com/report/system_log_2?q=frank.boone@atko.email
 ```
+
+The `--- Okta/adapter denial (verbatim MCP response) ---` block is the **actual JSON-RPC error Okta/the adapter returned**, not a toolkit label — the scoped-token mint at vantage-crm-as failed (`access_denied` / "Policy evaluation failed"), so no CRM-audience token was ever issued and the call never reached VantageCRM. Because that refusal happens server-side at the CRM AS, there is no client-visible request-id for it; the toolkit hands you a System Log deep link keyed to Frank so you can read Okta's own record of the denial (see §3.7).
+
+*NOTE: The `-32603` code and exact error string are representative — the message you see comes straight through from the adapter's MCP response. What is fixed is the shape: Frank got an adapter token (he is a real user), but Okta refused the per-resource scoped token, so the tool cannot run.*
 
 In Lab 5, Frank requests access through OIG and is added temporarily to CRM Read - Cross-Functional. This same step then matches rule 4 instead of the catch-all, flipping all six tools from [BLOCKED] to [USABLE]. The catalog he sees won't change; what changes is whether Okta authorizes the actions.
 
+**See the grant and the denial side by side.** Running Alex and Frank one after another already makes the point, but the Lab Toolkit can put both outcomes on a single screen. Choose **8) Side-by-side allow vs deny**. In one keystroke it runs the **same** CRM read as Alex (a real issued token + data) and then as Frank (Okta's verbatim refusal) — no persona prompt, the two are wired in:
+
+```
+== Side-by-side: the SAME call, two users (Story 4) ==
+   GET https://crm.taskvantage.oktademo.app/api/accounts  (token: api://vantage-crm via lab-toolkit)
+   Same agent, same tool, same request. Okta decides per user.
+
+-- [1] Alex Martinez (Sales Rep) --------------------------------------------
+   --- Token Okta issued to Alex Martinez (Sales Rep) (decoded JWT) ---
+     sub : alex.martinez@atko.email
+     aud : api://vantage-crm
+     scp : crm.accounts.read crm.accounts.write crm.contacts.read crm.opportunities.read crm.opportunities.write
+     ...
+   --- Raw HTTP + Okta correlation id ---
+     GET  https://{{idp.tenantDomain}}/oauth2/{{crm_as_id}}/v1/authorize?...
+          x-okta-request-id: {{authorize_request_id}}
+     POST https://{{idp.tenantDomain}}/oauth2/{{crm_as_id}}/v1/token   -> HTTP 200
+          x-okta-request-id: {{token_request_id}}
+   HTTP 200 - 2 records (access GRANTED)
+   --- Okta System Log correlation (Story 3) ---
+     ...
+
+-- [2] Frank Boone (Engineering) --------------------------------------------
+   Okta refused to issue Frank Boone (Engineering) a token (access DENIED):
+   --- Okta denial (verbatim response) ---
+     error             : access_denied
+     error_description : User is not assigned to a policy that permits this scope.
+     x-okta-request-id : {{authorize_request_id}}
+     (This is Okta refusing to issue a token at /authorize - not a toolkit label.)
+   --- Okta System Log correlation (Story 3) ---
+     ...
+
+   Two real Okta artifacts, one grant + one denial - both verifiable in Okta's audit log.
+```
+
+Note the contrast with §3.6's tool invoke: here Frank asks the toolkit's CRM client directly for a scoped CRM token, so Okta refuses at **/authorize** and hands back a client-visible `x-okta-request-id` for the denial. Two real Okta responses — one grant, one refusal — from the same request, on one screen. That is the access intersection made visual.
+
+**Don't trust the toolkit — verify the token yourself.** Whenever a persona read issues a token (e.g. **2) Read CRM accounts**), the Lab Toolkit prints the exact off-tool affordances to check Okta's work — so nothing you see has to be taken on faith:
+
+```
+   --- Verify this yourself, off this tool (Story 7) ---
+     1) Paste the token at https://jwt.io to read the signed claims.
+     2) Or introspect it live at Okta:
+        curl -s -X POST 'https://{{idp.tenantDomain}}/oauth2/{{crm_as_id}}/v1/introspect' \
+             -d 'token=<paste-token>&token_type_hint=access_token&client_id={{toolkit_client_id}}'
+```
+
+Paste the token at jwt.io, or introspect it live at Okta — either way you are confirming the claims against Okta itself, not against the toolkit's rendering of them.
+
 ### 3.7 Inspect the audit trail in System Log
 
-The runs you just performed each generated a chain of events in the Okta System Log. Walk through them while they're fresh.
+The runs you just performed each generated a chain of events in the Okta System Log — and **the correlation id is already on your screen.** Every persona run printed a **Raw HTTP + Okta correlation id** panel carrying the `x-okta-request-id` for the token exchange, and when you read accounts (**2) Read CRM accounts**) or invoked a tool (**5) Invoke a tool**), the toolkit went one step further: it offered a one-time Okta **admin** sign-in (read-only, cached for the session) and printed Okta's own audit record for the action **inline**, next to a deep link straight to that event:
 
-1. From the Admin Console, go to **Reports** > **System Log**.
-2. In the search bar, filter on `target.type eq "AIAgent" and actor.id eq "{agent_id}"` (use your agent's ID from Lab 2).
-3. Set the time range to the last 15 minutes.
+```
+   --- Okta System Log correlation (Story 3) ---
+   GET /api/v1/logs?filter=debugContext.debugData.requestId eq "{{token_request_id}}"
+   Okta's own audit record for this action:
+     eventType : app.oauth2.as.token.grant
+     outcome   : SUCCESS
+     actor     : Alex Martinez [User] alex.martinez@atko.email
+     target    : vantage-crm-as [AuthorizationServer] api://vantage-crm
+     published : 2026-04-23T11:24:09.512Z
+     uuid      : {{event_uuid}}
+     Admin console: https://{{org_subdomain}}-admin.okta.com/report/system_log_2?q={{token_request_id}}
+```
 
-For each of the three tool-listing runs, you should see a sequence similar to:
+So you do not have to go fishing in the console: follow the deep link the toolkit already printed (it opens the System Log pre-filtered to exactly this event), or — if you skipped the admin sign-in — paste the `x-okta-request-id` from the Raw HTTP panel into **Reports** > **System Log** yourself. Either way you land on the same record. For each run you will see a sequence similar to:
 
 | Event | Actor | Target | What it tells you |
 | --- | --- | --- | --- |

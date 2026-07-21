@@ -171,6 +171,8 @@ Ready to proceed to Lab 2.
 
 **Why this mattered:** The MCP Adapter you just confirmed is the policy enforcement point — the choke where the agent-∩-user-∩-resource intersection actually gets enforced at token exchange. Every governed action in later labs passes through it.
 
+*NOTE: A theme to watch for as you go: the Lab Toolkit never asks you to take its word for anything. Every persona action (reads, tool listing, tool invocation) prints the **decoded token Okta actually issued** for that user — sub, audience, scopes, issuer — or, on a denial, Okta's verbatim refusal, so you're always looking at the real artifact rather than a label the toolkit computed. Two menu items exist purely to make that provable: **8) Side-by-side allow vs deny** runs the same request as two users and shows one grant and one denial together, and **9) Prove it can't be faked** demonstrates that enforcement is server-side (Okta refusing to mint a token, and a resource rejecting a token cut for the wrong app). You'll use these in Labs 3 and the conclusion; just know they're there.*
+
 ### 1.8 Tour the Okta AI Agents area
 
 This is where you will spend most of Labs 2 through 5.
