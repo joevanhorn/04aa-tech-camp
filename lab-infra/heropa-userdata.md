@@ -68,35 +68,40 @@ ssh_pwauth: true
 
 ---
 
-## 2. Windows VDI — base + (placeholder) agent/toolkit bootstrap
+## 2. Windows VDI — agent/toolkit bootstrap
 
 The existing Heropa timezone line stays; `%TZOFFSET%` is a Heropa template token it
-substitutes at launch. The VDI agent/toolkit bootstrap (download + run
-`Configure-OpenCodeAgent.ps1 -UseBridgeDiscovery -InstallToolkit …`) is **pending two
-decisions** (see below) before it's filled in.
+substitutes at launch. The VDI setup downloads and runs the **self-contained `bootstrap.ps1`**
+(the built `Configure-OpenCodeAgent.ps1`, published to the CDN): it installs OpenCode + the Lab
+Toolkit, writes the paired-bridge hosts entries, trusts the lab CA, and drops the desktop
+shortcuts. `Lab-Toolkit.ps1` + `setup-crm-resource.ps1` are embedded, so nothing else is
+downloaded. This mirrors the command an attendee pastes in Module 1.
 
 ```powershell
 <powershell>
 # --- Heropa default: timezone from the injected offset (keep) ---
 Set-Timezone -Id (Get-TimeZone -ListAvailable | Select-Object DisplayName,Id | Select-String -Pattern '\(UTC\%TZOFFSET%\).*Id=(.+)}$').Matches.Groups[1].Value
 
-# --- VDI agent + Lab Toolkit bootstrap (TO BE FILLED) ---
-# $dir = "C:\o4aa-setup"; New-Item -ItemType Directory -Force -Path $dir | Out-Null
-# (download Configure-OpenCodeAgent.ps1 + Lab-Toolkit.ps1 + Discover-Bridge.ps1 + lab CA from S3)
-# & "$dir\Configure-OpenCodeAgent.ps1" -UseBridgeDiscovery -InstallToolkit `
-#     -OrgUrl "https://<org>.okta.com" -ToolkitClientId "<id>" -CrmAsId "<id>" `
-#     -AdapterHost "adapter.taskvantage.lab" -PersonaPassword "<pw>" -OpenAIApiKey "<key>"
+# --- VDI agent + Lab Toolkit bootstrap ---
+Set-ExecutionPolicy -Scope Process Bypass -Force
+$b = "$env:TEMP\bootstrap.ps1"
+Invoke-RestMethod "https://cdn.demo.okta.com/labs/techcamp-o4aa/bootstrap.ps1" -OutFile $b
+Unblock-File $b
+& $b -OrgUrl "https://<org>.okta.com" `
+     -OpenAIApiKey "<key>" `
+     -PersonaPassword "<pw>" `
+     -InstallToolkit
 </powershell>
 ```
 
-**Pending before the Windows bootstrap is finalized:**
-1. **Do Heropa VMs get an AWS IAM instance role?** If yes → bridge **tag-discovery** works
-   (`Discover-Bridge.ps1` needs `ec2:DescribeInstances`). If no → **pin the bridge's private IP**
-   in the toolkit config / hosts entry instead.
-2. **Which org this VDI pairs with** (→ `OrgUrl`, `ToolkitClientId`, `CrmAsId` from
-   `provision_lab_org.py` output) and the **bridge private IP** if not using discovery.
-
-Then the setup files get pushed to S3 and the download+run lines above are filled in.
+Notes:
+- **No bridge argument is passed** — the bridge is at the fixed private IP `10.0.0.5` (the script's
+  `-BridgeAddress` default), so the hosts entries, CA trust, and bridge-GUI shortcut all wire off
+  that automatically. (Passing an unresolved `-BridgeAddress` would override the default and skip
+  the whole bridge block.)
+- **Per-org values** (`<org>`, `<key>`, `<pw>`) are injected by Heropa. The toolkit's per-org ids
+  (lab-toolkit client, `vantage-crm-as`) are resolved at runtime by the script's one-time admin
+  sign-in — nothing per-org is baked in.
 
 ---
 

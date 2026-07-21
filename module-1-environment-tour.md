@@ -40,7 +40,6 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
    Invoke-RestMethod "https://cdn.demo.okta.com/labs/techcamp-o4aa/bootstrap.ps1" -OutFile $b
    Unblock-File $b
    & $b -OrgUrl "https://{{idp.tenantDomain}}" `
-        -BridgeAddress "{{bridge_address}}" `
         -OpenAIApiKey "{{6e623d84-b375-4f4d-a0e0-3cb4d1e34378.credentials.apiKey}}" `
         -PersonaPassword "{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.settings.persona_password}}" `
         -InstallToolkit
