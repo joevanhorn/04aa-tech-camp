@@ -53,17 +53,19 @@ GROUPS = [
     ("IT Help Desk", "O4AA lab — IT help desk (full ITSM; limited CRM read)"),
     ("CRM Read - Cross-Functional", "O4AA lab — empty until OIG grants in Lab 5"),
     ("Engineering", "O4AA lab — no CRM/ITSM by default (Frank)"),
+    ("O4AA Lab Personas", "O4AA lab — persona accounts that sign in single-factor (no MFA enrolled)"),
 ]
 
 USERS = [
-    # (first, last, login/email, [group names])
-    ("Susan", "Potter", "susan.potter@atko.email", ["Sales Management"]),
-    ("Alex", "Martinez", "alex.martinez@atko.email", ["Sales Reps"]),
-    ("Kim", "Liu", "kim.liu@atko.email", ["IT Help Desk"]),
-    ("Frank", "Boone", "frank.boone@atko.email", ["Engineering"]),
+    # (first, last, login/email, [group names]) — every persona is also in "O4AA Lab Personas"
+    # so the personas-scoped 1FA rule on the default app auth policy applies to them (and only them).
+    ("Susan", "Potter", "susan.potter@atko.email", ["Sales Management", "O4AA Lab Personas"]),
+    ("Alex", "Martinez", "alex.martinez@atko.email", ["Sales Reps", "O4AA Lab Personas"]),
+    ("Kim", "Liu", "kim.liu@atko.email", ["IT Help Desk", "O4AA Lab Personas"]),
+    ("Frank", "Boone", "frank.boone@atko.email", ["Engineering", "O4AA Lab Personas"]),
     # Executive — no functional group; interacts only via the agent. Background persona that
     # frames "the agent's access is the user's access" (Module 1.3 / lab-intro); not used in steps.
-    ("Sally", "Field", "sally.field@atko.email", []),
+    ("Sally", "Field", "sally.field@atko.email", ["O4AA Lab Personas"]),
 ]
 
 CRM_SCOPES = ["crm.accounts.read", "crm.accounts.write", "crm.contacts.read",
@@ -267,6 +269,43 @@ def ensure_nomfa_policy(base, token) -> str:
         "actions": {"appSignOn": {"access": "ALLOW",
             "verificationMethod": {"factorMode": "1FA", "type": "ASSURANCE", "reauthenticateIn": "PT43800H"}}}})
     return pid
+
+
+PERSONAS_GROUP = "O4AA Lab Personas"
+PERSONAS_RULE_NAME = "O4AA lab — personas password only"
+
+
+def ensure_default_policy_persona_rule(base, token, gids):
+    """Add a personas-scoped 1FA rule to the org's DEFAULT app authentication policy.
+
+    The attendee's agent relay app is created at lab time by the adapter, so it can't be
+    pre-assigned the NOMFA policy above — it inherits the org's default ("Any two factors")
+    ACCESS_POLICY (the system==true policy that unassigned/new apps land on), whose MFA
+    challenge breaks the toolkit's no-browser /authorize flow (personas have no factor
+    enrolled). Scoping this priority-0 rule to the "O4AA Lab Personas" group keeps the blast
+    radius to the 5 persona accounts on default-policy apps only; the built-in 2FA rule stays
+    as the untouched fallback for everyone else (incl. the attendee-admin). Idempotent by rule
+    name for re-run safety."""
+    gid = gids.get(PERSONAS_GROUP)
+    if not gid:
+        print("  ! 'O4AA Lab Personas' group id missing — skipping default-policy personas 1FA rule")
+        return None
+    code, pols = req("GET", base, "/api/v1/policies?type=ACCESS_POLICY&limit=200", token)
+    default = next((p for p in (pols if isinstance(pols, list) else []) if p.get("system") is True), None)
+    if not default:
+        print("  ! no default (system) ACCESS_POLICY found — skipping personas 1FA rule")
+        return None
+    did = default.get("id", "DRY")
+    code, existing = req("GET", base, f"/api/v1/policies/{did}/rules", token)
+    if isinstance(existing, list) and any(r.get("name") == PERSONAS_RULE_NAME for r in existing):
+        return did
+    req("POST", base, f"/api/v1/policies/{did}/rules", token, {
+        "type": "ACCESS_POLICY", "name": PERSONAS_RULE_NAME, "priority": 0,
+        "conditions": {"network": {"connection": "ANYWHERE"},
+                       "people": {"groups": {"include": [gid]}}},
+        "actions": {"appSignOn": {"access": "ALLOW",
+            "verificationMethod": {"factorMode": "1FA", "type": "ASSURANCE", "reauthenticateIn": "PT43800H"}}}})
+    return did
 
 
 def ensure_toolkit_client(base, token, nomfa_pid, gids) -> tuple[str, str]:
@@ -564,6 +603,10 @@ def main() -> int:
     ensure_rules(base, token, asid, pid, gids)
     print(f"  rules = {[r[0] for r in CRM_RULES]}")
 
+    print("Default app auth policy — personas 1FA rule (the Lab 2 agent relay app inherits this) …")
+    default_pid = ensure_default_policy_persona_rule(base, token, gids)
+    print(f"  default app auth policy = {default_pid}  (+ personas 1FA rule)")
+
     print("Lab Toolkit support (read client + no-MFA policy) …")
     nomfa_pid = ensure_nomfa_policy(base, token)
     print(f"  NOMFA policy = {nomfa_pid}")
@@ -581,6 +624,7 @@ def main() -> int:
         "crm_as_id": asid,
         "crm_policy_id": pid,
         "nomfa_policy_id": nomfa_pid,
+        "default_app_policy_id": default_pid,
         "toolkit_client_id": tk_client,
         "admin_ui_client_id": au_client,
         "crm_audience": CRM_AUDIENCE,
