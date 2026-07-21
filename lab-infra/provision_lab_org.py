@@ -331,7 +331,7 @@ ADMIN_UI_REDIRECTS = ["http://localhost:3001/callback",
                       # needs its callback registered or the OIDC redirect is rejected.
                       "http://bridge.taskvantage.lab:3001/callback"]
 ADMIN_UI_API_SCOPES = ["okta.aiAgents.manage", "okta.aiAgents.read", "okta.apps.read",
-                       "okta.authorizationServers.read"]
+                       "okta.authorizationServers.read", "okta.logs.read"]
 
 
 def _everyone_group_id(base, token) -> str | None:
