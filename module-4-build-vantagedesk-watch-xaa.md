@@ -57,7 +57,7 @@ Before you build the missing half, look at the completed half. Everything you cr
 | Scopes | Scopes tab | 5 scopes: crm.accounts.read, crm.accounts.write, crm.contacts.read, crm.opportunities.read, crm.opportunities.write |
 | Access policy rules | Access Policies tab | 4 rules (Sales mgmt, Sales reps, IT help desk, catch-all) — reviewed in Lab 3.2 |
 | Managed connection on the agent | Directory > AI Agents > TaskVantage Sales Agent > Managed connections | One entry pointing at vantage-crm-as, **Only allow** with the five granular CRM scopes |
-| Adapter resource | Adapter admin console (Lab 2.10) | One resource for vantage-crm-as, URL …/crm/mcp, auth okta-cross-app |
+| Adapter resource | Adapter admin console (Lab 2.10) | One resource for vantage-crm-as, URL mcp-crm.taskvantage.oktademo.app/mcp, auth okta-cross-app |
 
 You will create the same building blocks for VantageDesk over the next sections — the four Okta pieces, then the adapter resource that brings them online.
 
@@ -155,15 +155,15 @@ The Okta side now knows your agent may reach VantageDesk — but your **MCP Adap
 Open the adapter admin console at `https://{{adapter_admin_host}}`.
 
 1. On **TaskVantage Sales Agent**, click **Sync** (or **Sync connections**). The adapter re-reads your managed connections, picks up the new vantage-desk-as connection, and materializes it as a second **resource**. If the sync doesn't auto-create the resource, add it by hand pointing at the vantage-desk-as authorization server.
-2. Open the new resource. Set its **MCP server URL** to the central server's Desk path: `https://{{mcp_host}}/desk/mcp`.
+2. Open the new resource. Set its **MCP server URL** to the VantageDesk MCP server: `https://mcp-desk.taskvantage.oktademo.app/mcp`.
 3. Leave the auth method as **okta-cross-app**.
 4. **Enable** the resource.
 
-Your adapter now has **two** resources for one agent: the CRM resource at /crm/mcp (Lab 2.10) and the Desk resource at /desk/mcp (just added). Each mints its own audience-scoped token — api://vantage-crm for CRM tools, api://vantage-desk for ITSM tools — and routes to the matching tool subset on the one shared MCP server.
+Your adapter now has **two** resources for one agent: the CRM resource pointing at the VantageCRM MCP server (Lab 2.10) and the Desk resource pointing at the VantageDesk MCP server (just added). Each mints its own audience-scoped token — api://vantage-crm for CRM tools, api://vantage-desk for ITSM tools — and routes to its own app's MCP server.
 
 **Why this mattered:** Doing the wiring the Lab 2.10 helper had done for CRM is what it means to give the agent its second desk *yourself* — the resource is the live bridge between the agent's grant and the **"what the resource exposes"** term, the last piece before the ITSM tools can actually appear.
 
-*NOTE: One resource maps to exactly one managed connection and one audience, so VantageDesk needs its own — VantageDesk rejects a CRM-audience token and vice versa. The /crm/mcp and /desk/mcp paths hand each resource only the tools its token is valid for. If the adapter is ever restarted, re-run this sync: a freshly hydrated resource can lose its granular scopes and fall back to mcp:read, which vantage-desk-as doesn't define.*
+*NOTE: One resource maps to exactly one managed connection and one audience, so VantageDesk needs its own — VantageDesk rejects a CRM-audience token and vice versa. Each resource points at its own app's MCP server, which exposes only that app's tools. If the adapter is ever restarted, re-run this sync: a freshly hydrated resource can lose its granular scopes and fall back to mcp:read, which vantage-desk-as doesn't define.*
 
 ### 4.8 Re-list tools — see ITSM appear
 
@@ -214,7 +214,7 @@ Tool: itsm.lookup_ticket
 Args: {"ticket_id":"TKT-1734"}
 
 → Adapter performing XAA token exchange (step 1 + step 2)
-→ Adapter forwarding to the central MCP server at https://mcp.taskvantage.oktademo.app/mcp
+→ Adapter forwarding to the VantageDesk MCP server at https://mcp-desk.taskvantage.oktademo.app/mcp
 → MCP server routing to VantageDesk as kim.liu@atko.email
 ✓ Tool returned in 247 ms.
 
@@ -295,8 +295,8 @@ Output (decoded for readability):
       "exp": 1735196700
     }
 
-[7] Tool invocation — adapter → central MCP server:
-    POST https://mcp.taskvantage.oktademo.app/mcp  (tools/call: itsm.lookup_ticket)
+[7] Tool invocation — adapter → VantageDesk MCP server:
+    POST https://mcp-desk.taskvantage.oktademo.app/mcp  (tools/call: itsm.lookup_ticket)
     Authorization: Bearer <access token from step 6>
     Body: {"ticket_id":"TKT-1734"}
 
@@ -327,7 +327,7 @@ It calls GET https://desk.taskvantage.oktademo.app/admin/access-log with your te
   Client:            TaskVantage Sales Agent
   Audience:          api://vantage-desk
   Scopes:            itsm.tickets.read
-  Source:            mcp.taskvantage.oktademo.app (shared MCP server)
+  Source:            mcp-desk.taskvantage.oktademo.app (VantageDesk MCP server)
 ```
 
 *(If your environment serves this step as a rendered screenshot instead of the live Lab Toolkit, the captured access-log line is identical — same fields, same values.)*
@@ -336,6 +336,6 @@ The Client field reads **TaskVantage Sales Agent**, not a raw client ID — the 
 
 ---
 
-**End of lab.** VantageDesk now matches VantageCRM end-to-end: authorization server, scopes, access policy, managed connection, and an MCP Adapter resource at /desk/mcp. You watched the protocol that makes user-scoped agent access possible — ID-JAG, two-step exchange, audience and scope narrowing on each hop. And you saw the consequence at the backend: a request that carries the user's identity, not the agent's.
+**End of lab.** VantageDesk now matches VantageCRM end-to-end: authorization server, scopes, access policy, managed connection, and an MCP Adapter resource pointing at the VantageDesk MCP server. You watched the protocol that makes user-scoped agent access possible — ID-JAG, two-step exchange, audience and scope narrowing on each hop. And you saw the consequence at the backend: a request that carries the user's identity, not the agent's.
 
 One module remains. Lab 5 introduces OIG — access requests, certification campaigns, time-bound elevations, and the kill switch. You will watch Frank Boone request CRM access, get it approved, see the same tool-listing script start returning real tools for him, and then watch the access expire and the tools disappear again.

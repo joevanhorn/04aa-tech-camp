@@ -2,14 +2,15 @@
 
 This is your reference for what is running in your environment, where each component lives, and the state it starts in.
 
-> **Hosting model (ADR-0001):** VantageCRM and VantageDesk are **one central, multi-tenant,
+> **Hosting model:** VantageCRM and VantageDesk are **one central, multi-tenant,
 > API-only deployment** that every attendee's Okta org connects to — *not* a per-attendee copy.
 > They are resource servers only: no browser login, no app UI, no per-app OIDC client. Every
 > interaction is an agentic API call carrying a Bearer access token; the app resolves which tenant
 > (org) the call belongs to from the token's **issuer**. Your **agent and Okta MCP Adapter remain
-> per-attendee**, while the **MCP server is one central, shared service** (ADR-0002) that every
-> attendee's adapter connects to. The "tour it in a browser" moments (Modules 1.5 / 1.6 / 4.10) are
-> delivered out-of-band as rendered screenshots or via the **Lab Toolkit**, which calls the API as each user.
+> per-attendee**, while each app has its **own central, shared MCP server** — the VantageCRM MCP and
+> the VantageDesk MCP — that every attendee's adapter connects to. The "tour it in a browser" moments
+> (Modules 1.5 / 1.6 / 4.10) are delivered out-of-band as rendered screenshots or via the
+> **Lab Toolkit**, which calls the API as each user.
 
 ---
 
@@ -50,7 +51,8 @@ flowchart TB
 
     subgraph Central["Central, multi-tenant (shared by all orgs)"]
         direction TB
-        MCP[MCP Server<br>shared — 12 tools<br>routes to CRM or Desk]
+        McpCrm[VantageCRM MCP<br>mcp-crm.taskvantage.oktademo.app<br>6 CRM tools]
+        McpDesk[VantageDesk MCP<br>mcp-desk.taskvantage.oktademo.app<br>6 ITSM tools]
         CRM[VantageCRM API<br>crm.taskvantage.oktademo.app<br>resource server only]
         Desk[VantageDesk API<br>desk.taskvantage.oktademo.app<br>resource server only]
         Redis[(Redis<br>per-tenant partitions)]
@@ -64,9 +66,10 @@ flowchart TB
     Adapter -->|verify agent identity| AIRegistry
     Adapter -->|ID-JAG / XAA exchange| CRMAS
     Adapter -->|ID-JAG / XAA exchange| DeskAS
-    Adapter -->|authorized tool calls<br>with user-context Bearer tokens| MCP
-    MCP -->|HTTPS + Bearer| CRM
-    MCP -->|HTTPS + Bearer| Desk
+    Adapter -->|authorized CRM tool calls<br>user-context Bearer| McpCrm
+    Adapter -->|authorized Desk tool calls<br>user-context Bearer| McpDesk
+    McpCrm -->|HTTPS + Bearer| CRM
+    McpDesk -->|HTTPS + Bearer| Desk
     CRM -->|tenant by issuer| Redis
     Desk -->|tenant by issuer| Redis
 
@@ -83,7 +86,7 @@ flowchart TB
     class User trigger
     class Browser,Toolkit infra
     class OpenCode,Adapter workflow
-    class MCP action
+    class McpCrm,McpDesk action
     class CRM,Desk,Redis governance
     class UD,AIRegistry,CRMAS,DeskAS,OIG oktaCore
 ```
@@ -97,7 +100,7 @@ flowchart TB
 | Component | Role | Hosted on | State at lab start | First built / touched |
 | --- | --- | --- | --- | --- |
 | **Virtual Desktop (VDI)** | The attendee's workstation. Runs the browser used for **Okta Admin Console** tasks, plus the **Lab Toolkit** desktop utility for environment checks, persona reads, and agent tool calls. | Heropa | Fully provisioned. | Lab 1 |
-| **Per-attendee Okta MCP Adapter** | The attendee's own Okta MCP Adapter process. Stays per-attendee — it holds the org's agent secrets and performs per-org XAA token exchange. The MCP server it connects to is **central/shared** (see the central layer below). | Heropa (per attendee) | Provisioned; inactive until an agent is registered. | Lab 1.7 / Lab 3 |
+| **Per-attendee Okta MCP Adapter** | The attendee's own Okta MCP Adapter process. Stays per-attendee — it holds the org's agent secrets and performs per-org XAA token exchange. The MCP servers it connects to are **central/shared** — one per app (see the central layer below). | Heropa (per attendee) | Provisioned; inactive until an agent is registered. | Lab 1.7 / Lab 3 |
 | **Lab Toolkit** | A single desktop menu utility that fronts every command-line action in the camp: environment check, persona-scoped CRM/Desk reads, agent tool listing and invocation (with optional XAA token-exchange view), the access log, and CRM resource setup. Each menu choice prints the underlying call and result. | VDI desktop | Present on the desktop, ready to run. | Lab 1.7 |
 
 ### Central application layer (shared by all attendee orgs)
@@ -107,7 +110,7 @@ flowchart TB
 | **VantageCRM** | Custom-built fake CRM (Accounts, Contacts, Opportunities). Stand-in for Salesforce / HubSpot. **API-only resource server**; applies row-level filtering from the token's **sub** + **groups**. Multi-tenant: data partitioned per org, identical seed per tenant. | Central — **https://crm.taskvantage.oktademo.app** | **Prebuilt and running**, shared by every attendee org. | Lab 1.5 (tour, out-of-band) |
 | **VantageDesk** | Custom-built fake ITSM (Tickets, Incidents, Knowledge Base). Stand-in for ServiceNow / Jira Service Management. **API-only resource server**; access is by scope only (tenant-partitioned). | Central — **https://desk.taskvantage.oktademo.app** | **Prebuilt and running**, shared by every attendee org. | Lab 1.6 (tour, out-of-band) |
 | **Tenant state (Redis)** | Per-tenant data partitions for both apps (keyed by org). Reseeded per tenant on first request; resettable per tenant. | Central | Running. | n/a |
-| **MCP Server** | The single shared endpoint exposing the **12-tool** catalog (**crm.lookup_account**, **itsm.create_ticket**, …). A stateless bearer-forwarding proxy: every attendee's adapter connects to it, and it routes each call to the central VantageCRM/VantageDesk API with the user-context Bearer token. No per-org state or secrets, so it is safely shared (ADR-0002). | Central — **https://mcp.taskvantage.oktademo.app** | **Prebuilt and running**, shared by every attendee. | Lab 1.7 |
+| **MCP servers (one per app)** | Two stateless bearer-forwarding proxies that expose the agent's tools: the **VantageCRM MCP** serves the 6 `crm.*` tools, the **VantageDesk MCP** serves the 6 `itsm.*` tools (together, the agent's 12-tool catalog). Each takes the user-context Bearer token from the adapter and forwards the call to its app. No per-org state or secrets, so both are safely shared by every attendee. | Central — **https://mcp-crm.taskvantage.oktademo.app** and **https://mcp-desk.taskvantage.oktademo.app** (each serves its tools at **/mcp**) | **Prebuilt and running**, shared by every attendee. | Lab 1.7 |
 
 ### Okta org (per attendee)
 
@@ -144,6 +147,6 @@ flowchart TB
 - **Light blue (action)** — the MCP server (executes tool calls)
 - **Green (resource)** — the central apps + tenant state that hold the actual data
 
-**Central vs per-attendee:** the green **Central** box (the shared MCP server, VantageCRM, VantageDesk, Redis) is **one shared deployment** for the whole room; the **agent, Okta MCP Adapter, and the attendee's Okta org** (in the Heropa box) are per-attendee. A backend call carries the attendee's user-context token, and the central apps resolve the tenant from the token **issuer**.
+**Central vs per-attendee:** the green **Central** box (the two MCP servers, VantageCRM, VantageDesk, Redis) is **one shared deployment** for the whole room; the **agent, Okta MCP Adapter, and the attendee's Okta org** (in the Heropa box) are per-attendee. A backend call carries the attendee's user-context token, and the central apps resolve the tenant from the token **issuer**.
 
 **Asymmetry by design:** **vantage-crm-as** and its access policy are prebuilt; the VantageDesk equivalents are missing. Each module of the camp closes one of these gaps. By the end of Lab 5, both auth servers + access policies + governance are identically configured for the two apps.

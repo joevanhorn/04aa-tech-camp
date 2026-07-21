@@ -4,11 +4,11 @@
 
 Review your TaskVantage environment before introducing any AI agents. You will tour your Okta org, the two custom business applications (VantageCRM and VantageDesk), the MCP server that fronts them, and the Okta AI Agents administration area. By the end of this lab, you will know where everything lives and what state it is in before governance is applied.
 
-> **Hosting model (ADR-0001):** VantageCRM and VantageDesk are one central, multi-tenant,
+> **Hosting model:** VantageCRM and VantageDesk are one central, multi-tenant,
 > API-only deployment shared by every attendee's Okta org — *not* a per-attendee copy. They are
 > resource servers only: no browser login, no app UI. The central app resolves which tenant your
 > call belongs to from the token's **issuer**. Your agent and Okta MCP Adapter stay per-attendee;
-> the MCP server is central and shared (ADR-0002). The "tour it in a browser" moments below
+> each app has its own central, shared MCP server (the VantageCRM MCP and the VantageDesk MCP). The "tour it in a browser" moments below
 > (1.5 / 1.6) are delivered out-of-band — a provided screenshot or the **Lab Toolkit** on the
 > Virtual Desktop, which calls the API as each user.
 
@@ -139,13 +139,13 @@ The Kim-vs-Alex difference is purely **scope**: who has the ITSM scopes and who 
 
 ### 1.7 Check your environment
 
-The MCP server is the single endpoint that fronts both VantageCRM and VantageDesk. It exposes a catalog of tools (such as *crm.lookup_account* and *itsm.create_ticket*) that the AI agent will use. In later labs, the **Okta MCP Adapter** sits between the agent and this MCP server and:
+Each app has its own MCP server: the **VantageCRM MCP** (`mcp-crm.taskvantage.oktademo.app`) exposes the CRM tools, and the **VantageDesk MCP** (`mcp-desk.taskvantage.oktademo.app`) exposes the ITSM tools. Together they make up the agent's tool catalog (such as *crm.lookup_account* and *itsm.create_ticket*). In later labs, the **Okta MCP Adapter** sits between the agent and these MCP servers and:
 
 1. Verifies the agent is properly registered in Okta.
 2. Exposes the agent's full tool catalog to every user, while letting Okta authorize *which* tools each user may actually invoke — enforced at the token exchange, not by hiding tools.
 3. Performs the XAA token exchange so backend calls hit the apps as the user, not as the agent.
 
-Run the environment check now. It verifies the central apps and central MCP server are reachable, confirms TLS certificates are valid, and sets up the environment that later labs reuse.
+Run the environment check now. It verifies the central apps and both MCP servers are reachable, confirms TLS certificates are valid, and sets up the environment that later labs reuse.
 
 1. Open the **Lab Toolkit** (desktop icon).
 2. Choose **1) Check my environment**.
@@ -157,7 +157,8 @@ TaskVantage environment check
 ✓ Okta org reachable        (https://{{idp.tenantDomain}})
 ✓ VantageCRM reachable      (https://crm.taskvantage.oktademo.app — central)
 ✓ VantageDesk reachable     (https://desk.taskvantage.oktademo.app — central)
-✓ MCP server reachable      (https://mcp.{{lab_domain}} — 12 tools registered: 6 CRM + 6 Desk)
+✓ VantageCRM MCP reachable  (https://mcp-crm.taskvantage.oktademo.app — 6 CRM tools)
+✓ VantageDesk MCP reachable (https://mcp-desk.taskvantage.oktademo.app — 6 Desk tools)
 ✓ TLS certificates valid
 
 Environment ready:
