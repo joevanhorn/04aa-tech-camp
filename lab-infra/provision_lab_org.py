@@ -325,7 +325,11 @@ def ensure_toolkit_read_rule(base, token, asid, pid, gids):
 # ---------------------------------------------------------------------------
 ADMIN_UI_LABEL = "O4AA Adapter Admin UI"   # display name in Okta; also the lookup key bind-to-org.sh resolves by
 ADMIN_UI_REDIRECTS = ["http://localhost:3001/callback",
-                      "http://adapter.taskvantage.lab:3001/callback"]
+                      "http://adapter.taskvantage.lab:3001/callback",
+                      # Friendly bridge-GUI hostname the VDI configurator writes to the hosts file
+                      # (Configure-OpenCodeAgent.ps1 -BridgeGuiHost); Admin-UI sign-in via this name
+                      # needs its callback registered or the OIDC redirect is rejected.
+                      "http://bridge.taskvantage.lab:3001/callback"]
 ADMIN_UI_API_SCOPES = ["okta.aiAgents.manage", "okta.aiAgents.read", "okta.apps.read",
                        "okta.authorizationServers.read"]
 
@@ -336,6 +340,29 @@ def _everyone_group_id(base, token) -> str | None:
         if g.get("type") == "BUILT_IN" and g.get("profile", {}).get("name") == "Everyone":
             return g["id"]
     return None
+
+
+def _ensure_admin_ui_redirects(base, token, app_id):
+    """Union ADMIN_UI_REDIRECTS into an existing admin-ui app's redirect_uris (idempotent).
+
+    Create sets redirect_uris once; a plain create-if-absent would never add newly-needed callbacks
+    (e.g. the friendly bridge-GUI hostname) to orgs provisioned before it existed. Okta has no PATCH
+    for oauthClient settings, so re-PUT the full app resource with the field merged."""
+    code, full = req("GET", base, f"/api/v1/apps/{app_id}", token)
+    if not isinstance(full, dict):
+        return
+    oc = full.get("settings", {}).get("oauthClient", {})
+    have = oc.get("redirect_uris", []) or []
+    missing = [u for u in ADMIN_UI_REDIRECTS if u not in have]
+    if not missing:
+        return
+    oc["redirect_uris"] = have + missing
+    full.setdefault("settings", {})["oauthClient"] = oc
+    code, body = req("PUT", base, f"/api/v1/apps/{app_id}", token, full)
+    if code not in (200, 201):
+        print(f"  WARN could not update admin-ui redirect_uris ({code}): {body}")
+    else:
+        print(f"  admin-ui redirect_uris updated (+{len(missing)}): {missing}")
 
 
 def ensure_admin_ui_client(base, token, nomfa_pid) -> tuple[str, str]:
@@ -358,6 +385,7 @@ def ensure_admin_ui_client(base, token, nomfa_pid) -> tuple[str, str]:
     client_id = app.get("credentials", {}).get("oauthClient", {}).get("client_id", "DRY")
     if DRY:
         return app_id, client_id
+    _ensure_admin_ui_redirects(base, token, app_id)   # add newly-needed callbacks on re-runs
     # Grant the Okta API scopes the adapter admin path requires (idempotent).
     code, grants = req("GET", base, f"/api/v1/apps/{app_id}/grants?limit=200", token)
     granted = {g.get("scopeId") for g in (grants if isinstance(grants, list) else [])}
