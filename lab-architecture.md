@@ -51,8 +51,8 @@ flowchart TB
     subgraph Central["Central, multi-tenant (shared by all orgs)"]
         direction TB
         MCP[MCP Server<br>shared — 12 tools<br>routes to CRM or Desk]
-        CRM[VantageCRM API<br>vantagecrm.taskvantage-demo.com<br>resource server only]
-        Desk[VantageDesk API<br>vantagedesk.taskvantage-demo.com<br>resource server only]
+        CRM[VantageCRM API<br>crm.taskvantage.oktademo.app<br>resource server only]
+        Desk[VantageDesk API<br>desk.taskvantage.oktademo.app<br>resource server only]
         Redis[(Redis<br>per-tenant partitions)]
     end
 
@@ -104,10 +104,10 @@ flowchart TB
 
 | Component | Role | Hosted on | State at lab start | First built / touched |
 | --- | --- | --- | --- | --- |
-| **VantageCRM** | Custom-built fake CRM (Accounts, Contacts, Opportunities). Stand-in for Salesforce / HubSpot. **API-only resource server**; applies row-level filtering from the token's **sub** + **groups**. Multi-tenant: data partitioned per org, identical seed per tenant. | Central — **https://vantagecrm.taskvantage-demo.com** | **Prebuilt and running**, shared by every attendee org. | Lab 1.5 (tour, out-of-band) |
-| **VantageDesk** | Custom-built fake ITSM (Tickets, Incidents, Knowledge Base). Stand-in for ServiceNow / Jira Service Management. **API-only resource server**; access is by scope only (tenant-partitioned). | Central — **https://vantagedesk.taskvantage-demo.com** | **Prebuilt and running**, shared by every attendee org. | Lab 1.6 (tour, out-of-band) |
+| **VantageCRM** | Custom-built fake CRM (Accounts, Contacts, Opportunities). Stand-in for Salesforce / HubSpot. **API-only resource server**; applies row-level filtering from the token's **sub** + **groups**. Multi-tenant: data partitioned per org, identical seed per tenant. | Central — **https://crm.taskvantage.oktademo.app** | **Prebuilt and running**, shared by every attendee org. | Lab 1.5 (tour, out-of-band) |
+| **VantageDesk** | Custom-built fake ITSM (Tickets, Incidents, Knowledge Base). Stand-in for ServiceNow / Jira Service Management. **API-only resource server**; access is by scope only (tenant-partitioned). | Central — **https://desk.taskvantage.oktademo.app** | **Prebuilt and running**, shared by every attendee org. | Lab 1.6 (tour, out-of-band) |
 | **Tenant state (Redis)** | Per-tenant data partitions for both apps (keyed by org). Reseeded per tenant on first request; resettable per tenant. | Central | Running. | n/a |
-| **MCP Server** | The single shared endpoint exposing the **12-tool** catalog (**crm.lookup_account**, **itsm.create_ticket**, …). A stateless bearer-forwarding proxy: every attendee's adapter connects to it, and it routes each call to the central VantageCRM/VantageDesk API with the user-context Bearer token. No per-org state or secrets, so it is safely shared (ADR-0002). | Central — **https://mcp.taskvantage-demo.com** | **Prebuilt and running**, shared by every attendee. | Lab 1.7 |
+| **MCP Server** | The single shared endpoint exposing the **12-tool** catalog (**crm.lookup_account**, **itsm.create_ticket**, …). A stateless bearer-forwarding proxy: every attendee's adapter connects to it, and it routes each call to the central VantageCRM/VantageDesk API with the user-context Bearer token. No per-org state or secrets, so it is safely shared (ADR-0002). | Central — **https://mcp.taskvantage.oktademo.app** | **Prebuilt and running**, shared by every attendee. | Lab 1.7 |
 
 ### Okta org (per attendee)
 

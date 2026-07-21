@@ -4,7 +4,7 @@
 
 By the end of this lab the two halves of TaskVantage are configured identically in your org, and you will have watched the XAA protocol carry both agent and user identity all the way to the app. You build the entire VantageDesk side — authorization server, scopes, access policy, managed connection, and the matching MCP Adapter resource — using your VantageCRM work as the template.
 
-The VantageDesk API already exists in the shared central deployment at https://vantagedesk.taskvantage-demo.com. You build only the Okta side; your org's new auth server is trusted automatically via JWKS, with no app-side registration or redeploy.
+The VantageDesk API already exists in the shared central deployment at https://desk.taskvantage.oktademo.app. You build only the Okta side; your org's new auth server is trusted automatically via JWKS, with no app-side registration or redeploy.
 
 - Create **vantage-desk-as**, a custom authorization server in your org, and add the ITSM scopes
 - Build the access policy rules mapping the help desk group to those scopes
@@ -214,7 +214,7 @@ Tool: itsm.lookup_ticket
 Args: {"ticket_id":"TKT-1734"}
 
 → Adapter performing XAA token exchange (step 1 + step 2)
-→ Adapter forwarding to the central MCP server at https://mcp.taskvantage-demo.com/mcp
+→ Adapter forwarding to the central MCP server at https://mcp.taskvantage.oktademo.app/mcp
 → MCP server routing to VantageDesk as kim.liu@atko.email
 ✓ Tool returned in 247 ms.
 
@@ -296,7 +296,7 @@ Output (decoded for readability):
     }
 
 [7] Tool invocation — adapter → central MCP server:
-    POST https://mcp.taskvantage-demo.com/mcp  (tools/call: itsm.lookup_ticket)
+    POST https://mcp.taskvantage.oktademo.app/mcp  (tools/call: itsm.lookup_ticket)
     Authorization: Bearer <access token from step 6>
     Body: {"ticket_id":"TKT-1734"}
 
@@ -319,7 +319,7 @@ The central VantageDesk is API-only — there is no admin web page to open. Inst
 1. Open the **Lab Toolkit** and choose **6) Show the access log**.
 2. Look for the entry for **TKT-1734**.
 
-It calls GET https://vantagedesk.taskvantage-demo.com/admin/access-log with your tenant-scoped token and prints the matching line:
+It calls GET https://desk.taskvantage.oktademo.app/admin/access-log with your tenant-scoped token and prints the matching line:
 
 ```
 2026-04-23 11:24:08  GET  /api/tickets/TKT-1734
@@ -327,7 +327,7 @@ It calls GET https://vantagedesk.taskvantage-demo.com/admin/access-log with your
   Client:            TaskVantage Sales Agent
   Audience:          api://vantage-desk
   Scopes:            itsm.tickets.read
-  Source:            mcp.taskvantage-demo.com (shared MCP server)
+  Source:            mcp.taskvantage.oktademo.app (shared MCP server)
 ```
 
 *(If your environment serves this step as a rendered screenshot instead of the live Lab Toolkit, the captured access-log line is identical — same fields, same values.)*

@@ -110,7 +110,7 @@ All personas share the same password, `{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.se
 
 ### 1.5 Tour VantageCRM (out-of-band)
 
-VantageCRM is a custom-built CRM that stands in for Salesforce, HubSpot, or similar. It holds the customer data your agent will read and modify. It is **API-only** — no app UI to log into. It lives centrally at *vantagecrm.taskvantage-demo.com*, shared by every attendee org, and resolves your tenant from the token issuer.
+VantageCRM is a custom-built CRM that stands in for Salesforce, HubSpot, or similar. It holds the customer data your agent will read and modify. It is **API-only** — no app UI to log into. It lives centrally at *crm.taskvantage.oktademo.app*, shared by every attendee org, and resolves your tenant from the token issuer.
 
 Because there is no browser app, you tour the data by calling the API as each user, using the provided screenshot or the **Lab Toolkit**. Both call *GET /api/accounts* with each user's token.
 
@@ -125,7 +125,7 @@ The difference is row-level filtering enforced by VantageCRM itself, based on ea
 
 ### 1.6 Tour VantageDesk (out-of-band)
 
-VantageDesk is a custom-built IT service management app that stands in for ServiceNow or Jira Service Management. Like VantageCRM, it is **API-only** — no app UI. It lives centrally at *vantagedesk.taskvantage-demo.com*, shared by every attendee org, and resolves your tenant from the token issuer.
+VantageDesk is a custom-built IT service management app that stands in for ServiceNow or Jira Service Management. Like VantageCRM, it is **API-only** — no app UI. It lives centrally at *desk.taskvantage.oktademo.app*, shared by every attendee org, and resolves your tenant from the token issuer.
 
 Tour it out-of-band, using the provided screenshot or the **Lab Toolkit**, which calls *GET /api/tickets* with each user's token.
 
@@ -155,8 +155,8 @@ Run the environment check now. It verifies the central apps and central MCP serv
 TaskVantage environment check
 ─────────────────────────────
 ✓ Okta org reachable        (https://{{idp.tenantDomain}})
-✓ VantageCRM reachable      (https://vantagecrm.taskvantage-demo.com — central)
-✓ VantageDesk reachable     (https://vantagedesk.taskvantage-demo.com — central)
+✓ VantageCRM reachable      (https://crm.taskvantage.oktademo.app — central)
+✓ VantageDesk reachable     (https://desk.taskvantage.oktademo.app — central)
 ✓ MCP server reachable      (https://mcp.{{lab_domain}} — 12 tools registered: 6 CRM + 6 Desk)
 ✓ TLS certificates valid
 
