@@ -42,55 +42,68 @@ The snapshot is taken from a configured template VM and already includes:
 - **`.env` fully populated EXCEPT the org identity** — TLS certs, `GATEWAY_BASE_URL`, DB/redis
   credentials, and the encryption key are all present; the Okta fields are **blank**.
 - **Stack is DOWN** (containers removed). There is **no** systemd unit / cron / rc.local that
-  auto-starts it, so a fresh VM boots clean and idle — it will **not** crash-loop on the blank
-  config. It comes up only when provisioning runs `docker compose up` (§3).
+  auto-starts the stack, so a fresh VM boots clean and idle. It will **not** crash-loop on the blank
+  config. It comes up only when the Launcher API runs `docker compose up` in response to the VDI's
+  `/launch` call (section 3).
+- **The Launcher API** - `bridge-launcher.py` plus its systemd unit (`bridge-launcher.service`,
+  **enabled at boot**), with the fleet bearer secret baked at `/opt/bridge/launcher/secret`. The
+  launcher listens on `:9090` from first boot and idles until the paired VDI calls `POST /launch`,
+  which writes the org identity and brings the stack up. See [`bridge-launcher/`](./bridge-launcher/)
+  for the drop-in artifacts and [`BRIDGE-LAUNCHER-API-SPEC.md`](./BRIDGE-LAUNCHER-API-SPEC.md) for the
+  full spec.
 
 ---
 
-## 3. Per-attendee provisioning — what must happen on a new bridge VM
+## 3. Per-attendee provisioning: the VDI launches the bridge
 
-The **only** per-attendee work is injecting the paired org's identity and starting the stack.
+The per-attendee trigger is the **attendee's own VDI bootstrap**. The bridge boots bare and idle;
+the attendee's `bootstrap.ps1 -LaunchBridge` calls the **Launcher API** on the bridge (`POST
+/launch`), and the launcher performs the org-identity `.env` write and `docker compose up` on the
+bridge's behalf. There is no longer a "provision the bridge before the VDI runs" ordering step; the
+attendee's run is the single moment org + VDI + bridge are tied together. Full contract:
+[`BRIDGE-LAUNCHER-API-SPEC.md`](./BRIDGE-LAUNCHER-API-SPEC.md).
 
-1. **Confirm the VM booted from the Ubuntu 24.04 golden snapshot** (not a stock AMI).
+**Primary path (launcher-driven):**
 
-2. **Inject the paired attendee org's identity into `.env`.** These four keys are the only
-   per-attendee values. The org subdomain and its admin-ui client id come from the Okta org the
-   provisioning servicer (`TechCampO4AALabServicer`) created for this attendee — the client id is
-   that org's **`O4AA Adapter Admin UI`** OIDC app `client_id`.
+1. **Confirm the VM booted from the Ubuntu 24.04 golden snapshot** (not a stock AMI) with the
+   Launcher API enabled and listening on `:9090` (`curl -s http://localhost:9090/healthz`).
+2. **Nothing else on the bridge.** The attendee's VDI bootstrap does the rest: it POSTs
+   `{okta_domain, admin_ui_client_id}` with the fleet bearer secret to `POST /launch`; the launcher
+   validates the inputs, writes the 4 `.env` keys, runs `docker compose up -d`, and the VDI polls
+   `GET /status` until the adapter and admin-ui report healthy. The org subdomain and admin-ui client
+   id are platform-injected into the bootstrap (see section 5 of the spec): the subdomain comes from
+   the Okta org the provisioning servicer (`TechCampO4AALabServicer`) created for the attendee, and
+   the client id is that org's **`O4AA Adapter Admin UI`** OIDC app `client_id`.
 
-   ```bash
-   BUNDLE=/opt/bridge/okta-mcp-adapter-bundle-0.15.14
-   ORG=demo-xxxx-yyyy-12345          # attendee org subdomain
-   ADMIN_UI_CID=0oaXXXXXXXXXXXX       # that org's "O4AA Adapter Admin UI" app client_id
-   sudo sed -i -E \
-     -e "s|^OKTA_DOMAIN=.*|OKTA_DOMAIN=${ORG}.okta.com|" \
-     -e "s|^OKTA_ISSUER=.*|OKTA_ISSUER=https://${ORG}.okta.com|" \
-     -e "s|^ADMIN_UI_OKTA_ISSUER=.*|ADMIN_UI_OKTA_ISSUER=https://${ORG}.okta.com|" \
-     -e "s|^ADMIN_UI_OKTA_CLIENT_ID=.*|ADMIN_UI_OKTA_CLIENT_ID=${ADMIN_UI_CID}|" \
-     "$BUNDLE/.env"
-   ```
+**What the launcher does under the hood (also the manual fallback).** If you ever need to configure a
+bridge by hand (no VDI, or to reproduce a failure), the launcher's `/launch` is exactly the following
+two steps. These four keys are the only per-attendee values.
 
-3. **Bring the stack up:**
+```bash
+BUNDLE=/opt/bridge/okta-mcp-adapter-bundle-0.15.14
+ORG=demo-xxxx-yyyy-12345          # attendee org subdomain
+ADMIN_UI_CID=0oaXXXXXXXXXXXX       # that org's "O4AA Adapter Admin UI" app client_id
+sudo sed -i -E \
+  -e "s|^OKTA_DOMAIN=.*|OKTA_DOMAIN=${ORG}.okta.com|" \
+  -e "s|^OKTA_ISSUER=.*|OKTA_ISSUER=https://${ORG}.okta.com|" \
+  -e "s|^ADMIN_UI_OKTA_ISSUER=.*|ADMIN_UI_OKTA_ISSUER=https://${ORG}.okta.com|" \
+  -e "s|^ADMIN_UI_OKTA_CLIENT_ID=.*|ADMIN_UI_OKTA_CLIENT_ID=${ADMIN_UI_CID}|" \
+  "$BUNDLE/.env"
+cd "$BUNDLE" && sudo docker compose -f docker-compose.bundle.yml up -d
+```
 
-   ```bash
-   cd "$BUNDLE" && sudo docker compose -f docker-compose.bundle.yml up -d
-   ```
+The adapter migrates the empty DB to healthy on `:8000` (HTTPS); admin-ui reaches it over HTTPS,
+goes healthy, and serves `config.js` on `:3001`; the rest come up healthy.
 
-   The adapter migrates the empty DB → healthy on `:8000` (HTTPS); admin-ui reaches it over HTTPS
-   → healthy → serves `config.js` on `:3001`; the rest come up healthy.
+### How the identity reaches the bridge (important)
 
-4. **Ordering — this must finish BEFORE the attendee runs the VDI `bootstrap.ps1`.** The VDI
-   bootstrap *reads* `config.js` from the bridge to resolve the admin-ui client id; if the bridge
-   isn't up/configured, the bootstrap aborts with a "config.js unreachable" error.
-
-### Where the org identity comes from (important)
-
-The **VDI PowerShell script does NOT configure the bridge.** Its `-OrgUrl` parameter feeds the
-VDI-local Lab Toolkit config and an admin sign-in against the org to resolve toolkit/AS ids; toward
-the bridge it only **reads** (`config.js`, the CA) and writes a local hosts entry. So the bridge's
-`OKTA_DOMAIN` + admin-ui client id **must be supplied to the bridge at provision time** — the VDI
-will not set them, and `OKTA_DOMAIN` cannot be set via the running admin UI (it is a startup env
-var; the adapter refuses to start without it).
+Under the launcher model the **VDI supplies the org identity to the bridge**: it POSTs `okta_domain`
++ admin-ui client id to `/launch`, and the launcher writes them into `.env` before bringing the stack
+up. (The rest of the VDI bootstrap still only **reads** from the bridge, `config.js` and the CA, and
+writes a local hosts entry.) `OKTA_DOMAIN` cannot be set via the running admin UI (it is a startup
+env var; the adapter refuses to start without it), which is exactly why the launcher writes it to
+`.env` and then runs `compose up`: it is the one component that can set the startup identity on a bare
+bridge.
 
 ---
 

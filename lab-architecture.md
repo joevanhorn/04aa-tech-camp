@@ -100,7 +100,7 @@ flowchart TB
 | Component | Role | Hosted on | State at lab start | First built / touched |
 | --- | --- | --- | --- | --- |
 | **Virtual Desktop (VDI)** | The attendee's workstation. Runs the browser used for **Okta Admin Console** tasks, plus the **Lab Toolkit** desktop utility for environment checks, persona reads, and agent tool calls. | Heropa | Fully provisioned. | Lab 1 |
-| **Per-attendee Okta MCP Adapter** | The attendee's own Okta MCP Adapter process. Stays per-attendee — it holds the org's agent secrets and performs per-org XAA token exchange. The MCP servers it connects to are **central/shared** — one per app (see the central layer below). | Heropa (per attendee) | Provisioned; inactive until an agent is registered. | Lab 1.7 / Lab 3 |
+| **Per-attendee Okta MCP Adapter** | The attendee's own Okta MCP Adapter process. Stays per-attendee, holding the org's agent secrets and performing per-org XAA token exchange. The MCP servers it connects to are **central/shared**, one per app (see the central layer below). | Heropa (per attendee) | VM provisioned; the bridge stack is **started by your VDI setup** in Lab 1, then inactive until an agent is registered. | Lab 1.7 / Lab 3 |
 | **Lab Toolkit** | A single desktop menu utility that fronts every command-line action in the camp: environment check, persona-scoped CRM/Desk reads, agent tool listing and invocation, the access log, CRM resource setup, and two proof modes (side-by-side allow vs deny; prove-it-can't-be-faked). Each menu choice prints the underlying call and result — persona actions render the decoded token Okta issued, the raw HTTP with Okta's correlation id, and the matching System Log record. | VDI desktop | Present on the desktop, ready to run. | Lab 1.7 |
 
 ### Central application layer (shared by all attendee orgs)
@@ -128,7 +128,7 @@ flowchart TB
 
 | Component | Role | Hosted on | State at lab start | First built / touched |
 | --- | --- | --- | --- | --- |
-| **Okta MCP Adapter** | Policy enforcement point between agent and the central MCP server. Verifies agent identity, exposes the agent's full tool catalog to every user, and performs per-user authorization at the XAA token exchange (the catalog is the agent's full capability set; Okta decides at invoke-time whether to issue a token, so backend calls hit the central apps as the user only when authorized). | Per-attendee (Heropa) | **Prebuilt** but inactive — no agent registered yet, so no requests pass policy. | Lab 3 (use-time authorization); Lab 4 (XAA) |
+| **Okta MCP Adapter** | Policy enforcement point between agent and the central MCP server. Verifies agent identity, exposes the agent's full tool catalog to every user, and performs per-user authorization at the XAA token exchange (the catalog is the agent's full capability set; Okta decides at invoke-time whether to issue a token, so backend calls hit the central apps as the user only when authorized). | Per-attendee (Heropa) | **Prebuilt** image, **started by your VDI setup** in Lab 1; then inactive because no agent is registered yet, so no requests pass policy. | Lab 3 (use-time authorization); Lab 4 (XAA) |
 | **OpenCode agent (primary)** | Open-source AI coding agent, **pre-installed and configured on the VDI** and pointed at the attendee's adapter. Registered manually in Okta in Lab 2; this is the agent the rest of the camp uses. | VDI (Heropa-provisioned) | **Installed and ready**; identity not yet registered. | Lab 2 |
 
 ---

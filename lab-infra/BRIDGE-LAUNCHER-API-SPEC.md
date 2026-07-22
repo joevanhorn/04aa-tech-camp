@@ -1,9 +1,13 @@
 # Spec — VDI-triggered bridge launch via a Launcher API
 
-**Status:** proposed design. Goal: let the attendee's VDI `bootstrap.ps1` **configure and start** its
-paired bridge at run time, so the Linux bridge VM can **boot with zero Okta org data** and idle until
-an attendee is assigned. This decouples the bridge from the org/VDI (which Heropa does not tie
-together) and removes the "bridge must be pre-provisioned before the VDI runs" ordering dependency.
+**Status: VALIDATED.** Tested end-to-end twice, cold, on a real bridge + VDI: `-LaunchBridge` ->
+`POST /launch` on an empty-DB bridge -> `Applied 5 migration(s)` -> all 6 containers healthy (adapter,
+admin-ui, postgres, redis, and the two demo backends) -> CA fetch succeeds -> toolkit + OpenCode
+installed. The design below is the shipped model. Goal: let the attendee's VDI `bootstrap.ps1`
+**configure and start** its paired bridge at run time, so the Linux bridge VM can **boot with zero
+Okta org data** and idle until an attendee is assigned. This decouples the bridge from the org/VDI
+(which Heropa does not tie together) and removes the "bridge must be pre-provisioned before the VDI
+runs" ordering dependency.
 
 Companion to [`BRIDGE-PROVISIONING.md`](./BRIDGE-PROVISIONING.md).
 
@@ -259,23 +263,36 @@ per-org ids). Inject them as Mustache placeholders, same pattern as `-OpenAIApiK
 
 ## 8. Work items
 
-**Bridge side (golden image):** drop-in artifacts built in [`bridge-launcher/`](./bridge-launcher/)
-(`bridge-launcher.py`, `bridge-launcher.service`, `install-launcher.sh`, README).
+**Bridge side (golden image): built + TESTED.** drop-in artifacts in
+[`bridge-launcher/`](./bridge-launcher/) (`bridge-launcher.py`, `bridge-launcher.service`,
+`install-launcher.sh`, README); installer and service verified on a real bridge, and the golden image
+re-snapshotted with the launcher installed, enabled at boot, and the fleet secret baked.
 - [x] Launcher service + systemd unit + installer written and syntax-checked.
-- [ ] Run `sudo ./install-launcher.sh --secret <FLEET_SECRET>` on the bridge (Heropa).
-- [ ] Firewall the launcher port (9090) to the paired VDI only.
-- [ ] Re-snapshot.
+- [x] `sudo ./install-launcher.sh --secret <FLEET_SECRET>` run on the bridge; service enabled and
+      listening on `:9090`.
+- [x] Launcher port (9090) firewalled to the paired VDI only.
+- [x] Re-snapshot: the golden image now carries the launcher (installed, enabled, fleet secret baked).
 
-**VDI side (`Configure-OpenCodeAgent.ps1`):** ✅ **built** (ofcto-workforce-taskvantage `53cab3f`)
+**VDI side (`Configure-OpenCodeAgent.ps1`): built + TESTED** (ofcto-workforce-taskvantage `53cab3f`)
 - [x] Added `-LaunchBridge`, `-BridgeLauncherPort` (9090), `-BridgeLauncherSecret`,
       `-BridgeLaunchTimeoutSec` (120); `-AdminUiClientId` required when launching; the
-      `/healthz` → `/launch` → poll-`/status` block runs before the CA fetch; re-embedded and
+      `/healthz` -> `/launch` -> poll-`/status` block runs before the CA fetch; re-embedded and
       parse-verified on the VDI (PS 5.1, 0 errors).
+- [x] End-to-end launch verified twice cold: empty-DB `Applied 5 migration(s)` -> all 6 containers
+      healthy -> CA fetch succeeds -> toolkit + OpenCode installed.
 
-**Platform:**
-- [ ] Expose the `-AdminUiClientId` and `-BridgeLauncherSecret` placeholders in the bootstrap snippet.
+**Dependency (CA fetch):** this flow relies on the CA-fetch TLS-1.2 fix in
+`Configure-OpenCodeAgent.ps1` - `Get-BridgeCa` now pins `SslProtocols.Tls12` (ofcto-workforce-
+taskvantage `31b01d7`). Without it the CA fetch against the freshly launched bridge fails and the
+toolkit/OpenCode install cannot proceed.
 
-**Validation:** the existing VDI validation snippet in `BRIDGE-PROVISIONING.md` still applies — after
+**Platform: still pending.**
+- [ ] Expose the `-AdminUiClientId` and `-BridgeLauncherSecret` placeholders in the bootstrap
+      snippet: the two `{{TODO-*}}` tokens in `module-1-environment-tour.md`
+      (`{{TODO-admin-ui-client-id}}` and `{{TODO-bridge-launcher-secret}}`) must be replaced with the
+      real per-org / fleet Mustache tokens before shipping.
+
+**Validation:** the existing VDI validation snippet in `BRIDGE-PROVISIONING.md` still applies; after
 `-LaunchBridge` completes, it should show all PASS with a non-empty client id.
 
 ---
