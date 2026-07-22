@@ -1,0 +1,282 @@
+# Spec — VDI-triggered bridge launch via a Launcher API
+
+**Status:** proposed design. Goal: let the attendee's VDI `bootstrap.ps1` **configure and start** its
+paired bridge at run time, so the Linux bridge VM can **boot with zero Okta org data** and idle until
+an attendee is assigned. This decouples the bridge from the org/VDI (which Heropa does not tie
+together) and removes the "bridge must be pre-provisioned before the VDI runs" ordering dependency.
+
+Companion to [`BRIDGE-PROVISIONING.md`](./BRIDGE-PROVISIONING.md).
+
+---
+
+## 1. Model shift
+
+**Today:** something must inject the org identity into the bridge `.env` and `up` the stack *before*
+the attendee runs the VDI bootstrap (which reads `config.js` from an already-running bridge).
+
+**Proposed:** the bridge boots **bare/idle** (golden image: Docker + bundle + fixed images, blank
+`.env`, stack down). A small **Launcher API** runs on the bridge. The attendee's `bootstrap.ps1`
+calls it with the org identity (which the platform injects into the bootstrap), the launcher writes
+`.env` + brings the stack up, the VDI polls until healthy, then continues. The **attendee's action is
+the single moment org + VDI + bridge are tied together.**
+
+```
+Platform  --(-OrgUrl, -AdminUiClientId, -BridgeLauncherSecret placeholders)-->  VDI bootstrap.ps1
+VDI bootstrap.ps1  --POST /launch {okta_domain, admin_ui_client_id} + Bearer-->  Bridge Launcher API (10.0.0.5:9090)
+Launcher  --> writes .env (4 keys) --> `docker compose up -d` --> adapter :8000 + admin-ui :3001 healthy
+VDI bootstrap.ps1  --poll /status (or /.well-known + config.js)--> ready --> continues normal setup
+```
+
+---
+
+## 2. The Launcher API
+
+A tiny, single-purpose HTTP service on the bridge. **Dependency-free** (Python stdlib
+`http.server`) so nothing extra is baked into the image. Runs as a systemd unit, enabled at boot.
+
+### Endpoints
+
+| Method / path | Auth | Body | Behavior |
+|---|---|---|---|
+| `GET /healthz` | none | — | Launcher liveness — `200 {"launcher":"ok"}`. Lets the VDI confirm the launcher is up before POSTing. |
+| `POST /launch` | `Authorization: Bearer <secret>` | `{"okta_domain":"demo-x.okta.com","admin_ui_client_id":"0oa…"}` | Validate → write the 4 `.env` keys → `docker compose up -d` (force-recreate adapter+admin-ui on re-config). Returns `202 {"status":"launching","okta_domain":…}`. **Idempotent** — re-POST reconfigures + restarts. |
+| `GET /status` | `Bearer` | — | Reports container health + readiness: `{"adapter_ready":bool,"admin_ui_ready":bool,"containers":{…},"okta_domain":…}`. VDI polls this. |
+
+### `/launch` logic
+
+1. Check `Authorization: Bearer` == configured secret (else `401`).
+2. Validate inputs: `okta_domain` matches `^[a-z0-9-]+\.okta(preview)?\.com$`; `admin_ui_client_id`
+   matches `^0oa[a-zA-Z0-9]+$` (else `400`). **Reject anything else** — the launcher must never run
+   arbitrary values.
+3. Write into the bundle `.env` (bundle dir discovered via `/opt/bridge/okta-mcp-adapter-bundle-*`):
+   ```
+   OKTA_DOMAIN=<domain>
+   OKTA_ISSUER=https://<domain>
+   ADMIN_UI_OKTA_ISSUER=https://<domain>
+   ADMIN_UI_OKTA_CLIENT_ID=<client_id>
+   ```
+4. `docker compose -f docker-compose.bundle.yml up -d` (first launch creates all services; on
+   re-config it recreates the services whose resolved env changed — force `--force-recreate
+   okta-agent-mcp-adapter admin-ui` to guarantee the new org is applied).
+5. Return `202` immediately; readiness is observed via `/status`.
+
+### Skeleton (Python stdlib — golden-image safe)
+
+```python
+#!/usr/bin/env python3
+# /opt/bridge/launcher/bridge-launcher.py  — single-purpose configure+up service
+import json, os, re, glob, subprocess
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+SECRET   = open("/opt/bridge/launcher/secret").read().strip()
+BUNDLE   = sorted(glob.glob("/opt/bridge/okta-mcp-adapter-bundle-*"))[-1]
+ENV      = os.path.join(BUNDLE, ".env")
+COMPOSE  = os.path.join(BUNDLE, "docker-compose.bundle.yml")
+DOMAIN_RE = re.compile(r"^[a-z0-9-]+\.okta(preview)?\.com$")
+CID_RE    = re.compile(r"^0oa[a-zA-Z0-9]+$")
+
+def set_env(domain, cid):
+    lines, keys = [], {
+        "OKTA_DOMAIN": domain, "OKTA_ISSUER": f"https://{domain}",
+        "ADMIN_UI_OKTA_ISSUER": f"https://{domain}", "ADMIN_UI_OKTA_CLIENT_ID": cid}
+    seen = set()
+    for ln in open(ENV):
+        k = ln.split("=", 1)[0]
+        if k in keys: lines.append(f"{k}={keys[k]}\n"); seen.add(k)
+        else: lines.append(ln)
+    for k in keys:
+        if k not in seen: lines.append(f"{k}={keys[k]}\n")
+    open(ENV, "w").writelines(lines)
+
+def compose_up():
+    subprocess.run(["docker", "compose", "-f", COMPOSE, "up", "-d",
+                    "--force-recreate", "okta-agent-mcp-adapter", "admin-ui"],
+                   cwd=BUNDLE, check=True)
+    # first-launch safety: ensure the rest are up too
+    subprocess.run(["docker", "compose", "-f", COMPOSE, "up", "-d"], cwd=BUNDLE, check=True)
+
+def container_health(name):
+    out = subprocess.run(["docker", "inspect", "-f",
+        "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}", name],
+        capture_output=True, text=True)
+    return out.stdout.strip() or "absent"
+
+class H(BaseHTTPRequestHandler):
+    def _send(self, code, obj): 
+        b = json.dumps(obj).encode(); self.send_response(code)
+        self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(b)))
+        self.end_headers(); self.wfile.write(b)
+    def _auth(self):
+        return self.headers.get("Authorization","") == f"Bearer {SECRET}"
+    def do_GET(self):
+        if self.path == "/healthz": return self._send(200, {"launcher":"ok"})
+        if self.path == "/status":
+            if not self._auth(): return self._send(401, {"error":"unauthorized"})
+            a = container_health("okta-agent-mcp-adapter"); u = container_health("okta-mcp-admin-ui")
+            return self._send(200, {"adapter_ready": a=="healthy", "admin_ui_ready": u=="healthy",
+                                    "containers": {"adapter": a, "admin_ui": u}})
+        return self._send(404, {"error":"not found"})
+    def do_POST(self):
+        if self.path != "/launch": return self._send(404, {"error":"not found"})
+        if not self._auth(): return self._send(401, {"error":"unauthorized"})
+        n = int(self.headers.get("Content-Length","0")); body = json.loads(self.rfile.read(n) or b"{}")
+        d, c = body.get("okta_domain",""), body.get("admin_ui_client_id","")
+        if not DOMAIN_RE.match(d) or not CID_RE.match(c):
+            return self._send(400, {"error":"invalid okta_domain or admin_ui_client_id"})
+        try:
+            set_env(d, c); compose_up()
+            return self._send(202, {"status":"launching","okta_domain":d})
+        except Exception as e:
+            return self._send(500, {"error": str(e)})
+
+ThreadingHTTPServer(("0.0.0.0", 9090), H).serve_forever()
+```
+
+### systemd unit (`/etc/systemd/system/bridge-launcher.service`)
+
+```ini
+[Unit]
+Description=O4AA bridge launcher API
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/bridge/launcher/bridge-launcher.py
+Restart=always
+User=root          # needs to write .env + run docker compose
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+## 3. Bridge golden-image additions
+
+On top of the current golden image (Ubuntu 24.04, Docker, bundle, fixed images, blank `.env`, stack
+down), add:
+
+- `/opt/bridge/launcher/bridge-launcher.py` (above).
+- `/opt/bridge/launcher/secret` — the shared bearer secret, `chmod 600 root:root`.
+- `bridge-launcher.service` (enabled). Boots with the box, so the launcher is listening before any
+  attendee arrives. The **bridge stack stays down** until `/launch` is called.
+- Firewall/SG: expose the launcher port (9090) **only to the paired VDI** on the pod-internal
+  network — same posture as 8000/3001. Not public.
+
+Net: a fresh bridge boots with **no org data**, the launcher idle-listening, ready to be assigned.
+
+---
+
+## 4. VDI `bootstrap.ps1` additions
+
+New params:
+- `-LaunchBridge` (switch) — enable launcher-driven bring-up.
+- `-BridgeLauncherPort` (int, default `9090`).
+- `-BridgeLauncherSecret` (string) — platform-injected.
+- **`-AdminUiClientId` becomes required** when `-LaunchBridge` (we can't read `config.js` before the
+  bridge is up — the platform supplies it instead; this also makes the script skip the `config.js`
+  read entirely).
+
+New flow, **before** the existing config.js/admin-token steps:
+
+```powershell
+if ($LaunchBridge -and $BridgeAddress) {
+    $lb = "http://$BridgeAddress`:$BridgeLauncherPort"
+    $domain = ([uri]$OrgUrl).Host
+    if (-not $AdminUiClientId) { throw "-LaunchBridge requires -AdminUiClientId (platform-injected)." }
+
+    # 1. launcher alive?
+    Invoke-RestMethod "$lb/healthz" -TimeoutSec 8 | Out-Null   # throws -> clear "bridge box/launcher down"
+
+    # 2. configure + launch
+    $hdr = @{ Authorization = "Bearer $BridgeLauncherSecret" }
+    Invoke-RestMethod "$lb/launch" -Method POST -Headers $hdr -ContentType "application/json" `
+        -Body (@{ okta_domain = $domain; admin_ui_client_id = $AdminUiClientId } | ConvertTo-Json) -TimeoutSec 20 | Out-Null
+
+    # 3. poll until healthy (adapter + admin-ui), up to ~120s
+    $deadline = (Get-Date).AddSeconds(120)
+    do {
+        Start-Sleep 5
+        $st = Invoke-RestMethod "$lb/status" -Headers $hdr -TimeoutSec 8
+        Log "bridge status: adapter=$($st.adapter_ready) admin_ui=$($st.admin_ui_ready)"
+    } until (($st.adapter_ready -and $st.admin_ui_ready) -or (Get-Date) -gt $deadline)
+    if (-not ($st.adapter_ready -and $st.admin_ui_ready)) { throw "bridge did not become healthy in time." }
+}
+```
+
+Everything after this works unchanged — the bridge is now up and org-configured, and
+`-AdminUiClientId` is already known.
+
+---
+
+## 5. Platform placeholders to inject into the bootstrap
+
+The platform already knows all of these from provisioning the attendee's org (the JS servicer emits
+per-org ids). Inject them as Mustache placeholders, same pattern as `-OpenAIApiKey` /
+`-PersonaPassword`:
+
+| Param | Source |
+|---|---|
+| `-OrgUrl` | the attendee's org domain (`{{idp.tenantDomain}}`) |
+| `-AdminUiClientId` | that org's **`O4AA Adapter Admin UI`** app `client_id` (servicer output) |
+| `-BridgeLauncherSecret` | the launcher shared secret (see §6) |
+| `-LaunchBridge` | present (switch) for the Heropa flow |
+
+---
+
+## 6. Security
+
+- **Network:** launcher bound to the pod-internal interface; SG allows the port only from the paired
+  VDI. HTTP is acceptable pod-internal; optionally serve TLS with the adapter cert.
+- **Auth:** `Bearer` secret on every mutating/status call.
+- **Secret model:** simplest is a **fleet-wide** secret baked into the golden image + injected into
+  the bootstrap by the platform. Sensitivity is low (ephemeral lab orgs) and network isolation is the
+  primary control. **Hardening option:** a **per-pod** secret provisioned by Heropa into both the
+  bridge (`/opt/bridge/launcher/secret`) and the VDI bootstrap at pod creation — eliminates fleet-wide
+  secret reuse.
+- **Blast radius:** the launcher does *exactly one thing* — write 4 validated `.env` keys and
+  `compose up`. No shell, no arbitrary commands, strict input regex. Even with the secret, an attacker
+  can only (re)point a bridge at an Okta org that matches the regex.
+
+---
+
+## 7. Failure modes & idempotency
+
+- **Re-run bootstrap:** `/launch` reconfigures + force-recreates adapter/admin-ui — safe, idempotent.
+- **Re-assignment / pre-warm swap:** POST `/launch` with a new org → the bridge re-points and
+  restarts (fast; not a cold boot). Consider resetting the DB volume on re-assign if the prior org's
+  cached resources must not linger.
+- **Bridge box down / launcher not up:** `GET /healthz` fails → bootstrap throws a clear error at the
+  attendee, not a silent dead bridge.
+- **Bad org / wrong client id:** adapter fails to go healthy → `/status` never ready → bootstrap times
+  out with a clear message.
+
+---
+
+## 8. Work items
+
+**Bridge side (golden image):**
+- [ ] Add `bridge-launcher.py` + `bridge-launcher.service` (enabled) + `/opt/bridge/launcher/secret`.
+- [ ] Firewall the launcher port to the paired VDI only.
+- [ ] Re-snapshot.
+
+**VDI side (`Configure-OpenCodeAgent.ps1`):**
+- [ ] Add `-LaunchBridge`, `-BridgeLauncherPort`, `-BridgeLauncherSecret`; require `-AdminUiClientId`
+      when launching; add the launch+poll block; re-embed via `build-selfcontained.py`.
+
+**Platform:**
+- [ ] Expose the `-AdminUiClientId` and `-BridgeLauncherSecret` placeholders in the bootstrap snippet.
+
+**Validation:** the existing VDI validation snippet in `BRIDGE-PROVISIONING.md` still applies — after
+`-LaunchBridge` completes, it should show all PASS with a non-empty client id.
+
+---
+
+## 9. Open decisions
+
+1. **Secret model** — fleet-wide baked (simplest) vs per-pod provisioned (more secure). Recommend
+   starting fleet-wide + internal-only networking; move to per-pod if the platform can inject a
+   per-pod secret.
+2. **DB on re-assign** — leave (fast) vs reset the postgres volume (clean) when a warm bridge is
+   re-pointed to a different org.
+3. **Transport** — plain HTTP pod-internal (simplest) vs TLS via the adapter cert.
