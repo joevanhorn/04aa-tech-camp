@@ -39,10 +39,10 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
    $b = "$env:TEMP\bootstrap.ps1"
    Invoke-RestMethod "https://cdn.demo.okta.com/labs/techcamp-o4aa/bootstrap.ps1" -OutFile $b
    Unblock-File $b
-   & $b -OrgUrl "https://{{idp.tenantDomain}}" -OpenAIApiKey "{{858e3bcd-36ca-4ebe-8e51-ebfcdbafb1e2.credentials.apiKey}}" -PersonaPassword "{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.settings.persona_password}}" -LaunchBridge -BridgeLauncherSecret "{{TODO-bridge-launcher-secret}}" -AdminUiClientId "{{TODO-admin-ui-client-id}}" -InstallToolkit
+   & $b -OrgUrl "https://{{idp.tenantDomain}}" -OpenAIApiKey "{{858e3bcd-36ca-4ebe-8e51-ebfcdbafb1e2.credentials.apiKey}}" -PersonaPassword "{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.settings.persona_password}}" -LaunchBridge -BridgeLauncherSecret "WP5PGgA-qexQe0aGkwKWp5_ygI8c0NmQ" -AdminUiClientId "{{bc64c69c-9d90-4e3a-bdaa-f27b28b659af.deploymentData.adminUiClientId}}" -InstallToolkit
    ```
 
-   *NOTE: `{{TODO-bridge-launcher-secret}}` and `{{TODO-admin-ui-client-id}}` are placeholders the platform team must replace with the real Mustache tokens before shipping this snippet: the bridge launcher fleet secret, and this org's `O4AA Adapter Admin UI` app client id. They are injected the same way as the OpenAI API key and persona-password tokens above. The `-LaunchBridge` flow uses them to start and configure your paired bridge on demand; until they are wired, this block will not bring the bridge up.*
+   *NOTE: `-AdminUiClientId` resolves per org from the bootstrap `deploymentData`; `-BridgeLauncherSecret` is the bridge launcher fleet secret. Both start and configure your paired bridge on demand.*
 
 3. When prompted, sign in **once** with your Okta admin login and password. This one-time sign-in lets the setup resolve your org's IDs (the Lab Toolkit client and `vantage-crm-as`); nothing is stored beyond this VM.
 4. When it finishes, confirm the **Lab Toolkit** icon is on the desktop — you'll use it starting in step 1.5.
