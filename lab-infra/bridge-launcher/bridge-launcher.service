@@ -1,0 +1,19 @@
+[Unit]
+Description=O4AA bridge Launcher API (configure + up the bridge on assignment)
+Documentation=https://github.com/joevanhorn/04aa-tech-camp/blob/main/lab-infra/BRIDGE-LAUNCHER-API-SPEC.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/bridge/launcher/bridge-launcher.py
+Environment=BRIDGE_LAUNCHER_PORT=9090
+Environment=BRIDGE_LAUNCHER_SECRET_FILE=/opt/bridge/launcher/secret
+Environment=BRIDGE_BUNDLE_GLOB=/opt/bridge/okta-mcp-adapter-bundle-*
+# needs root to write the bundle .env and run `docker compose`
+User=root
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

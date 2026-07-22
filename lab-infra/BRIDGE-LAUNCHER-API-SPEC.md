@@ -259,9 +259,11 @@ per-org ids). Inject them as Mustache placeholders, same pattern as `-OpenAIApiK
 
 ## 8. Work items
 
-**Bridge side (golden image):**
-- [ ] Add `bridge-launcher.py` + `bridge-launcher.service` (enabled) + `/opt/bridge/launcher/secret`.
-- [ ] Firewall the launcher port to the paired VDI only.
+**Bridge side (golden image):** drop-in artifacts built in [`bridge-launcher/`](./bridge-launcher/)
+(`bridge-launcher.py`, `bridge-launcher.service`, `install-launcher.sh`, README).
+- [x] Launcher service + systemd unit + installer written and syntax-checked.
+- [ ] Run `sudo ./install-launcher.sh --secret <FLEET_SECRET>` on the bridge (Heropa).
+- [ ] Firewall the launcher port (9090) to the paired VDI only.
 - [ ] Re-snapshot.
 
 **VDI side (`Configure-OpenCodeAgent.ps1`):** ✅ **built** (ofcto-workforce-taskvantage `53cab3f`)
