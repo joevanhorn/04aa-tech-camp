@@ -264,9 +264,11 @@ per-org ids). Inject them as Mustache placeholders, same pattern as `-OpenAIApiK
 - [ ] Firewall the launcher port to the paired VDI only.
 - [ ] Re-snapshot.
 
-**VDI side (`Configure-OpenCodeAgent.ps1`):**
-- [ ] Add `-LaunchBridge`, `-BridgeLauncherPort`, `-BridgeLauncherSecret`; require `-AdminUiClientId`
-      when launching; add the launch+poll block; re-embed via `build-selfcontained.py`.
+**VDI side (`Configure-OpenCodeAgent.ps1`):** ✅ **built** (ofcto-workforce-taskvantage `53cab3f`)
+- [x] Added `-LaunchBridge`, `-BridgeLauncherPort` (9090), `-BridgeLauncherSecret`,
+      `-BridgeLaunchTimeoutSec` (120); `-AdminUiClientId` required when launching; the
+      `/healthz` → `/launch` → poll-`/status` block runs before the CA fetch; re-embedded and
+      parse-verified on the VDI (PS 5.1, 0 errors).
 
 **Platform:**
 - [ ] Expose the `-AdminUiClientId` and `-BridgeLauncherSecret` placeholders in the bootstrap snippet.
