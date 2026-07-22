@@ -1,8 +1,12 @@
 # O4AA Lab Infrastructure — Environment Automation
 
-Scripts that stand up, wire, and reset a **dedicated O4AA Tech Camp lab environment** (one Okta org +
-the attendee's MCP Adapter), for the lab engineering team to review and own. They are mirrored here
-from `taskvantage-apps/deploy/` (the canonical source); keep them in sync if you change either copy.
+Operational helpers for a **dedicated O4AA Tech Camp lab environment** (adapter / CRM-resource wiring).
+
+> **Provisioning has moved.** The org baseline is now provisioned by the Node.js servicer the
+> lab-engineering platform runs — `managed-assets-mirror/src/servicers/labs/techcamp-o4aa/`
+> (`TechCampO4AALabServicer.js` + `config.js`). The former Python CLIs (`provision_lab_org.py`,
+> `enroll_tenant.py`, `reset_lab.py`) are retired under [`../archive/`](../archive/). Only the
+> adapter / CRM-resource ops helpers (`wire_adapter_resource.py`, `setup-crm-resource.sh`) live here now.
 
 These were built and **validated end-to-end** against a live preview org + the shared central apps /
 MCP server (see `../reference/crm-path-validation-runbook.md` for the full play-by-play and

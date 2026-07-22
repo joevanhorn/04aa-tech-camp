@@ -17,3 +17,9 @@ capture docs. Superseded by the canonical `module-*.md`.
 ## jays_modules/
 The original first-draft modules (overview / introduction / conclusion). Superseded by the
 current `module-1..6` set.
+
+## provision_lab_org.py / enroll_tenant.py / reset_lab.py
+The Python org-provisioning CLIs (synced copies of `taskvantage-apps/deploy/`). Superseded by the
+Node.js `TechCampO4AALabServicer` — the lab-engineering platform has cut over to it. Kept for
+reference only. The live ops helpers (`../lab-infra/wire_adapter_resource.py`,
+`../lab-infra/setup-crm-resource.sh`) are **not** archived.
