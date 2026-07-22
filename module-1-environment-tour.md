@@ -2,28 +2,28 @@
 
 ## Objective
 
-Review your TaskVantage environment before introducing any AI agents. You will tour your Okta org, the two custom business applications (VantageCRM and VantageDesk), the MCP server that fronts them, and the Okta AI Agents administration area. By the end of this lab, you will know where everything lives and what state it is in before governance is applied.
+Tour your TaskVantage environment before adding any AI agents: your Okta org, the two apps (VantageCRM and VantageDesk), the MCP server that fronts them, and the AI Agents admin area. By the end you know where everything lives and its state before governance is applied.
 
-> **Hosting model:** VantageCRM and VantageDesk are one central, multi-tenant,
-> API-only deployment shared by every attendee's Okta org — *not* a per-attendee copy. They are
-> resource servers only: no browser login, no app UI. The central app resolves which tenant your
-> call belongs to from the token's **issuer**. Your agent and Okta MCP Adapter stay per-attendee;
-> each app has its own central, shared MCP server (the VantageCRM MCP and the VantageDesk MCP). The "tour it in a browser" moments below
-> (1.5 / 1.6) are delivered out-of-band — a provided screenshot or the **Lab Toolkit** on the
-> Virtual Desktop, which calls the API as each user.
+<details>
+<summary><b>Context: how the apps are hosted (read once)</b></summary>
 
-## Browser use for this lab
+- One central, multi-tenant, API-only deployment of VantageCRM and VantageDesk, shared by every attendee's org. Not a per-attendee copy.
+- Resource servers only: no browser login, no app UI. Each app resolves your tenant from the token's **issuer**.
+- Per-attendee: your agent and Okta MCP Adapter. Central and shared: each app's MCP server.
+- The browser-tour moments (1.5 / 1.6) are delivered out-of-band: a screenshot or the **Lab Toolkit**, which calls the API as each user.
+</details>
 
-- Use a regular browser tab on your local machine for administrator tasks (Super Admin in your Okta org).
-- Use the **Lab Toolkit** (the desktop icon on the Virtual Desktop) for all AI usage and for managing the MCP bridge.
+**Two tools you'll use:**
+- **Local browser** for admin tasks (Super Admin in your Okta org).
+- **Lab Toolkit** (desktop icon on the Virtual Desktop) for all AI usage and managing the MCP bridge.
 
----
+<details>
+<summary><b>Context: how this camp is structured (read once)</b></summary>
 
-**About this camp — read this before starting.**
-
-Each capability introduced in this camp is delivered in two stages. First, you observe it working on **VantageCRM**, which is fully wired before you begin. Then you build the equivalent configuration on **VantageDesk**, which is intentionally incomplete. By the end of the camp, VantageDesk will be configured identically to VantageCRM. Watch for this pattern in every module.
-
-When you see a step that asks you to *review* something on VantageCRM, look closely. The follow-up step on VantageDesk will assume you understood what you just saw. If anything is unclear, please ask your lab facilitator to help explain. AI Security is new to everyone, so don't be embarassed if something is unclear!
+- Every capability is shown on **VantageCRM** (fully wired) first, then you build the same on **VantageDesk** (intentionally incomplete). By the end, they match.
+- When a step says *review* something on CRM, look closely: the Desk step assumes you understood it.
+- AI security is new to everyone. If anything is unclear, ask your facilitator.
+</details>
 
 ---
 
@@ -51,13 +51,24 @@ Your Virtual Desktop needs a one-time setup that installs the tools this lab use
 
 ### 1.1 Log into your TaskVantage Okta org
 
-1. Navigate to your assigned Okta org URL: `https://{{idp.tenantDomain}}`
+<details>
+<summary><b>Why this matters</b></summary>
+
+- You are the identity team accountable for the AI agent you're about to onboard.
+- Every step in this camp runs from this admin seat.
+</details>
+
+1. Go to your org URL: `https://{{idp.tenantDomain}}`
 2. Sign in with your admin credentials.
-3. Click the **Admin** tab in the upper-right corner to enter the Admin Console.
+3. Click **Admin** (upper-right) to enter the Admin Console.
 
-*NOTE: You must have accepted the org invite from the previous module. If you haven't, do that first.*
+**What just changed:** you're in the admin seat you'll configure everything from.
 
-**Why this mattered:** You are the identity team that will be accountable for the new hire you're about to onboard — the AI agent. Everything in this camp is configured from this admin seat.
+<details>
+<summary>Can't sign in?</summary>
+
+You must have accepted the org invite from the previous module. If you haven't, do that first.
+</details>
 
 ### 1.2 Complete your personal admin profile
 
