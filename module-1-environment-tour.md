@@ -293,7 +293,7 @@ This is where you'll spend most of Labs 2 through 5.
 1. From the Admin Console, go to **Security** > **API** and click into **vantage-crm-as**.
 2. Open the **Access Policies** tab and review the preconfigured policy and its rules. Each rule maps a group to the scopes its members' tokens may carry:
 
-   | If the user is in… | The issued token may carry… |
+   | If the user is in... | The issued token may carry... |
    | --- | --- |
    | Sales Reps | the full crm.* scope set |
    | Sales Management | the full crm.* scope set |

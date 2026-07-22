@@ -126,7 +126,7 @@ The agent appears on **Directory** > **AI Agents** with status **STAGED**. Proce
 
 1. Go to **Applications** > **Applications**.
 2. Click **Create App Integration**.
-3. Choose **OIDC – OpenID Connect**, then **Web Application**, and click **Next**.
+3. Choose **OIDC - OpenID Connect**, then **Web Application**, and click **Next**.
 4. Enter the **App integration name**: `TaskVantage Agent UI`
 5. Leave **Grant type** as **Authorization Code** (default).
 6. Enter the **Sign-in redirect URI**: `https://{{agent_ui_host}}/authorization-code/callback`
@@ -190,7 +190,7 @@ Run the setup helper from the **Lab Toolkit** on your Virtual Desktop:
 1. Open the **Lab Toolkit** (desktop icon).
 2. Choose **7) Set up my CRM resource**.
 
-It creates your agent's **INCLUDE_ONLY** **crm.\*** managed connection in Okta, imports the agent into your adapter, marks it **DCR-selectable**, and registers the CRM **resource** at `https://{{mcp_host}}/crm/mcp`. It prints each step and finishes with **OK: 'vantage-crm' wired …**.
+It creates your agent's **INCLUDE_ONLY** **crm.\*** managed connection in Okta, imports the agent into your adapter, marks it **DCR-selectable**, and registers the CRM **resource** at `https://{{mcp_host}}/crm/mcp`. It prints each step and finishes with **OK: 'vantage-crm' wired ...**.
 
 **Review the managed connection it created:**
 
@@ -266,7 +266,7 @@ Spend a minute confirming the agent is set up correctly. Lab 3 will fail in conf
 
 | Field | Expected Value |
 | --- | --- |
-| Agent | **TaskVantage Sales Agent** imported, principal id (**wlp…**) populated |
+| Agent | **TaskVantage Sales Agent** imported, principal id (**wlp...**) populated |
 | DCR-selectable | On |
 | Resource | 1 resource for **vantage-crm-as**, URL `https://{{mcp_host}}/crm/mcp`, **enabled**, auth **okta-cross-app** |
 

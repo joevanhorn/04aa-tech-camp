@@ -285,7 +285,7 @@ Every invocation is first-class about *what Okta issued*: the decoded adapter to
 
 *NOTE: The token/HTTP/XAA panels above are the real shape the toolkit prints; the epoch times, request-ids, and the exact JSON result body are illustrative and will differ each run. The result is the raw JSON-RPC response the MCP server returned; the toolkit prints it verbatim (truncated), not a reformatted summary. One honest wrinkle to read closely in Section 4.10: the built-in XAA trace always narrates the **CRM** token exchange, even on this Desk call.*
 
-**What just changed:** the agent did not just describe a tool call, it made one. The result came back from the central VantageDesk, where the call was authenticated as Kim, scoped to itsm.tickets.read, resolved to your org's tenant partition by the token issuer, and audited against her identity.
+**What just changed:** the agent invoked a real tool. The result came back from the central VantageDesk, where the call was authenticated as Kim, scoped to itsm.tickets.read, resolved to your org's tenant partition by the token issuer, and audited against her identity.
 
 ### 4.10 Inspect XAA in flight
 

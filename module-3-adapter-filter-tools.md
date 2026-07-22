@@ -404,7 +404,7 @@ Follow the deep link the toolkit already printed (it opens the System Log pre-fi
 | **app.oauth2.token.grant.access_token** | the agent's OAuth client | the user | The user-context token the Lab Toolkit simulated |
 | **ai_agent.token_exchange.request** | **TaskVantage Sales Agent** | **vantage-crm-as** | The adapter asking Okta to issue this user a token for the resource |
 | **ai_agent.token_exchange.scope_evaluation** | the access policy | the user | Which rule matched (or the catch-all): whether Okta authorized the action |
-| **ai_agent.token_exchange.grant** / **…deny** | Okta | the user | Whether a token was issued (action authorized) or refused (action denied) |
+| **ai_agent.token_exchange.grant** / **...deny** | Okta | the user | Whether a token was issued (action authorized) or refused (action denied) |
 
 **What just changed:** every grant and denial you produced is now attributable in Okta's audit log to the user, the agent, and the rule that fired.
 
