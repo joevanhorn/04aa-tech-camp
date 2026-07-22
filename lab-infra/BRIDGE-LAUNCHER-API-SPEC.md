@@ -229,11 +229,12 @@ per-org ids). Inject them as Mustache placeholders, same pattern as `-OpenAIApiK
 - **Network:** launcher bound to the pod-internal interface; SG allows the port only from the paired
   VDI. HTTP is acceptable pod-internal; optionally serve TLS with the adapter cert.
 - **Auth:** `Bearer` secret on every mutating/status call.
-- **Secret model:** simplest is a **fleet-wide** secret baked into the golden image + injected into
-  the bootstrap by the platform. Sensitivity is low (ephemeral lab orgs) and network isolation is the
-  primary control. **Hardening option:** a **per-pod** secret provisioned by Heropa into both the
-  bridge (`/opt/bridge/launcher/secret`) and the VDI bootstrap at pod creation — eliminates fleet-wide
-  secret reuse.
+- **Secret model (decided: fleet-wide):** a single secret baked into the golden image + injected into
+  the bootstrap by the platform. Sensitivity is low (ephemeral lab orgs, fake data) and pod-internal
+  networking is the primary control. Future hardening if ever needed: a **per-pod** secret provisioned
+  into both the bridge (`/opt/bridge/launcher/secret`) and the VDI bootstrap at pod creation.
+- **Transport (decided: plain HTTP, pod-internal):** the pod is closed and holds only fake data, so
+  the launcher runs plain HTTP on the internal network. No TLS.
 - **Blast radius:** the launcher does *exactly one thing* — write 4 validated `.env` keys and
   `compose up`. No shell, no arbitrary commands, strict input regex. Even with the secret, an attacker
   can only (re)point a bridge at an Okta org that matches the regex.
@@ -243,9 +244,12 @@ per-org ids). Inject them as Mustache placeholders, same pattern as `-OpenAIApiK
 ## 7. Failure modes & idempotency
 
 - **Re-run bootstrap:** `/launch` reconfigures + force-recreates adapter/admin-ui — safe, idempotent.
-- **Re-assignment / pre-warm swap:** POST `/launch` with a new org → the bridge re-points and
-  restarts (fast; not a cold boot). Consider resetting the DB volume on re-assign if the prior org's
-  cached resources must not linger.
+- **Single-org lifecycle (no DB reset needed):** a bridge VM is assigned to exactly ONE org for its
+  life, then torn down — it is never re-pointed to a second org. The empty golden-image DB is populated
+  with the assigned org's data on the first `/launch` and stays that org's for the pod's lifetime.
+  Idempotent re-runs (attendee re-runs bootstrap) target the SAME org, so no reset is ever required.
+  *(If a future flow ever re-assigns a live bridge to a different org, add a DB-volume reset to
+  `/launch` keyed on a domain change — not needed under the current single-use model.)*
 - **Bridge box down / launcher not up:** `GET /healthz` fails → bootstrap throws a clear error at the
   attendee, not a silent dead bridge.
 - **Bad org / wrong client id:** adapter fails to go healthy → `/status` never ready → bootstrap times
@@ -272,11 +276,13 @@ per-org ids). Inject them as Mustache placeholders, same pattern as `-OpenAIApiK
 
 ---
 
-## 9. Open decisions
+## 9. Decisions
 
-1. **Secret model** — fleet-wide baked (simplest) vs per-pod provisioned (more secure). Recommend
-   starting fleet-wide + internal-only networking; move to per-pod if the platform can inject a
-   per-pod secret.
-2. **DB on re-assign** — leave (fast) vs reset the postgres volume (clean) when a warm bridge is
-   re-pointed to a different org.
-3. **Transport** — plain HTTP pod-internal (simplest) vs TLS via the adapter cert.
+1. **Secret model — fleet-wide** (baked into the golden image + platform-injected). Per-pod secret is a
+   future hardening option, not needed now.
+2. **DB on re-assign — no reset.** A bridge is single-org for its lifetime (assigned once, then torn
+   down), so the empty golden-image DB simply fills with that org's data on first `/launch`. A reset
+   would only be needed if a live bridge were re-pointed to a *different* org — which the current model
+   does not do. *(Assumes Heropa never recycles a bridge VM across attendees — always tears down and
+   hands out fresh ones.)*
+3. **Transport — plain HTTP, pod-internal.** Closed pod, fake data only; no TLS.
