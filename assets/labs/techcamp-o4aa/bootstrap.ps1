@@ -172,7 +172,11 @@ function Get-BridgeCa {
                         $script:_bridgeChain = @($chain.ChainElements | ForEach-Object { $_.Certificate })
                     }
                     $true })
-        $ssl.AuthenticateAsClient($HostName)
+        # Pin TLS 1.2 explicitly: SslStream.AuthenticateAsClient(string) defaults to TLS 1.0 on
+        # .NET Framework (PS 5.1) - the adapter only accepts 1.2/1.3, so the bare call gets its
+        # handshake closed ("remote party has closed the transport stream"). The Tls12 SecurityProtocol
+        # set above only governs HttpWebRequest, not raw SslStream.
+        $ssl.AuthenticateAsClient($HostName, $null, [System.Security.Authentication.SslProtocols]::Tls12, $false)
         $leaf = New-Object Security.Cryptography.X509Certificates.X509Certificate2($ssl.RemoteCertificate)
         $ssl.Close(); $tcp.Close()
         $chain = $script:_bridgeChain
