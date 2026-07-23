@@ -349,6 +349,138 @@ pre.json {
 .sbs-col h3 { font-size: 13px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
 .subtle { color: var(--muted); font-size: 12px; }
 
+/* ---------- flow card trigger ---------- */
+.flow-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.trace-btn {
+  font-family: var(--sans); font-size: 11.5px; font-weight: 600; cursor: pointer;
+  background: #10233b; border: 1px solid #1d456e; color: #9fd0ff;
+  border-radius: 999px; padding: 4px 11px; display: inline-flex; align-items: center; gap: 5px;
+  transition: background .12s, border-color .12s;
+}
+.trace-btn:hover { background: #163656; border-color: var(--accent); color: #cfe6ff; }
+.trace-btn .arr { transition: transform .12s; }
+.trace-btn:hover .arr { transform: translateX(2px); }
+.flow-clickable .flow { border-radius: 9px; transition: box-shadow .12s; }
+.flow-clickable .flow:hover { box-shadow: 0 0 0 1px var(--border-strong); }
+.flow-clickable .flow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- token-journey drawer ---------- */
+.drawer-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(4, 8, 12, 0.62);
+  display: flex; justify-content: flex-end;
+  opacity: 0; transition: opacity .22s ease;
+}
+.drawer-backdrop.open { opacity: 1; }
+.drawer {
+  width: min(560px, 100%); height: 100%;
+  background: linear-gradient(180deg, #101823, var(--bg-2));
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -18px 0 48px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+  transform: translateX(24px); transition: transform .24s ease;
+}
+.drawer-backdrop.open .drawer { transform: none; }
+@media (max-width: 620px) { .drawer { width: 100%; border-left: none; } }
+
+.drawer-head {
+  display: flex; align-items: flex-start; gap: 12px; justify-content: space-between;
+  padding: 16px 18px 14px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--panel-2), transparent);
+}
+.drawer-eyebrow { font-size: 10.5px; letter-spacing: .12em; font-weight: 700; color: var(--accent); }
+.drawer-title { font-size: 17px; margin: 3px 0 6px; font-weight: 650; }
+.drawer-sub { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.drawer-close {
+  flex: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--border-strong); color: var(--muted);
+  font-size: 19px; line-height: 1; display: grid; place-items: center;
+}
+.drawer-close:hover { color: var(--text); border-color: var(--accent); }
+.drawer-body { overflow-y: auto; padding: 18px; flex: 1; }
+
+/* ----- vertical timeline ----- */
+.timeline { position: relative; padding-left: 30px; }
+.tl-rail { position: absolute; left: 13px; top: 8px; bottom: 8px; width: 2px; background: var(--border); border-radius: 2px; }
+.tl-packet {
+  position: absolute; left: -5px; top: 0; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 4px rgba(76,159,254,0.18), 0 0 10px 2px rgba(76,159,254,0.5);
+  transition: top .38s cubic-bezier(.4,0,.2,1), background .3s; z-index: 2;
+}
+.tl-packet.ok { background: var(--ok); box-shadow: 0 0 0 4px rgba(63,185,80,0.18), 0 0 10px 2px rgba(63,185,80,0.5); }
+.tl-packet.denied { background: var(--deny); box-shadow: 0 0 0 4px rgba(248,81,73,0.2), 0 0 10px 2px rgba(248,81,73,0.55); }
+.tl-packet.skipped { background: var(--skip); box-shadow: none; }
+.tl-packet.stopped { animation: pktpulse 1s ease-in-out infinite; }
+@keyframes pktpulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+
+.tl-step { position: relative; margin-bottom: 14px; opacity: .3; transform: translateY(4px); transition: opacity .35s ease, transform .35s ease; }
+.tl-step.lit { opacity: 1; transform: none; }
+.tl-dot {
+  position: absolute; left: -22px; top: 15px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--panel); border: 2px solid var(--border-strong); z-index: 1;
+}
+.tl-step.s-ok.lit .tl-dot { border-color: var(--ok); background: var(--ok-bg); }
+.tl-step.s-denied.lit .tl-dot { border-color: var(--deny); background: var(--deny-bg); }
+.tl-step.s-skipped.lit .tl-dot { border-color: var(--skip); }
+.tl-step.s-skipped { opacity: .5; }
+
+.tl-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 13px; }
+.tl-step.s-ok.lit .tl-card { border-left: 3px solid var(--ok); }
+.tl-step.s-denied.lit .tl-card { border-left: 3px solid var(--deny); }
+.tl-step.s-skipped .tl-card { border-style: dashed; }
+.tl-step-head { display: flex; align-items: center; gap: 9px; }
+.tl-num {
+  width: 20px; height: 20px; border-radius: 6px; flex: none; display: grid; place-items: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--muted);
+  background: var(--panel-2); border: 1px solid var(--border-strong);
+}
+.tl-step-title { font-size: 13.5px; font-weight: 620; flex: 1; }
+.tl-status { font-family: var(--mono); font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; text-transform: uppercase; }
+.tl-status.ok { color: var(--ok); background: var(--ok-bg); }
+.tl-status.denied { color: var(--deny); background: var(--deny-bg); }
+.tl-status.skipped { color: var(--skip); background: #141c26; }
+.tl-endpoint { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin: 8px 0 0; word-break: break-all; }
+.tl-method { color: #9fd0ff; font-weight: 700; }
+.tl-context { font-size: 12px; color: var(--text); margin: 7px 0 0; line-height: 1.45; }
+.tl-cid { font-family: var(--mono); font-size: 11px; margin-top: 8px; }
+.tl-cid-k { color: var(--faint); }
+.tl-note { font-size: 11px; color: var(--faint); margin-top: 7px; font-style: italic; line-height: 1.4; }
+
+/* token chip that transforms across steps */
+.tl-chip {
+  display: flex; align-items: baseline; gap: 8px; margin-top: 9px;
+  font-family: var(--mono); font-size: 11.5px; padding: 6px 10px; border-radius: 7px;
+  border: 1px solid var(--border-strong); background: var(--bg-2);
+}
+.tl-chip b { font-weight: 700; }
+.tl-chip-ico { font-family: var(--sans); }
+.tl-chip-det { color: var(--muted); }
+.tl-chip.k-session { border-color: #4a3a12; color: #e6c979; }
+.tl-chip.k-code { border-color: #3a2c52; color: #c4a7f0; }
+.tl-chip.k-access { border-color: #17371f; color: #a6e0a6; background: #0f2016; }
+.tl-chip.k-response { border-color: #1d456e; color: #9fd0ff; }
+.tl-chip.k-none { border-color: var(--border); color: var(--faint); }
+
+.tl-expand { max-height: 0; overflow: hidden; opacity: 0; transition: max-height .4s ease, opacity .35s ease, margin .3s; }
+.tl-expand.open { max-height: 460px; opacity: 1; margin-top: 10px; }
+.tl-expand-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--ok); font-weight: 700; margin-bottom: 8px; }
+.tl-expand .claims { font-size: 12px; }
+.tl-expand > div:first-child { border-top: 1px dashed var(--border-strong); padding-top: 10px; }
+
+.tl-denial { margin-top: 10px; border: 1px solid #4a1c1c; background: #1c0e0e; border-radius: 8px; padding: 10px 11px; }
+.tl-denial .status { display: inline-block; font-family: var(--mono); font-weight: 700; color: #fff; background: var(--deny); border-radius: 5px; padding: 1px 8px; font-size: 11.5px; margin-bottom: 8px; }
+.tl-denial .verbatim { font-family: var(--mono); font-size: 12px; color: #ffd7d3; white-space: pre-wrap; word-break: break-word; }
+.tl-denial .note { margin: 8px 0 0; font-size: 11px; color: #c98f8b; }
+
+.drawer-foot { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border); }
+.drawer-foot .deeplink { display: inline-flex; align-items: center; gap: 8px; background: #10233b; border: 1px solid #1d456e; border-radius: 7px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; }
+.drawer-note { font-size: 11px; color: var(--faint); margin: 10px 0 0; line-height: 1.45; }
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-backdrop, .drawer, .tl-step, .tl-packet, .tl-expand, .trace-btn .arr { transition: none !important; }
+  .tl-packet.stopped { animation: none; }
+}
+
 </style>
 </head>
 <body>
@@ -430,7 +562,13 @@ window.__FIXTURES__ = {
       "side-by-side",
       "cheat"
     ],
-    "appVersion": "2.0.0"
+    "appVersion": "2.0.0",
+    "org_url": "https://demo-o4aa-techcamp-1.okta.com",
+    "adapter_url": "https://adapter.dev.oktademo.app",
+    "crm_host": "https://vantage-crm.dev.oktademo.app",
+    "desk_host": "https://vantage-desk.dev.oktademo.app",
+    "crm_as_id": "aus1crmAS0exampleId",
+    "desk_as_id": "aus1deskAS0exampleId"
   },
   "check-env": {
     "checks": [
@@ -2091,7 +2229,7 @@ var HOPS = [
   { id: 'xaa', name: 'ID-JAG / XAA', ic: '\u{1F39F}️' },
   { id: 'app', name: 'App', ic: '\u{1F5C4}️' }
 ];
-function flowCard(flowArr) {
+function flowCard(flowArr, ctx) {
   var byId = {};
   (flowArr || []).forEach(function (h) { byId[h.hop] = h; });
   var container = el('div', { class: 'flow' });
@@ -2108,7 +2246,24 @@ function flowCard(flowArr) {
     hopNodes.push({ node: node, info: info });
     container.appendChild(node);
   });
-  var card = el('div', { class: 'card' }, [el('div', { class: 'card-title', text: 'Live call-flow — where enforcement happens' }), container]);
+  var titleRow = el('div', { class: 'card-title flow-head' }, [
+    el('span', { text: 'Live call-flow — where enforcement happens' })
+  ]);
+  if (ctx) {
+    titleRow.appendChild(el('button', {
+      class: 'trace-btn', type: 'button',
+      onclick: function (e) { e.stopPropagation(); openDrawer(ctx); }
+    }, ['Trace the token journey ', el('span', { class: 'arr', text: '→' })]));
+  }
+  var card = el('div', { class: 'card' + (ctx ? ' flow-clickable' : '') }, [titleRow, container]);
+  if (ctx) {
+    container.style.cursor = 'pointer';
+    container.setAttribute('role', 'button');
+    container.setAttribute('tabindex', '0');
+    container.setAttribute('aria-label', 'Trace the token journey');
+    container.addEventListener('click', function () { openDrawer(ctx); });
+    container.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrawer(ctx); } });
+  }
   // animate lighting after paint
   requestAnimationFrame(function () { animateFlow(hopNodes, arrowNodes); });
   return card;
@@ -2153,7 +2308,7 @@ function renderPersonaResult(t, data) {
   var verdict = data.denial ? 'deny' : 'allow';
   var name = personaLabel(data.persona);
   res.appendChild(resultHead(t.title, name + ' → ' + (t.target === 'crm' ? 'VantageCRM' : 'VantageDesk'), verdict));
-  res.appendChild(flowCard(data.flow));
+  res.appendChild(flowCard(data.flow, journeyCtx(data, { action: t.id, actionTitle: t.title, target: t.target })));
   var cols = el('div', { class: 'grid-2' });
   cols.appendChild(data.denial ? denialCard(data.denial) : tokenCard(data.token, 'Token Okta issued to ' + name));
   cols.appendChild(el('div', {}, [httpTraceCard(data.http), systemLogCard(data.systemLog)].filter(Boolean)));
@@ -2181,7 +2336,8 @@ function renderListTools(data) {
   var name = personaLabel(data.persona);
   var verdict = (data.authorized && data.authorized.length) ? 'allow' : 'deny';
   res.appendChild(resultHead("The agent's tools", name, verdict));
-  res.appendChild(flowCard(data.flow));
+  var ltTarget = (data.authorized || []).some(function (x) { return x.indexOf('desk') > -1; }) && !(data.authorized || []).some(function (x) { return x.indexOf('crm') > -1; }) ? 'desk' : 'crm';
+  res.appendChild(flowCard(data.flow, journeyCtx(data, { action: 'list-tools', actionTitle: "List the agent's tools", target: ltTarget })));
   var cols = el('div', { class: 'grid-2' });
   cols.appendChild(data.denial ? denialCard(data.denial) : tokenCard(data.token, 'Adapter token Okta issued to ' + name));
   cols.appendChild(systemLogCard(data.systemLog));
@@ -2234,7 +2390,8 @@ function renderInvokeResult(data) {
   var verdict = data.denial ? 'deny' : 'allow';
   var toolName = data.request && data.request.tool ? data.request.tool : '';
   res.appendChild(resultHead('Invoke: ' + toolName, name, verdict));
-  res.appendChild(flowCard(data.flow));
+  var invTarget = toolName.indexOf('desk') > -1 ? 'desk' : 'crm';
+  res.appendChild(flowCard(data.flow, journeyCtx(data, { action: 'invoke', actionTitle: 'Invoke: ' + toolName, target: invTarget, tool: toolName })));
   var cols = el('div', { class: 'grid-2' });
   cols.appendChild(data.denial ? denialCard(data.denial, 'XAA exchange refused (verbatim)') : tokenCard(data.token, 'Scoped token Okta issued to ' + name));
   cols.appendChild(systemLogCard(data.systemLog));
@@ -2308,7 +2465,7 @@ function sbsColumn(r) {
     el('span', { class: 'pill ' + (deny ? 'deny' : 'allow'), text: deny ? 'DENIED' : 'ALLOWED' }),
     document.createTextNode(' ' + name)
   ]));
-  col.appendChild(flowCard(r.flow));
+  col.appendChild(flowCard(r.flow, journeyCtx(r, { action: 'read', actionTitle: 'Read CRM accounts', target: (r.target || 'crm') })));
   col.appendChild(deny ? denialCard(r.denial) : tokenCard(r.token, 'Token Okta issued to ' + name));
   col.appendChild(httpTraceCard(r.http));
   col.appendChild(systemLogCard(r.systemLog));
@@ -2350,6 +2507,280 @@ function renderError(title, err) {
       r.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'big', text: '\u{1F512}' }), 'Pick a persona, then run an action.']));
     } })
   ]));
+}
+
+// ================================================================ token-journey drawer
+// journeyCtx() packages the response + a little action meta so the drawer can synthesize
+// (or, in future, read a real response.journey array) the token's end-to-end path.
+function journeyCtx(data, meta) {
+  return {
+    persona: data.persona, personaLabel: personaLabel(data.persona),
+    action: meta.action, actionTitle: meta.actionTitle, target: meta.target, tool: meta.tool,
+    flow: data.flow, token: data.token, denial: data.denial, http: data.http,
+    systemLog: data.systemLog, request: data.request, response: data.response,
+    journey: data.journey // future backend field; used verbatim if present
+  };
+}
+
+function cfgUrl() { var c = state.config || {}; return c.org_url || ('https://' + (c.org || 'okta.example')); }
+function hostFor(target) {
+  var c = state.config || {};
+  if (target === 'desk') return c.desk_host || 'https://vantage-desk.example';
+  return c.crm_host || 'https://vantage-crm.example';
+}
+function asIdFor(target, token) {
+  // Prefer the AS embedded in the real issued token; else fall back to config hints.
+  var iss = token && token.decoded && token.decoded.iss;
+  if (iss) { var m = /\/oauth2\/([^/]+)/.exec(iss); if (m) return m[1]; }
+  var c = state.config || {};
+  return target === 'desk' ? (c.desk_as_id || 'default') : (c.crm_as_id || 'default');
+}
+function shortUrl(u) { return (u || '').replace(/^https?:\/\//, '').replace(/\?.*$/, ''); }
+function hopStatus(flow, id) {
+  var h = (flow || []).filter(function (x) { return x.hop === id; })[0];
+  return h ? h.status : 'skipped';
+}
+function hopNote(flow, id) {
+  var h = (flow || []).filter(function (x) { return x.hop === id; })[0];
+  return h && h.note ? h.note : '';
+}
+
+// Map the response fields onto the four-stage token journey. Structured so a real
+// `journey` array (same step shape) can replace this wholesale with no UI change.
+function synthesizeJourney(ctx) {
+  if (ctx.journey && ctx.journey.length) return ctx.journey;
+  var org = cfgUrl();
+  var target = ctx.target || 'crm';
+  var appName = target === 'desk' ? 'VantageDesk' : 'VantageCRM';
+  var as = asIdFor(target, ctx.token);
+  var flow = ctx.flow || [];
+  var http = ctx.http || {};
+  var cid = http.correlationId || null;
+  var name = ctx.personaLabel || ctx.persona || 'the persona';
+
+  var sAuth = hopStatus(flow, 'agent');
+  var sAuthz = hopStatus(flow, 'adapter');
+  var sExch = hopStatus(flow, 'xaa');
+  var sApp = hopStatus(flow, 'app');
+
+  // which stage carries the verbatim denial (the hop marked 'denied')
+  var deniedHop = (flow.filter(function (x) { return x.status === 'denied'; })[0] || {}).hop;
+
+  var authzUrl = (ctx.denial && /authorize/.test(http.url || '')) ? http.url
+    : (org + '/oauth2/' + as + '/v1/authorize');
+  var tokenUrl = (ctx.denial && /token/.test(http.url || '')) ? http.url
+    : (org + '/oauth2/' + as + '/v1/token');
+  var appUrl, appMethod, appCtx;
+  if (ctx.action === 'invoke' || ctx.action === 'list-tools') {
+    appUrl = (state.config && state.config.adapter_url ? state.config.adapter_url : 'https://adapter.example') + '/';
+    appMethod = 'POST';
+    appCtx = ctx.action === 'invoke'
+      ? 'the tool runs at the MCP adapter as ' + name + ', bounded by the scoped token.'
+      : 'the adapter lists tools; each is probed with ' + name + "'s token to see what Okta authorizes.";
+  } else {
+    appUrl = (http.url) || (hostFor(target) + (target === 'desk' ? '/api/tickets' : '/api/accounts'));
+    appMethod = http.method || 'GET';
+    appCtx = 'the resource returns records AS ' + name + ' — the token, not the app, decides what is visible.';
+  }
+
+  var steps = [
+    {
+      id: 'authn', title: 'User authentication', method: 'POST',
+      url: shortUrl(org + '/api/v1/authn'), status: sAuth, note: hopNote(flow, 'agent'),
+      context: name + ' signs in; Okta returns a short-lived session token.',
+      token: { kind: 'session', label: 'sessionToken', detail: 'opaque, short-lived — proves who signed in' }
+    },
+    {
+      id: 'authorize', title: 'Authorization (PKCE)', method: 'GET',
+      url: shortUrl(authzUrl), status: sAuthz, note: hopNote(flow, 'adapter'),
+      correlationId: deniedHop === 'adapter' ? cid : null,
+      context: 'the agent starts an auth-code / PKCE flow. Okta decides whether ' + name + ' is even assigned.',
+      token: sAuthz === 'ok'
+        ? { kind: 'code', label: 'authorization code', detail: 'single-use, exchanged next' }
+        : { kind: 'none', label: '—', detail: 'no code issued' },
+      denial: deniedHop === 'adapter' ? ctx.denial : null
+    },
+    {
+      id: 'exchange', title: 'Token exchange (ID-JAG / XAA)', money: true, method: 'POST',
+      url: shortUrl(tokenUrl), status: sExch, note: hopNote(flow, 'xaa'),
+      correlationId: (deniedHop === 'xaa' || (!deniedHop && sExch === 'ok')) ? cid : (deniedHop ? null : cid),
+      context: 'the agent exchanges the user grant for a token scoped to ' + appName + '. This is where governance is enforced.',
+      token: (sExch === 'ok' && ctx.token)
+        ? { kind: 'access', label: 'access token', detail: 'aud=' + [].concat((ctx.token.decoded || {}).aud || []).join(' '), decoded: ctx.token.decoded, raw: ctx.token.raw }
+        : { kind: 'none', label: '—', detail: 'no scoped token minted' },
+      denial: deniedHop === 'xaa' ? ctx.denial : null
+    },
+    {
+      id: 'call', title: 'MCP / resource call', method: appMethod,
+      url: shortUrl(appUrl), status: sApp, note: hopNote(flow, 'app'),
+      correlationId: (!deniedHop && sApp === 'ok' && ctx.action !== 'invoke' && ctx.action !== 'list-tools') ? cid : null,
+      context: appCtx,
+      token: sApp === 'ok'
+        ? { kind: 'response', label: 'API response', detail: 'returned as ' + name }
+        : { kind: 'none', label: '—', detail: 'never reached' }
+    }
+  ];
+  return steps;
+}
+
+var drawerState = { esc: null, node: null };
+function reducedMotion() {
+  try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch (e) { return false; }
+}
+
+function openDrawer(ctx) {
+  closeDrawer();
+  var steps = synthesizeJourney(ctx);
+  var name = ctx.personaLabel || ctx.persona || '';
+  var verdict = ctx.denial ? 'deny' : 'allow';
+
+  var backdrop = el('div', { class: 'drawer-backdrop', onclick: function (e) { if (e.target === backdrop) closeDrawer(); } });
+  var panel = el('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Token journey' });
+
+  var head = el('div', { class: 'drawer-head' }, [
+    el('div', {}, [
+      el('div', { class: 'drawer-eyebrow', text: 'TOKEN JOURNEY' }),
+      el('h2', { class: 'drawer-title', text: ctx.actionTitle || 'Action' }),
+      el('div', { class: 'drawer-sub' }, [
+        el('span', { class: 'pill ' + (verdict === 'deny' ? 'deny' : 'allow'), text: verdict === 'deny' ? 'DENIED' : 'ALLOWED' }),
+        el('span', { text: ' ' + name })
+      ])
+    ]),
+    el('button', { class: 'drawer-close', type: 'button', 'aria-label': 'Close', text: '×', onclick: closeDrawer })
+  ]);
+
+  var timeline = el('div', { class: 'timeline' });
+  var rail = el('div', { class: 'tl-rail' });
+  var packet = el('div', { class: 'tl-packet' });
+  rail.appendChild(packet);
+  timeline.appendChild(rail);
+
+  var stepRefs = [];
+  steps.forEach(function (s, i) {
+    var dot = el('div', { class: 'tl-dot' });
+    var chip = el('div', { class: 'tl-chip k-' + (s.token ? s.token.kind : 'none') }, [
+      el('span', { class: 'tl-chip-ico', text: chipIcon(s.token && s.token.kind) }),
+      el('span', {}, [el('b', { text: (s.token && s.token.label) || '—' }),
+        s.token && s.token.detail ? el('span', { class: 'tl-chip-det', text: ' — ' + s.token.detail }) : null])
+    ]);
+    var body = [
+      el('div', { class: 'tl-step-head' }, [
+        el('span', { class: 'tl-num', text: String(i + 1) }),
+        el('span', { class: 'tl-step-title', text: s.title }),
+        el('span', { class: 'tl-status ' + s.status, text: s.status })
+      ]),
+      el('div', { class: 'tl-endpoint' }, [el('span', { class: 'tl-method', text: s.method + ' ' }), document.createTextNode(s.url)]),
+      el('div', { class: 'tl-context', text: s.context }),
+      chip
+    ];
+    if (s.correlationId) {
+      body.push(el('div', { class: 'tl-cid' }, [el('span', { class: 'tl-cid-k', text: 'x-okta-request-id ' }), el('span', { class: 'cid', text: s.correlationId })]));
+    }
+    // money step: expandable decoded access-token card
+    var expand = null;
+    if (s.money && s.token && s.token.kind === 'access' && s.token.decoded) {
+      expand = el('div', { class: 'tl-expand' }, [decodedMini(s.token.decoded, s.token.raw)]);
+      body.push(expand);
+    }
+    if (s.denial) {
+      body.push(el('div', { class: 'tl-denial' }, [
+        el('span', { class: 'status', text: 'HTTP ' + s.denial.status }),
+        el('div', { class: 'verbatim', text: s.denial.verbatim }),
+        el('p', { class: 'note', text: "Okta's verbatim refusal — the journey stops here. Downstream steps never run." })
+      ]));
+    } else if (s.status === 'denied') {
+      // denied stage without a single verbatim response (e.g. per-tool exchange refusals): show the reason.
+      body.push(el('div', { class: 'tl-denial' }, [
+        el('div', { class: 'verbatim', text: s.note || 'Okta refused this exchange; no scoped token was minted.' }),
+        el('p', { class: 'note', text: 'Governance blocked here — the journey stops. Downstream steps never run.' })
+      ]));
+    } else if (s.note) {
+      body.push(el('div', { class: 'tl-note', text: s.note }));
+    }
+    var stepEl = el('div', { class: 'tl-step s-' + s.status }, [dot, el('div', { class: 'tl-card' }, body)]);
+    timeline.appendChild(stepEl);
+    stepRefs.push({ el: stepEl, dot: dot, status: s.status, expand: expand, denied: s.status === 'denied' });
+  });
+
+  var foot = el('div', { class: 'drawer-foot' });
+  if (ctx.systemLog && ctx.systemLog.deepLink) {
+    foot.appendChild(el('a', { class: 'deeplink', href: ctx.systemLog.deepLink, target: '_blank', rel: 'noopener' },
+      ['\u{1F517} Verify this journey in the Okta System Log']));
+  }
+  foot.appendChild(el('p', { class: 'drawer-note', text: 'Synthesized from the live response (flow, issued token, HTTP trace, denial). Every URL, claim, and correlation id shown is real.' }));
+
+  panel.appendChild(head);
+  panel.appendChild(el('div', { class: 'drawer-body' }, [timeline, foot]));
+  backdrop.appendChild(panel);
+  document.body.appendChild(backdrop);
+  drawerState.node = backdrop;
+
+  // esc to close
+  drawerState.esc = function (e) { if (e.key === 'Escape') closeDrawer(); };
+  document.addEventListener('keydown', drawerState.esc);
+  panel.querySelector('.drawer-close').focus();
+
+  // animate
+  requestAnimationFrame(function () {
+    backdrop.classList.add('open');
+    animateJourney(stepRefs, rail, packet, reducedMotion());
+  });
+}
+
+function closeDrawer() {
+  if (drawerState.esc) { document.removeEventListener('keydown', drawerState.esc); drawerState.esc = null; }
+  if (drawerState.node && drawerState.node.parentNode) drawerState.node.parentNode.removeChild(drawerState.node);
+  drawerState.node = null;
+}
+
+function chipIcon(kind) {
+  return kind === 'session' ? '\u{1F511}' : kind === 'code' ? '\u{1F39F}️'
+    : kind === 'access' ? '\u{1F510}' : kind === 'response' ? '\u{1F4E6}' : '∅';
+}
+function decodedMini(d, raw) {
+  var chips = el('div', { class: 'chips', style: 'margin-top:6px' }, (d.scopes || []).map(function (s) { return el('span', { class: 'chip', text: s }); }));
+  var grps = el('div', { class: 'chips', style: 'margin-top:5px' }, (d.groups || []).map(function (g) { return el('span', { class: 'chip grp', text: g }); }));
+  return el('div', {}, [
+    el('div', { class: 'tl-expand-title', text: 'decoded access token — the scoped grant' }),
+    el('dl', { class: 'claims' }, [
+      el('dt', { text: 'sub' }), el('dd', { text: d.sub || '' }),
+      el('dt', { text: 'aud' }), el('dd', { text: [].concat(d.aud || []).join(' ') }),
+      el('dt', { text: 'iss' }), el('dd', { text: d.iss || '' }),
+      el('dt', { text: 'exp' }), el('dd', { text: fmtExp(d.exp) })
+    ]),
+    el('div', { class: 'section-title', style: 'margin:9px 0 0', text: 'scopes' }), chips,
+    el('div', { class: 'section-title', style: 'margin:8px 0 0', text: 'groups' }), grps
+  ]);
+}
+
+function animateJourney(stepRefs, rail, packet, reduced) {
+  if (reduced) {
+    stepRefs.forEach(function (s) { s.el.classList.add('lit'); if (s.expand) s.expand.classList.add('open'); });
+    if (packet) packet.style.display = 'none';
+    return;
+  }
+  var i = 0;
+  (function next() {
+    if (i >= stepRefs.length) return;
+    var s = stepRefs[i];
+    s.el.classList.add('lit');
+    // move the packet to this step's dot
+    if (packet) {
+      var top = s.dot.offsetTop + (s.dot.offsetHeight / 2) - 6;
+      packet.style.top = top + 'px';
+      packet.className = 'tl-packet ' + s.status;
+    }
+    if (s.expand) setTimeout(function () { s.expand.classList.add('open'); }, 160);
+    i++;
+    if (s.denied) {
+      // pinpoint the block: mark downstream as already-skipped, stop the packet here
+      for (var j = i; j < stepRefs.length; j++) stepRefs[j].el.classList.add('lit');
+      if (packet) packet.classList.add('stopped');
+      return;
+    }
+    setTimeout(next, 400);
+  })();
 }
 
 document.addEventListener('DOMContentLoaded', boot);
