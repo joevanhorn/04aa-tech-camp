@@ -45,7 +45,15 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-.app { max-width: 1180px; margin: 0 auto; padding: 20px 20px 80px; }
+.app { max-width: 1340px; margin: 0 auto; padding: 20px 20px 80px; }
+
+/* ---------- workspace: left mainpane + right sidebar ---------- */
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 384px; gap: 18px; align-items: start; }
+.workspace.side-collapsed { grid-template-columns: minmax(0, 1fr) 46px; }
+.mainpane { min-width: 0; }
+@media (max-width: 980px) {
+  .workspace, .workspace.side-collapsed { grid-template-columns: 1fr; }
+}
 
 /* ---------- header ---------- */
 .topbar {
@@ -446,6 +454,157 @@ pre.json {
 .tl-cid-k { color: var(--faint); }
 .tl-note { font-size: 11px; color: var(--faint); margin-top: 7px; font-style: italic; line-height: 1.4; }
 
+/* ================= REDESIGN: dropdown + action list + persistent sidebar ================= */
+
+/* ---- persona dropdown ---- */
+.controls { margin-bottom: 6px; }
+.ctl-label { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--faint); font-weight: 700; display: block; margin: 6px 2px 7px; }
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: '▾'; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); pointer-events: none; font-size: 13px;
+}
+#personaSelect {
+  width: 100%; appearance: none; -webkit-appearance: none;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border-strong); color: var(--text);
+  border-radius: 10px; padding: 12px 38px 12px 14px; font-family: var(--sans); font-size: 14px; font-weight: 600;
+  cursor: pointer; box-shadow: var(--shadow);
+}
+#personaSelect:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ctl-hint { font-size: 11.5px; color: var(--faint); margin: 8px 2px 0; }
+
+/* ---- vertical action list ---- */
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.action-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; color: var(--text);
+  transition: border-color .12s, transform .05s, box-shadow .12s;
+}
+.action-row:hover:not(:disabled) { border-color: var(--border-strong); box-shadow: var(--shadow); }
+.action-row:active:not(:disabled) { transform: translateY(1px); }
+.action-row:disabled { cursor: not-allowed; }
+.action-row.gated { opacity: .5; }
+.action-row .ar-ico {
+  width: 34px; height: 34px; border-radius: 8px; flex: none; display: grid; place-items: center; font-size: 17px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+.action-row .ar-text { flex: 1; line-height: 1.25; min-width: 0; }
+.action-row .ar-text b { font-weight: 620; font-size: 13.5px; display: block; }
+.action-row .ar-text span { font-size: 12px; color: var(--muted); }
+.action-row .ar-go { color: var(--faint); font-size: 11px; flex: none; }
+.action-row:hover:not(:disabled) .ar-go { color: var(--accent); }
+.action-row.proof { border-color: #33251a; }
+.action-row.proof .ar-ico { border-color: #4a3a12; color: var(--warn); }
+
+/* ---- sidebar shell ---- */
+.sidebar { align-self: start; position: sticky; top: 20px; }
+.sidebar-inner {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  max-height: calc(100vh - 40px); display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar.collapsed .sidebar-inner { display: none; }
+.sidebar-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 12px; border-bottom: 1px solid var(--border); background: var(--panel-2);
+}
+.collapse-btn, .expand-btn {
+  cursor: pointer; background: var(--panel); border: 1px solid var(--border-strong); color: var(--muted);
+  border-radius: 7px; font-size: 14px; line-height: 1; padding: 5px 9px;
+}
+.collapse-btn:hover { color: var(--text); border-color: var(--accent); }
+.sidebar-body { overflow-y: auto; padding: 14px; }
+.side-section { margin-bottom: 18px; }
+.side-section:last-child { margin-bottom: 4px; }
+
+/* collapsed rail */
+.expand-btn { display: none; }
+.sidebar.collapsed .expand-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  writing-mode: vertical-rl; width: 46px; min-height: 210px; padding: 14px 0;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.sidebar.collapsed .expand-btn:hover { border-color: var(--accent); color: var(--text); }
+.expand-label { font-size: 10.5px; letter-spacing: .14em; font-weight: 700; color: var(--faint); }
+.expand-ico { transform: rotate(90deg); }
+@media (max-width: 980px) {
+  .sidebar { position: static; }
+  .sidebar.collapsed .expand-btn { writing-mode: horizontal-tb; width: 100%; min-height: 0; flex-direction: row; }
+  .expand-ico { transform: none; }
+}
+
+/* ---- view toggle (CISO / Dev) ---- */
+.view-toggle { display: inline-flex; background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: 8px; padding: 2px; gap: 2px; }
+.vt {
+  cursor: pointer; background: transparent; border: none; color: var(--muted);
+  font-family: var(--sans); font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 6px;
+}
+.vt:hover { color: var(--text); }
+.vt.active { background: var(--accent); color: #04121f; }
+
+/* ---- sidebar section headings ---- */
+.side-title { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); font-weight: 700; margin: 0 0 10px; }
+.side-sub { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+.side-empty { font-size: 12.5px; color: var(--faint); line-height: 1.5; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); animation: pulse 1.6s ease-in-out infinite; }
+
+/* ---- identity card ---- */
+.idcard { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 13px; border-left: 3px solid var(--accent); }
+.id-top { display: flex; align-items: center; gap: 11px; }
+.id-top .avatar { width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #04121f; }
+.id-who b { font-size: 14px; font-weight: 640; display: block; }
+.id-who span { font-size: 12px; color: var(--muted); }
+.id-line { display: flex; gap: 9px; align-items: baseline; margin-top: 11px; font-size: 12.5px; line-height: 1.45; }
+.id-line .il-ico { flex: none; font-weight: 800; }
+.id-line.ok .il-ico { color: var(--ok); }
+.id-line.no .il-ico { color: var(--deny); }
+.id-line b { font-weight: 700; }
+.id-groups { font-size: 12px; color: var(--muted); margin-top: 11px; font-family: var(--mono); }
+.id-foot { font-size: 11px; color: var(--faint); margin: 11px 0 0; line-height: 1.45; }
+
+/* ---- simulated Okta login frame ---- */
+.okta-frame { border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; background: var(--bg-2); box-shadow: var(--shadow); }
+.of-chrome { display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #0a0f15; border-bottom: 1px solid var(--border); }
+.of-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.of-dot.r { background: #ff5f57; } .of-dot.y { background: #febc2e; } .of-dot.g { background: #28c840; }
+.of-url { margin-left: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.of-body { padding: 20px 16px 18px; text-align: center; }
+.of-okta { font-size: 20px; font-weight: 800; letter-spacing: -.5px; color: #4c9ffe; margin-bottom: 12px; }
+.of-title { font-size: 14px; font-weight: 640; }
+.of-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.of-steps { list-style: none; margin: 14px 0 0; padding: 0; text-align: left; display: grid; gap: 7px; }
+.of-steps li { font-size: 12px; color: var(--faint); padding-left: 22px; position: relative; transition: color .3s; }
+.of-steps li::before { content: '○'; position: absolute; left: 4px; color: var(--faint); }
+.of-steps li.done { color: var(--text); }
+.of-steps li.done::before { content: '✓'; color: var(--ok); }
+.of-progress { height: 4px; border-radius: 3px; background: var(--panel-2); margin-top: 14px; overflow: hidden; }
+.of-bar { height: 100%; width: 4%; background: linear-gradient(90deg, #1d6fe0, #4c9ffe); border-radius: 3px; transition: width 1.25s ease; }
+
+/* ---- journey outcome banner ---- */
+.outcome { display: flex; align-items: flex-start; gap: 9px; padding: 10px 12px; border-radius: 9px; margin-bottom: 14px; border: 1px solid var(--border); }
+.outcome.allow { background: var(--ok-bg); border-color: #17371f; }
+.outcome.deny { background: var(--deny-bg); border-color: #4a1c1c; }
+.outcome .pill { flex: none; margin-top: 1px; }
+.outcome-txt { font-size: 12.5px; line-height: 1.45; color: var(--text); }
+
+.sidebar-pointer { font-size: 12px; color: var(--faint); margin: 14px 0 0; }
+
+/* base deep link (journey footer, sidebar) */
+.side-section .deeplink, a.deeplink {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 12px;
+  background: #10233b; border: 1px solid #1d456e; border-radius: 7px; padding: 8px 12px;
+  font-size: 12.5px; font-weight: 600; color: #9fd0ff;
+}
+.side-section .deeplink:hover { text-decoration: none; border-color: var(--accent); }
+.side-section .timeline { padding-left: 28px; }
+
+@media (max-width: 980px) {
+  .sidebar-inner { max-height: none; }
+}
+
 /* token chip that transforms across steps */
 .tl-chip {
   display: flex; align-items: baseline; gap: 8px; margin-top: 9px;
@@ -501,18 +660,45 @@ pre.json {
       </div>
     </header>
 
-    <div class="section-title">Persona</div>
-    <div class="persona-row" id="personaRow"><span class="subtle">Loading personas&hellip;</span></div>
+    <div class="workspace">
+      <!-- LEFT: persona picker + action list + result -->
+      <main class="mainpane">
+        <div class="controls">
+          <label class="ctl-label" for="personaSelect">Persona</label>
+          <div class="select-wrap">
+            <select id="personaSelect" aria-label="Select persona (signs in via Okta)"></select>
+          </div>
+          <p class="ctl-hint">Choosing a persona starts a fresh Okta login and an isolated session.</p>
+        </div>
 
-    <div class="section-title">Actions</div>
-    <div class="tiles" id="tiles"></div>
+        <div class="section-title">Actions</div>
+        <div class="action-list" id="actionList"></div>
 
-    <div class="result" id="result">
-      <div class="empty">
-        <div class="big">&#128274;</div>
-        Pick a persona, then run an action.<br />
-        Every result shows the real token Okta issued (or its verbatim denial), the HTTP receipt, and the matching Okta System Log entry.
-      </div>
+        <div class="result" id="result">
+          <div class="empty">
+            <div class="big">&#128274;</div>
+            Sign in a persona, then run an action.<br />
+            The right sidebar shows the identity Okta issued and traces every token as it's exchanged.
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT: persistent, collapsible identity + token-journey sidebar -->
+      <aside class="sidebar" id="sidebar" aria-label="Identity and token journey">
+        <div class="sidebar-inner">
+          <div class="sidebar-head">
+            <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Detail level"></div>
+            <button class="collapse-btn" id="collapseBtn" type="button" title="Collapse sidebar" aria-label="Collapse sidebar">&raquo;</button>
+          </div>
+          <div class="sidebar-body" id="sidebarBody">
+            <section id="identitySection" class="side-section"></section>
+            <section id="journeySection" class="side-section"></section>
+          </div>
+        </div>
+        <button class="expand-btn" id="expandBtn" type="button" title="Expand sidebar" aria-label="Expand sidebar">
+          <span class="expand-ico">&laquo;</span><span class="expand-label">IDENTITY &amp; TOKENS</span>
+        </button>
+      </aside>
     </div>
 
     <div class="foot">
@@ -529,27 +715,80 @@ window.__FIXTURES__ = {
       {
         "id": "alex",
         "label": "Alex Martinez",
-        "role": "Sales Rep"
+        "role": "Sales Rep",
+        "email": "alex.martinez@atko.email",
+        "groups": [
+          "CRM-Reps",
+          "Everyone"
+        ],
+        "scopes": [
+          "crm.accounts.read",
+          "crm.contacts.read"
+        ],
+        "can": "Read their own CRM accounts and contacts in VantageCRM.",
+        "cannot": "Read sales opportunities, or open any VantageDesk / ITSM ticket."
       },
       {
         "id": "susan",
         "label": "Susan Potter",
-        "role": "Sales Manager"
+        "role": "Sales Manager",
+        "email": "susan.potter@atko.email",
+        "groups": [
+          "CRM-Managers",
+          "Everyone"
+        ],
+        "scopes": [
+          "crm.accounts.read",
+          "crm.contacts.read",
+          "crm.opportunities.read"
+        ],
+        "can": "Read all CRM accounts, contacts, and sales opportunities across the team.",
+        "cannot": "Access any VantageDesk / ITSM ticket."
       },
       {
         "id": "kim",
         "label": "Kim Liu",
-        "role": "IT Help Desk"
+        "role": "IT Help Desk",
+        "email": "kim.liu@atko.email",
+        "groups": [
+          "ITSM-Agents",
+          "Everyone"
+        ],
+        "scopes": [
+          "itsm.tickets.read",
+          "itsm.incidents.read",
+          "itsm.kb.read"
+        ],
+        "can": "Read and triage VantageDesk tickets, incidents, and the knowledge base.",
+        "cannot": "Read any CRM account, contact, or opportunity."
       },
       {
         "id": "frank",
         "label": "Frank Boone",
-        "role": "Engineering"
+        "role": "Engineering",
+        "email": "frank.boone@atko.email",
+        "groups": [
+          "Engineering",
+          "Everyone"
+        ],
+        "scopes": [],
+        "can": "Nothing in VantageCRM or VantageDesk — not entitled to either app.",
+        "cannot": "Read CRM or Desk data. Okta will not issue Frank a token for these resources."
       },
       {
         "id": "sally",
         "label": "Sally Nguyen",
-        "role": "Customer Success"
+        "role": "Customer Success",
+        "email": "sally.nguyen@atko.email",
+        "groups": [
+          "CRM-CustomerSuccess",
+          "Everyone"
+        ],
+        "scopes": [
+          "crm.accounts.read"
+        ],
+        "can": "Read CRM account records (read-only).",
+        "cannot": "Read sales opportunities, or access any VantageDesk / ITSM ticket."
       }
     ],
     "actions": [
@@ -1904,7 +2143,11 @@ window.__FIXTURES__ = {
 </script>
   <script>
 /* Lab Toolkit GUI - single-page app. CSP-safe: no inline handlers, no external assets.
- * Consumes the API-CONTRACT.md shapes. Runs live (backend at /api/*) or from fixtures. */
+ * Consumes the API-CONTRACT.md shapes. Runs live (backend at /api/*) or from fixtures.
+ *
+ * Layout: left = persona dropdown + vertical action list + result; right = persistent,
+ * collapsible identity/token sidebar (login identity + scopes + animated token journey),
+ * with a Simple<->Advanced progressive-disclosure toggle. */
 'use strict';
 
 // ---------------------------------------------------------------- helpers
@@ -1924,19 +2167,50 @@ function el(tag, props, kids) {
   });
   return n;
 }
-function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+function clear(n) { while (n && n.firstChild) n.removeChild(n.firstChild); }
 function delay(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 function fmtTime(t) { try { return new Date(t).toISOString().replace('T', ' ').replace('.000Z', 'Z').replace('Z', ' UTC'); } catch (e) { return t; } }
 function fmtExp(exp) { if (!exp) return '(none)'; return exp + '  (' + fmtTime(exp * 1000) + ')'; }
+function nowSec() { return Math.floor(Date.now() / 1000); }
+function rand(n) { var s = ''; while (s.length < (n || 12)) s += Math.random().toString(36).slice(2); return s.slice(0, n || 12); }
 function avatarColor(id) {
   var map = { alex: '#4c9ffe', susan: '#a371f7', kim: '#3fb950', frank: '#f0883e', sally: '#f778ba' };
   return map[id] || '#8ba1b7';
 }
 function initials(label) { return (label || '?').split(/\s+/).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase(); }
+function utf8bytes(str) {
+  var b = [];
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charCodeAt(i);
+    if (c < 0x80) b.push(c);
+    else if (c < 0x800) b.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
+    else b.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+  }
+  return b;
+}
+// Pure-JS base64url (no btoa: avoids a flaky host dependency, works offline everywhere).
+function b64url(obj) {
+  var C = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  var b = utf8bytes(JSON.stringify(obj)); var out = '';
+  for (var i = 0; i < b.length; i += 3) {
+    var x = b[i], y = i + 1 < b.length ? b[i + 1] : -1, z = i + 2 < b.length ? b[i + 2] : -1;
+    out += C[x >> 2]; out += C[((x & 3) << 4) | (y >= 0 ? y >> 4 : 0)];
+    if (y >= 0) out += C[((y & 15) << 2) | (z >= 0 ? z >> 6 : 0)];
+    if (z >= 0) out += C[z & 63];
+  }
+  return out;
+}
+function makeJwt(payload) {
+  return b64url({ alg: 'RS256', kid: 'sampleKid_labToolkit', typ: 'JWT' }) + '.' + b64url(payload) + '.SAMPLE_signature_fixture_only';
+}
+function reducedMotion() {
+  try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+  catch (e) { return false; }
+}
 
 // ---------------------------------------------------------------- API client
 var params = new URLSearchParams(location.search);
-var USE_FIXTURES = true; // preview build: always use the inlined fixture bundle
+var USE_FIXTURES = true; // preview: always inlined fixtures
 var autoFellBack = false;
 
 var EMAIL = {
@@ -1947,7 +2221,6 @@ var CRM_ALLOW = { alex: 1, susan: 1, sally: 1 };
 var DESK_ALLOW = { kim: 1 };
 
 function F(name) {
-  // Prefer the embedded offline bundle; fall back to fetching the json file (http only).
   if (window.__FIXTURES__ && window.__FIXTURES__[name]) return Promise.resolve(clone(window.__FIXTURES__[name]));
   return fetch('fixtures/' + name + '.json').then(function (r) { return r.json(); });
 }
@@ -1973,7 +2246,7 @@ function mockRead(persona, target) {
   var allow = target === 'crm' ? CRM_ALLOW[persona] : DESK_ALLOW[persona];
   var tmpl = allow ? (target === 'crm' ? 'read.crm.susan' : 'read.desk.kim')
                    : (target === 'crm' ? 'read.crm.frank' : 'read.desk.alex');
-  return F(tmpl).then(function (o) { return repersona(o, persona, target === 'crm' ? 'vantage-crm' : 'vantage-desk'); });
+  return F(tmpl).then(function (o) { return repersona(o, persona); });
 }
 function mockListTools(persona) {
   var key = 'list-tools.' + persona;
@@ -1982,33 +2255,18 @@ function mockListTools(persona) {
 }
 function mockInvoke(persona, tool, args) {
   var key = 'invoke.' + persona;
-  if (window.__FIXTURES__ && window.__FIXTURES__[key]) {
-    return F(key).then(function (o) { patchInvokeReq(o, tool, args); return o; });
-  }
+  if (window.__FIXTURES__ && window.__FIXTURES__[key]) return F(key).then(function (o) { patchInvokeReq(o, tool, args); return o; });
   var allow = CRM_ALLOW[persona] || DESK_ALLOW[persona];
   var tmpl = allow ? (DESK_ALLOW[persona] ? 'invoke.kim' : 'invoke.susan') : 'invoke.frank';
-  return F(tmpl).then(function (o) {
-    o.persona = persona; if (o.token) o.token.decoded.sub = EMAIL[persona] || persona;
-    patchInvokeReq(o, tool, args); return o;
-  });
+  return F(tmpl).then(function (o) { o.persona = persona; if (o.token) o.token.decoded.sub = EMAIL[persona] || persona; patchInvokeReq(o, tool, args); return o; });
 }
-function patchInvokeReq(o, tool, args) {
-  if (!o.request) o.request = {};
-  if (tool) o.request.tool = tool;
-  if (args != null) o.request.args = args;
-}
-function repersona(o, persona, aud) {
-  o.persona = persona;
-  if (o.token && o.token.decoded) o.token.decoded.sub = EMAIL[persona] || persona;
-  return o;
-}
+function patchInvokeReq(o, tool, args) { if (!o.request) o.request = {}; if (tool) o.request.tool = tool; if (args != null) o.request.args = args; }
+function repersona(o, persona) { o.persona = persona; if (o.token && o.token.decoded) o.token.decoded.sub = EMAIL[persona] || persona; return o; }
 
 var api = {
   request: function (endpoint, opts) {
     opts = opts || {};
-    if (USE_FIXTURES) {
-      return delay(420 + Math.random() * 380).then(function () { return mockResolve(endpoint, opts.body); });
-    }
+    if (USE_FIXTURES) return delay(420 + Math.random() * 380).then(function () { return mockResolve(endpoint, opts.body); });
     var map = {
       'config': ['GET', '/api/config'], 'check-env': ['POST', '/api/check-env'],
       'read': ['POST', '/api/read'], 'list-tools': ['POST', '/api/list-tools'],
@@ -2031,7 +2289,10 @@ var api = {
 };
 
 // ---------------------------------------------------------------- state
-var state = { config: null, persona: null, busy: false };
+var state = {
+  config: null, persona: null, session: null, view: 'simple', // 'simple' | 'advanced'
+  busy: false, sidebarCollapsed: false, lastJourneyCtx: null, rerenderMain: null, loginSeq: 0
+};
 
 var TILES = [
   { id: 'check-env', ico: '\u{1FA7A}', title: 'Check environment', desc: 'Reach CRM, Desk & the MCP adapter', needsPersona: false },
@@ -2043,29 +2304,33 @@ var TILES = [
   { id: 'side-by-side', ico: '⚖️', title: 'Side-by-side allow vs deny', desc: 'Same call, two personas', needsPersona: false, proof: true },
   { id: 'cheat', ico: '\u{1F6E1}️', title: "Prove it can't be faked", desc: 'Forged / wrong-audience tokens rejected live', needsPersona: false, proof: true }
 ];
+function isAdvanced() { return state.view === 'advanced'; }
+function personaById(id) { return (state.config.personas || []).filter(function (x) { return x.id === id; })[0]; }
+function personaLabel(id) { var p = personaById(id); return p ? p.label : id; }
 
 // ---------------------------------------------------------------- boot
 function boot() {
   renderModeBadge();
+  wireSidebarChrome();
   api.request('config').then(onConfig).catch(function () {
-    if (!USE_FIXTURES) { // backend down -> fall back to fixtures automatically
-      USE_FIXTURES = true; autoFellBack = true; renderModeBadge();
-      return mockResolve('config', {}).then(onConfig);
-    }
-    document.getElementById('personaRow').textContent = 'Failed to load config.';
+    if (!USE_FIXTURES) { USE_FIXTURES = true; autoFellBack = true; renderModeBadge(); return mockResolve('config', {}).then(onConfig); }
+    document.getElementById('actionList').textContent = 'Failed to load config.';
   });
 }
 function onConfig(cfg) {
   state.config = cfg;
-  state.persona = cfg.personas && cfg.personas[0] ? cfg.personas[0].id : null;
   document.getElementById('orgLabel').textContent = cfg.org || '';
   document.getElementById('verLabel').textContent = 'v' + (cfg.appVersion || '?');
-  renderPersonas();
-  renderTiles();
+  renderPersonaSelect();
+  renderViewToggle();
+  renderActionList();
+  renderJourneySection();
+  // auto-sign-in the first persona so the sidebar identity is populated on load.
+  var first = cfg.personas && cfg.personas[0];
+  if (first) { document.getElementById('personaSelect').value = first.id; loginPersona(first.id); }
 }
 function renderModeBadge() {
-  var b = document.getElementById('modeBadge');
-  clear(b);
+  var b = document.getElementById('modeBadge'); clear(b);
   if (USE_FIXTURES) {
     b.className = 'badge mock';
     b.appendChild(el('span', { class: 'dot' }));
@@ -2082,63 +2347,121 @@ function renderModeBadge() {
 }
 function setMock(on) { params.set('mock', on ? '1' : '0'); location.search = params.toString(); }
 
-// ---------------------------------------------------------------- persona switcher
-function renderPersonas() {
-  var row = document.getElementById('personaRow');
-  clear(row);
+// ---------------------------------------------------------------- persona dropdown + simulated login
+function renderPersonaSelect() {
+  var sel = document.getElementById('personaSelect'); clear(sel);
   state.config.personas.forEach(function (p) {
-    var node = el('div', {
-      class: 'persona' + (p.id === state.persona ? ' active' : ''),
-      role: 'button', tabindex: '0',
-      onclick: function () { state.persona = p.id; renderPersonas(); }
-    }, [
-      el('div', { class: 'avatar', style: 'background:' + avatarColor(p.id), text: initials(p.label) }),
-      el('div', { class: 'who' }, [el('b', { text: p.label }), el('span', { text: p.role })])
-    ]);
-    node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); node.click(); } });
-    row.appendChild(node);
+    sel.appendChild(el('option', { value: p.id, text: p.label + '  —  ' + p.role }));
   });
-}
-function personaLabel(id) {
-  var p = (state.config.personas || []).filter(function (x) { return x.id === id; })[0];
-  return p ? p.label : id;
+  sel.onchange = function () { loginPersona(sel.value); };
 }
 
-// ---------------------------------------------------------------- action tiles
-function renderTiles() {
-  var wrap = document.getElementById('tiles');
-  clear(wrap);
-  TILES.forEach(function (t) {
-    var tile = el('button', {
-      class: 'tile' + (t.proof ? ' proof' : ''), type: 'button', 'data-id': t.id,
-      onclick: function () { if (!state.busy) runAction(t); }
-    }, [
-      el('div', { class: 'ico', text: t.ico }),
-      el('h3', { text: t.title }),
-      el('p', { text: t.desc })
-    ]);
-    wrap.appendChild(tile);
+// A brand-new Okta login + isolated session per persona. Simulated here (animated login frame,
+// then identity synthesized from config). A real build swaps loginPersona() for a genuine
+// embedded-browser OIDC auth-code/PKCE login with an isolated session/cookie jar per persona.
+function loginPersona(id) {
+  var p = personaById(id); if (!p) return Promise.resolve();
+  var seq = ++state.loginSeq;
+  state.persona = id;
+  state.session = null;          // fresh session: clear prior persona identity
+  state.lastJourneyCtx = null;   // and prior token journey
+  state.rerenderMain = null;
+  renderActionList();            // persona actions disabled until login completes
+  renderJourneySection();        // journey -> placeholder
+  resetResult(p);                // clear the main result area
+  renderLoginFrame(p);           // animated "Authenticating as <persona> via Okta..."
+  var ms = reducedMotion() ? 250 : 1400;
+  return delay(ms).then(function () {
+    if (seq !== state.loginSeq) return; // a newer login superseded this one
+    state.session = buildIdentity(p);
+    renderIdentitySection();
+    renderActionList();
   });
 }
-function setTileBusy(id, busy) {
+function buildIdentity(p) {
+  var email = p.email || EMAIL[p.id] || p.id;
+  var groups = p.groups || ['Everyone'];
+  var scopes = p.scopes || [];
+  var sid = 'sess_' + rand(16);
+  var iss = cfgUrl() + '/oauth2/v1';
+  var iat = nowSec(); var exp = iat + 3600;
+  var decoded = { sub: email, name: p.label, email: email, groups: groups, iss: iss, aud: (state.config.toolkit_client_id || 'lab-toolkit'), iat: iat, exp: exp, sid: sid, amr: ['pwd'] };
+  return { id: p.id, label: p.label, role: p.role, email: email, groups: groups, scopes: scopes,
+    can: p.can, cannot: p.cannot, sessionId: sid, idToken: { raw: makeJwt(decoded), decoded: decoded } };
+}
+function resetResult(p) {
+  var res = document.getElementById('result'); clear(res);
+  res.appendChild(el('div', { class: 'empty' }, [
+    el('div', { class: 'big', text: '\u{1F464}' }),
+    el('div', {}, ['Signed in as ', el('b', { text: p.label }), '. Choose an action on the left.'])
+  ]));
+}
+
+function renderLoginFrame(p) {
+  var sec = document.getElementById('identitySection'); clear(sec);
+  var steps = el('ul', { class: 'of-steps' }, [
+    el('li', { text: 'Redirecting to Okta' }),
+    el('li', { text: 'Verifying identity (lab NOMFA policy)' }),
+    el('li', { text: 'Issuing id_token & scopes' })
+  ]);
+  var bar = el('div', { class: 'of-bar' });
+  var frame = el('div', { class: 'okta-frame' }, [
+    el('div', { class: 'of-chrome' }, [
+      el('span', { class: 'of-dot r' }), el('span', { class: 'of-dot y' }), el('span', { class: 'of-dot g' }),
+      el('span', { class: 'of-url', text: '\u{1F512} ' + (state.config.org || 'okta') + '/oauth2/v1/authorize' })
+    ]),
+    el('div', { class: 'of-body' }, [
+      el('div', { class: 'of-okta', text: 'Okta' }),
+      el('div', { class: 'of-title', text: 'Authenticating as ' + p.label }),
+      el('div', { class: 'of-sub', text: 'via Okta · establishing an isolated session…' }),
+      steps,
+      el('div', { class: 'of-progress' }, [bar])
+    ])
+  ]);
+  sec.appendChild(el('div', { class: 'side-title' }, [el('span', { text: 'Persona login' })]));
+  sec.appendChild(frame);
+  var lis = steps.querySelectorAll('li');
+  if (reducedMotion()) {
+    Array.prototype.forEach.call(lis, function (li) { li.classList.add('done'); });
+    bar.style.transition = 'none'; bar.style.width = '100%';
+  } else {
+    requestAnimationFrame(function () { bar.style.width = '100%'; });
+    Array.prototype.forEach.call(lis, function (li, i) { setTimeout(function () { li.classList.add('done'); }, 300 + i * 380); });
+  }
+}
+
+// ---------------------------------------------------------------- action list
+function renderActionList() {
+  var wrap = document.getElementById('actionList'); if (!wrap) return; clear(wrap);
+  TILES.forEach(function (t) {
+    var gated = t.needsPersona && !state.session;
+    var row = el('button', {
+      class: 'action-row' + (t.proof ? ' proof' : '') + (gated ? ' gated' : ''), type: 'button', 'data-id': t.id,
+      disabled: gated ? '' : null,
+      onclick: function () { if (!state.busy && !gated) runAction(t); }
+    }, [
+      el('span', { class: 'ar-ico', text: t.ico }),
+      el('span', { class: 'ar-text' }, [el('b', { text: t.title }), el('span', { text: gated ? 'sign in a persona to run this' : t.desc })]),
+      el('span', { class: 'ar-go', text: '▶' })
+    ]);
+    wrap.appendChild(row);
+  });
+}
+function setActionBusy(id, busy) {
   state.busy = busy;
-  Array.prototype.forEach.call(document.querySelectorAll('.tile'), function (tl) {
-    tl.disabled = busy && tl.getAttribute('data-id') !== id;
-    var sp = tl.querySelector('.spinner');
-    if (tl.getAttribute('data-id') === id && busy && !sp) tl.appendChild(el('span', { class: 'spinner' }));
-    if (!(busy) && sp) sp.remove();
-    if (tl.getAttribute('data-id') === id && !busy && sp) sp.remove();
+  if (!busy) { renderActionList(); return; }
+  Array.prototype.forEach.call(document.querySelectorAll('.action-row'), function (r) {
+    if (r.getAttribute('data-id') === id) {
+      var go = r.querySelector('.ar-go'); if (go) { clear(go); go.appendChild(el('span', { class: 'spinner' })); }
+    } else { r.disabled = true; }
   });
 }
 
 // ---------------------------------------------------------------- action dispatch
 function runAction(t) {
-  var res = document.getElementById('result');
   if (t.id === 'invoke') return renderInvokeForm(t);
-
   showSkeleton(t.title);
-  setTileBusy(t.id, true);
-
+  setActionBusy(t.id, true);
   var call;
   if (t.id === 'check-env') call = api.request('check-env', { body: {} });
   else if (t.id === 'read-crm' || t.id === 'read-desk') call = api.request('read', { body: { persona: state.persona, target: t.target } });
@@ -2148,174 +2471,83 @@ function runAction(t) {
   else if (t.id === 'cheat') call = api.request('cheat', { body: {} });
 
   call.then(function (data) {
-    setTileBusy(t.id, false);
-    if (t.id === 'check-env') renderCheckEnv(data);
-    else if (t.id === 'read-crm' || t.id === 'read-desk') renderPersonaResult(t, data);
-    else if (t.id === 'list-tools') renderListTools(data);
-    else if (t.id === 'access-log') renderAccessLog(data);
-    else if (t.id === 'side-by-side') renderSideBySide(data);
-    else if (t.id === 'cheat') renderCheat(data);
-  }).catch(function (err) {
-    setTileBusy(t.id, false);
-    renderError(t.title, err);
-  });
+    setActionBusy(t.id, false);
+    if (t.id === 'check-env') { renderCheckEnv(data); }
+    else if (t.id === 'read-crm' || t.id === 'read-desk') { renderPersonaResult(t, data); setJourney(journeyCtx(data, { action: t.id, actionTitle: t.title, target: t.target })); }
+    else if (t.id === 'list-tools') {
+      renderListTools(data);
+      var ltTarget = (data.authorized || []).some(function (x) { return x.indexOf('desk') > -1; }) && !(data.authorized || []).some(function (x) { return x.indexOf('crm') > -1; }) ? 'desk' : 'crm';
+      setJourney(journeyCtx(data, { action: 'list-tools', actionTitle: "List the agent's tools", target: ltTarget }));
+    }
+    else if (t.id === 'access-log') { renderAccessLog(data); }
+    else if (t.id === 'side-by-side') { renderSideBySide(data); }
+    else if (t.id === 'cheat') { renderCheat(data); }
+  }).catch(function (err) { setActionBusy(t.id, false); renderError(t.title, err); });
 }
+function setJourney(ctx) { state.lastJourneyCtx = ctx; renderJourneySection(); }
 
 // ---------------------------------------------------------------- shared building blocks
 function resultHead(title, ctx, verdict) {
   var pill = verdict === 'allow' ? el('span', { class: 'pill allow', text: 'ALLOWED' })
     : verdict === 'deny' ? el('span', { class: 'pill deny', text: 'DENIED' }) : null;
-  return el('div', { class: 'result-head' }, [
-    el('h2', { text: title }),
-    ctx ? el('span', { class: 'ctx', text: ctx }) : null,
-    pill
-  ]);
+  return el('div', { class: 'result-head' }, [el('h2', { text: title }), ctx ? el('span', { class: 'ctx', text: ctx }) : null, pill]);
 }
 function showSkeleton(title) {
   var res = document.getElementById('result'); clear(res);
   res.appendChild(resultHead(title, 'running…'));
-  res.appendChild(el('div', { class: 'card skeleton' }, [
-    el('div', { class: 'bar w40' }), el('div', { class: 'bar w80' }), el('div', { class: 'bar w60' })
-  ]));
-}
-
-function tokenCard(token, title) {
-  var d = token.decoded || {};
-  var claims = el('dl', { class: 'claims' }, [
-    el('dt', { text: 'sub' }), el('dd', { text: d.sub || '' }),
-    el('dt', { text: 'aud' }), el('dd', { text: [].concat(d.aud || []).join(' ') }),
-    el('dt', { text: 'iss' }), el('dd', { text: d.iss || '' }),
-    el('dt', { text: 'exp' }), el('dd', { text: fmtExp(d.exp) })
-  ]);
-  var scopes = el('div', { class: 'chips' }, (d.scopes || []).map(function (s) { return el('span', { class: 'chip', text: s }); }));
-  var groups = el('div', { class: 'chips' }, (d.groups || []).map(function (g) { return el('span', { class: 'chip grp', text: g }); }));
-  var copy = el('button', { class: 'copybtn', type: 'button', text: 'copy raw', onclick: function () {
-    if (navigator.clipboard) navigator.clipboard.writeText(token.raw || '');
-    this.textContent = 'copied';
-  } });
-  return el('div', { class: 'card token' }, [
-    el('div', { class: 'card-title' }, [copy, document.createTextNode(title || 'Token Okta issued (decoded JWT)')]),
-    claims,
-    el('div', { style: 'margin-top:11px' }, [el('div', { class: 'section-title', style: 'margin:0 0 5px', text: 'scopes' }), scopes]),
-    el('div', { style: 'margin-top:9px' }, [el('div', { class: 'section-title', style: 'margin:0 0 5px', text: 'groups' }), groups]),
-    el('div', { class: 'raw-tok', text: token.raw || '' })
-  ]);
+  res.appendChild(el('div', { class: 'card skeleton' }, [el('div', { class: 'bar w40' }), el('div', { class: 'bar w80' }), el('div', { class: 'bar w60' })]));
 }
 function denialCard(denial, title) {
   return el('div', { class: 'card denial' }, [
-    el('div', { class: 'card-title', text: title || "Okta denial (verbatim response)" }),
+    el('div', { class: 'card-title', text: title || 'Okta denial (verbatim response)' }),
     el('span', { class: 'status', text: 'HTTP ' + denial.status }),
     el('div', { class: 'verbatim', text: denial.verbatim }),
-    el('p', { class: 'note', text: "Okta's exact words — not a toolkit-computed label. This is the IdP (or the resource server) refusing." })
-  ]);
-}
-function httpTraceCard(http) {
-  if (!http) return null;
-  var stClass = http.status >= 200 && http.status < 300 ? 'ok' : 'bad';
-  return el('div', { class: 'card' }, [
-    el('div', { class: 'card-title', text: 'HTTP receipt' }),
-    el('div', { class: 'trace' }, [
-      el('div', { class: 'line' }, [el('span', { class: 'k', text: 'req' }), el('span', { class: 'v' }, [el('span', { class: 'method', text: http.method + ' ' }), document.createTextNode(http.url)])]),
-      el('div', { class: 'line' }, [el('span', { class: 'k', text: 'status' }), el('span', { class: 'v st ' + stClass, text: String(http.status) })]),
-      el('div', { class: 'line' }, [el('span', { class: 'k', text: 'x-okta-request-id' }), el('span', { class: 'v cid', text: http.correlationId || '(none)' })])
-    ])
+    el('p', { class: 'note', text: "Okta's exact words - not a toolkit-computed label. This is the IdP (or the resource server) refusing." })
   ]);
 }
 
-// ----- live call-flow diagram -----
+// ----- static call-flow diagram (used inside the side-by-side proof) -----
 var HOPS = [
-  { id: 'agent', name: 'Agent', ic: '\u{1F916}' },
-  { id: 'adapter', name: 'Adapter', ic: '\u{1F500}' },
-  { id: 'xaa', name: 'ID-JAG / XAA', ic: '\u{1F39F}️' },
-  { id: 'app', name: 'App', ic: '\u{1F5C4}️' }
+  { id: 'agent', name: 'Agent', ic: '\u{1F916}' }, { id: 'adapter', name: 'Adapter', ic: '\u{1F500}' },
+  { id: 'xaa', name: 'ID-JAG / XAA', ic: '\u{1F39F}️' }, { id: 'app', name: 'App', ic: '\u{1F5C4}️' }
 ];
-function flowCard(flowArr, ctx) {
-  var byId = {};
-  (flowArr || []).forEach(function (h) { byId[h.hop] = h; });
-  var container = el('div', { class: 'flow' });
-  var hopNodes = [], arrowNodes = [];
+function flowCard(flowArr) {
+  var byId = {}; (flowArr || []).forEach(function (h) { byId[h.hop] = h; });
+  var container = el('div', { class: 'flow' }); var hopNodes = [], arrowNodes = [];
   HOPS.forEach(function (h, i) {
     if (i > 0) { var a = el('div', { class: 'arrow', text: '→' }); arrowNodes.push(a); container.appendChild(a); }
     var info = byId[h.id] || { status: 'skipped' };
-    var node = el('div', { class: 'hop', 'data-status': info.status }, [
-      el('div', { class: 'ic', text: h.ic }),
-      el('div', { class: 'name', text: h.name }),
-      el('div', { class: 'st', text: info.status }),
-      el('div', { class: 'note', text: info.note || '' })
-    ]);
-    hopNodes.push({ node: node, info: info });
-    container.appendChild(node);
+    var node = el('div', { class: 'hop' }, [el('div', { class: 'ic', text: h.ic }), el('div', { class: 'name', text: h.name }), el('div', { class: 'st', text: info.status })]);
+    hopNodes.push({ node: node, info: info }); container.appendChild(node);
   });
-  var titleRow = el('div', { class: 'card-title flow-head' }, [
-    el('span', { text: 'Live call-flow — where enforcement happens' })
-  ]);
-  if (ctx) {
-    titleRow.appendChild(el('button', {
-      class: 'trace-btn', type: 'button',
-      onclick: function (e) { e.stopPropagation(); openDrawer(ctx); }
-    }, ['Trace the token journey ', el('span', { class: 'arr', text: '→' })]));
-  }
-  var card = el('div', { class: 'card' + (ctx ? ' flow-clickable' : '') }, [titleRow, container]);
-  if (ctx) {
-    container.style.cursor = 'pointer';
-    container.setAttribute('role', 'button');
-    container.setAttribute('tabindex', '0');
-    container.setAttribute('aria-label', 'Trace the token journey');
-    container.addEventListener('click', function () { openDrawer(ctx); });
-    container.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDrawer(ctx); } });
-  }
-  // animate lighting after paint
-  requestAnimationFrame(function () { animateFlow(hopNodes, arrowNodes); });
-  return card;
-}
-function animateFlow(hopNodes, arrowNodes) {
-  var step = 0;
-  (function next() {
-    if (step >= hopNodes.length) return;
-    var h = hopNodes[step];
-    if (step > 0) {
-      var prevStatus = hopNodes[step - 1].info.status;
-      var arr = arrowNodes[step - 1];
-      arr.classList.add('lit', prevStatus === 'denied' ? 'denied' : 'ok');
-    }
-    h.node.classList.add('lit', h.info.status);
-    step++;
-    // stop advancing visually past a denial (downstream hops stay dim/skipped)
-    setTimeout(next, 430);
-  })();
+  requestAnimationFrame(function () {
+    var i = 0; (function nx() {
+      if (i >= hopNodes.length) return;
+      if (i > 0) arrowNodes[i - 1].classList.add('lit', hopNodes[i - 1].info.status === 'denied' ? 'denied' : 'ok');
+      hopNodes[i].node.classList.add('lit', hopNodes[i].info.status); i++; setTimeout(nx, 300);
+    })();
+  });
+  return el('div', { class: 'card' }, [el('div', { class: 'card-title', text: 'Call-flow' }), container]);
 }
 
-// ----- system log panel -----
-function systemLogCard(sl) {
-  if (!sl) return null;
-  var kids = [
-    el('div', { class: 'card-title', text: 'Okta System Log — the independent audit record' }),
-    el('div', { class: 'evt' }, [el('span', { text: 'eventType: ' }), el('b', { text: sl.eventType || '(pending)' })])
-  ];
-  if (sl.embedded) {
-    kids.push(el('pre', { class: 'json', style: 'margin-top:10px', text: JSON.stringify(sl.embedded, null, 2) }));
-  } else {
-    kids.push(el('a', { class: 'deeplink', href: sl.deepLink, target: '_blank', rel: 'noopener' }, ['\u{1F517} View in Okta System Log']));
-    kids.push(el('p', { class: 'hint', text: "Opens the exact correlated event in the admin console. “Don’t take our word — that’s Okta’s own record.”" }));
-    kids.push(el('div', { class: 'embed-slot', text: 'Inline embed slots here once the admin-ui app is granted okta.logs.read (v1 uses the deep link).' }));
-  }
-  return el('div', { class: 'card syslog' }, kids);
-}
-
-// ---------------------------------------------------------------- renderers per action
+// ---------------------------------------------------------------- MAIN renderers (data/outcome only; tokens live in the sidebar)
 function renderPersonaResult(t, data) {
+  state.rerenderMain = function () { renderPersonaResult(t, data); };
   var res = document.getElementById('result'); clear(res);
   var verdict = data.denial ? 'deny' : 'allow';
   var name = personaLabel(data.persona);
   res.appendChild(resultHead(t.title, name + ' → ' + (t.target === 'crm' ? 'VantageCRM' : 'VantageDesk'), verdict));
-  res.appendChild(flowCard(data.flow, journeyCtx(data, { action: t.id, actionTitle: t.title, target: t.target })));
-  var cols = el('div', { class: 'grid-2' });
-  cols.appendChild(data.denial ? denialCard(data.denial) : tokenCard(data.token, 'Token Okta issued to ' + name));
-  cols.appendChild(el('div', {}, [httpTraceCard(data.http), systemLogCard(data.systemLog)].filter(Boolean)));
-  res.appendChild(cols);
-  if (data.result && data.result.rows) res.appendChild(rowsCard(data.result.rows, (t.target === 'crm' ? 'accounts' : 'tickets')));
+  if (data.denial) {
+    res.appendChild(denialCard(data.denial, 'Result: denied by Okta'));
+    res.appendChild(sidebarPointer());
+  } else if (data.result && data.result.rows) {
+    res.appendChild(rowsCard(data.result.rows, (t.target === 'crm' ? 'accounts' : 'tickets')));
+    res.appendChild(sidebarPointer());
+  }
 }
-
+function sidebarPointer() {
+  return el('p', { class: 'sidebar-pointer', text: '→ See the sidebar for the token Okta issued and the step-by-step journey.' });
+}
 function rowsCard(rows, label) {
   var card = el('div', { class: 'card' });
   card.appendChild(el('div', { class: 'card-title', text: (rows.length + ' ' + label + ' returned') }));
@@ -2323,26 +2555,18 @@ function rowsCard(rows, label) {
   var cols = Object.keys(rows[0]);
   var thead = el('tr', {}, cols.map(function (c) { return el('th', { text: c }); }));
   var body = rows.map(function (r) {
-    return el('tr', {}, cols.map(function (c) {
-      return el('td', { class: (typeof r[c] === 'number' || /id|owner|assignee|requester/.test(c)) ? 'mono' : '', text: String(r[c]) });
-    }));
+    return el('tr', {}, cols.map(function (c) { return el('td', { class: (typeof r[c] === 'number' || /id|owner|assignee|requester/.test(c)) ? 'mono' : '', text: String(r[c]) }); }));
   });
   card.appendChild(el('div', { class: 'table-wrap' }, [el('table', {}, [el('thead', {}, thead), el('tbody', {}, body)])]));
   return card;
 }
 
 function renderListTools(data) {
+  state.rerenderMain = function () { renderListTools(data); };
   var res = document.getElementById('result'); clear(res);
   var name = personaLabel(data.persona);
   var verdict = (data.authorized && data.authorized.length) ? 'allow' : 'deny';
   res.appendChild(resultHead("The agent's tools", name, verdict));
-  var ltTarget = (data.authorized || []).some(function (x) { return x.indexOf('desk') > -1; }) && !(data.authorized || []).some(function (x) { return x.indexOf('crm') > -1; }) ? 'desk' : 'crm';
-  res.appendChild(flowCard(data.flow, journeyCtx(data, { action: 'list-tools', actionTitle: "List the agent's tools", target: ltTarget })));
-  var cols = el('div', { class: 'grid-2' });
-  cols.appendChild(data.denial ? denialCard(data.denial) : tokenCard(data.token, 'Adapter token Okta issued to ' + name));
-  cols.appendChild(systemLogCard(data.systemLog));
-  res.appendChild(cols);
-
   var auth = {}; (data.authorized || []).forEach(function (x) { auth[x] = 1; });
   var summary = el('p', { class: 'tools-summary', html:
     'Every user <b>sees</b> the full catalog of <b>' + (data.catalog || []).length + '</b> tools. ' +
@@ -2350,12 +2574,10 @@ function renderListTools(data) {
     'BLOCKED = the agent has the tool, but Okta will not mint ' + name + ' a token for that resource, so it is denied at use-time.' });
   var list = el('div', { class: 'tool-list' }, (data.catalog || []).map(function (tn) {
     var usable = !!auth[tn];
-    return el('div', { class: 'tool ' + (usable ? 'usable' : 'blocked') }, [
-      el('span', { class: 'tag', text: usable ? 'USABLE' : 'BLOCKED' }),
-      el('span', { class: 'tname', text: tn })
-    ]);
+    return el('div', { class: 'tool ' + (usable ? 'usable' : 'blocked') }, [el('span', { class: 'tag', text: usable ? 'USABLE' : 'BLOCKED' }), el('span', { class: 'tname', text: tn })]);
   }));
   res.appendChild(el('div', { class: 'card' }, [el('div', { class: 'card-title', text: 'Tool catalog vs. authorization' }), summary, list]));
+  res.appendChild(sidebarPointer());
 }
 
 function renderInvokeForm(t) {
@@ -2368,14 +2590,16 @@ function renderInvokeForm(t) {
   var errLine = el('p', { class: 'subtle', style: 'color:var(--deny)' });
   run.addEventListener('click', function () {
     var args;
-    try { args = JSON.parse(argsInput.value || '{}'); }
-    catch (e) { errLine.textContent = 'Arguments must be valid JSON: ' + e.message; return; }
+    try { args = JSON.parse(argsInput.value || '{}'); } catch (e) { errLine.textContent = 'Arguments must be valid JSON: ' + e.message; return; }
     errLine.textContent = '';
-    showSkeleton('Invoke a tool');
-    setTileBusy('invoke', true);
+    showSkeleton('Invoke a tool'); setActionBusy('invoke', true);
     api.request('invoke', { body: { persona: state.persona, tool: toolInput.value.trim(), args: args } })
-      .then(function (data) { setTileBusy('invoke', false); renderInvokeResult(data); })
-      .catch(function (err) { setTileBusy('invoke', false); renderError('Invoke a tool', err); });
+      .then(function (data) {
+        setActionBusy('invoke', false); renderInvokeResult(data);
+        var toolName = data.request && data.request.tool ? data.request.tool : '';
+        setJourney(journeyCtx(data, { action: 'invoke', actionTitle: 'Invoke: ' + toolName, target: toolName.indexOf('desk') > -1 ? 'desk' : 'crm', tool: toolName }));
+      })
+      .catch(function (err) { setActionBusy('invoke', false); renderError('Invoke a tool', err); });
   });
   res.appendChild(el('div', { class: 'card' }, [
     el('div', { class: 'card-title', text: 'Choose a tool to invoke as ' + name }),
@@ -2385,50 +2609,55 @@ function renderInvokeForm(t) {
   ]));
 }
 function renderInvokeResult(data) {
+  state.rerenderMain = function () { renderInvokeResult(data); };
   var res = document.getElementById('result'); clear(res);
   var name = personaLabel(data.persona);
   var verdict = data.denial ? 'deny' : 'allow';
   var toolName = data.request && data.request.tool ? data.request.tool : '';
   res.appendChild(resultHead('Invoke: ' + toolName, name, verdict));
-  var invTarget = toolName.indexOf('desk') > -1 ? 'desk' : 'crm';
-  res.appendChild(flowCard(data.flow, journeyCtx(data, { action: 'invoke', actionTitle: 'Invoke: ' + toolName, target: invTarget, tool: toolName })));
-  var cols = el('div', { class: 'grid-2' });
-  cols.appendChild(data.denial ? denialCard(data.denial, 'XAA exchange refused (verbatim)') : tokenCard(data.token, 'Scoped token Okta issued to ' + name));
-  cols.appendChild(systemLogCard(data.systemLog));
-  res.appendChild(cols);
-  res.appendChild(el('div', { class: 'card' }, [
-    el('div', { class: 'card-title', text: 'MCP request' }),
-    el('pre', { class: 'json', text: JSON.stringify(data.request || {}, null, 2) })
-  ]));
-  if (data.response) res.appendChild(el('div', { class: 'card' }, [
-    el('div', { class: 'card-title', text: 'MCP response' }),
-    el('pre', { class: 'json', text: JSON.stringify(data.response, null, 2) })
-  ]));
+  if (data.denial) {
+    res.appendChild(denialCard(data.denial, 'Result: the tool call was refused'));
+  } else if (isAdvanced()) {
+    res.appendChild(el('div', { class: 'card' }, [el('div', { class: 'card-title', text: 'MCP request' }), el('pre', { class: 'json', text: JSON.stringify(data.request || {}, null, 2) })]));
+    if (data.response) res.appendChild(el('div', { class: 'card' }, [el('div', { class: 'card-title', text: 'MCP response' }), el('pre', { class: 'json', text: JSON.stringify(data.response, null, 2) })]));
+  } else {
+    var n = invokeRecordCount(data.response);
+    res.appendChild(el('div', { class: 'card' }, [
+      el('div', { class: 'card-title', text: 'Result' }),
+      el('p', { class: 'subtle', text: 'The tool ran as ' + name + ' and returned ' + (n != null ? n + ' record(s)' : 'data') + ', scoped to their entitlements. Switch the sidebar to Advanced view for the raw MCP request/response.' })
+    ]));
+  }
+  res.appendChild(sidebarPointer());
   res.appendChild(el('button', { class: 'btn ghost', type: 'button', text: '← Invoke another', onclick: function () { renderInvokeForm({ id: 'invoke' }); } }));
+}
+function invokeRecordCount(resp) {
+  try {
+    var txt = resp && resp.content && resp.content[0] && resp.content[0].text; if (!txt) return null;
+    var o = JSON.parse(txt); if (Array.isArray(o)) return o.length;
+    if (o && o.tickets) return o.tickets.length; if (o && o.accounts) return o.accounts.length; return 1;
+  } catch (e) { return null; }
 }
 
 function renderCheckEnv(data) {
+  state.rerenderMain = function () { renderCheckEnv(data); };
   var res = document.getElementById('result'); clear(res);
   var allOk = (data.checks || []).every(function (c) { return c.ok; });
   res.appendChild(resultHead('Environment check', null, allOk ? 'allow' : 'deny'));
   res.appendChild(el('div', { class: 'card' }, [
     el('div', { class: 'card-title', text: 'Reachability' }),
     el('div', { class: 'checks' }, (data.checks || []).map(function (c) {
-      return el('div', { class: 'check ' + (c.ok ? 'ok' : 'bad') }, [
-        el('span', { class: 'st-dot' }), el('span', { class: 'cname', text: c.name }), el('span', { class: 'cdetail', text: c.detail })
-      ]);
+      return el('div', { class: 'check ' + (c.ok ? 'ok' : 'bad') }, [el('span', { class: 'st-dot' }), el('span', { class: 'cname', text: c.name }), el('span', { class: 'cdetail', text: c.detail })]);
     }))
   ]));
   var env = data.environment || {};
   res.appendChild(el('div', { class: 'card' }, [
     el('div', { class: 'card-title', text: 'Environment' }),
-    el('div', { class: 'env-grid' }, Object.keys(env).reduce(function (acc, k) {
-      acc.push(el('span', { class: 'ek', text: k })); acc.push(el('span', { class: 'ev', text: String(env[k]) })); return acc;
-    }, []))
+    el('div', { class: 'env-grid' }, Object.keys(env).reduce(function (acc, k) { acc.push(el('span', { class: 'ek', text: k })); acc.push(el('span', { class: 'ev', text: String(env[k]) })); return acc; }, []))
   ]));
 }
 
 function renderAccessLog(data) {
+  state.rerenderMain = function () { renderAccessLog(data); };
   var res = document.getElementById('result'); clear(res);
   res.appendChild(resultHead('Access log', 'your tenant'));
   var card = el('div', { class: 'card' });
@@ -2437,11 +2666,8 @@ function renderAccessLog(data) {
   var body = (data.events || []).map(function (e) {
     var oc = el('span', { class: 'st ' + (e.outcome === 'SUCCESS' ? 'ok' : 'bad'), text: e.outcome });
     return el('tr', {}, [
-      el('td', { class: 'mono', text: fmtTime(e.time) }),
-      el('td', { class: 'mono', text: e.actor }),
-      el('td', { class: 'mono', text: e.eventType }),
-      el('td', {}, [oc]),
-      el('td', { text: e.target }),
+      el('td', { class: 'mono', text: fmtTime(e.time) }), el('td', { class: 'mono', text: e.actor }),
+      el('td', { class: 'mono', text: e.eventType }), el('td', {}, [oc]), el('td', { text: e.target }),
       el('td', {}, [el('a', { href: e.deepLink, target: '_blank', rel: 'noopener', text: 'log ↗' })])
     ]);
   });
@@ -2450,46 +2676,47 @@ function renderAccessLog(data) {
 }
 
 function renderSideBySide(data) {
+  state.rerenderMain = function () { renderSideBySide(data); };
   var res = document.getElementById('result'); clear(res);
   res.appendChild(resultHead('Side-by-side: allow vs deny', 'same call, two personas'));
   var grid = el('div', { class: 'grid-2' });
-  grid.appendChild(sbsColumn(data.a));
-  grid.appendChild(sbsColumn(data.b));
+  grid.appendChild(sbsColumn(data.a)); grid.appendChild(sbsColumn(data.b));
   res.appendChild(grid);
 }
 function sbsColumn(r) {
-  var name = personaLabel(r.persona);
-  var deny = !!r.denial;
+  var name = personaLabel(r.persona); var deny = !!r.denial;
   var col = el('div', { class: 'card sbs-col stack' });
-  col.appendChild(el('h3', {}, [
-    el('span', { class: 'pill ' + (deny ? 'deny' : 'allow'), text: deny ? 'DENIED' : 'ALLOWED' }),
-    document.createTextNode(' ' + name)
-  ]));
-  col.appendChild(flowCard(r.flow, journeyCtx(r, { action: 'read', actionTitle: 'Read CRM accounts', target: (r.target || 'crm') })));
-  col.appendChild(deny ? denialCard(r.denial) : tokenCard(r.token, 'Token Okta issued to ' + name));
-  col.appendChild(httpTraceCard(r.http));
-  col.appendChild(systemLogCard(r.systemLog));
-  if (r.result && r.result.rows) col.appendChild(el('p', { class: 'subtle', text: r.result.rows.length + ' records returned.' }));
+  col.appendChild(el('h3', {}, [el('span', { class: 'pill ' + (deny ? 'deny' : 'allow'), text: deny ? 'DENIED' : 'ALLOWED' }), document.createTextNode(' ' + name)]));
+  col.appendChild(flowCard(r.flow));
+  if (deny) {
+    col.appendChild(denialCard(r.denial));
+  } else if (isAdvanced()) {
+    col.appendChild(sbsTokenMini(r.token, name));
+  } else {
+    col.appendChild(el('p', { class: 'subtle', text: 'Authorized. ' + ((r.result && r.result.rows) ? r.result.rows.length + ' records returned.' : 'A scoped token was issued and the call succeeded.') }));
+  }
   return col;
+}
+function sbsTokenMini(token, name) {
+  var d = (token && token.decoded) || {};
+  return el('div', { class: 'card token', style: 'margin:0' }, [
+    el('div', { class: 'card-title', text: 'Token Okta issued to ' + name }),
+    el('dl', { class: 'claims' }, [el('dt', { text: 'aud' }), el('dd', { text: [].concat(d.aud || []).join(' ') }), el('dt', { text: 'scopes' }), el('dd', { text: (d.scopes || []).join(' ') || '(none)' })])
+  ]);
 }
 
 function renderCheat(data) {
+  state.rerenderMain = function () { renderCheat(data); };
   var res = document.getElementById('result'); clear(res);
   res.appendChild(resultHead("Prove it can't be faked", 'every rejection is live server-side', 'deny'));
-  res.appendChild(el('p', { class: 'subtle', style: 'margin:0 0 14px', text:
-    'Forged, expired, tampered, and wrong-audience tokens are all rejected by Okta or the resource server — not by this tool. Enforcement is server-side.' }));
+  res.appendChild(el('p', { class: 'subtle', style: 'margin:0 0 14px', text: 'Forged, expired, tampered, and wrong-audience tokens are all rejected by Okta or the resource server - not by this tool. Enforcement is server-side.' }));
   (data.attempts || []).forEach(function (a, i) {
     res.appendChild(el('div', { class: 'attempt' }, [
       el('div', { class: 'ahead' }, [el('span', { class: 'num', text: String(i + 1) }), el('b', { text: a.name })]),
       el('div', { class: 'adesc', text: a.description }),
       el('div', { class: 'abody' }, [
         el('div', {}, [el('div', { class: 'lbl', text: 'attempt (request)' }), el('pre', { class: 'json', text: JSON.stringify(a.request, null, 2) })]),
-        el('div', {}, [el('div', { class: 'lbl', text: 'live rejection' }),
-          el('div', { class: 'denial', style: 'padding:11px 13px' }, [
-            el('span', { class: 'status', text: 'HTTP ' + a.rejection.status }),
-            el('div', { class: 'verbatim', text: a.rejection.verbatim })
-          ])
-        ])
+        el('div', {}, [el('div', { class: 'lbl', text: 'live rejection' }), el('div', { class: 'denial', style: 'padding:11px 13px' }, [el('span', { class: 'status', text: 'HTTP ' + a.rejection.status }), el('div', { class: 'verbatim', text: a.rejection.verbatim })])])
       ])
     ]));
   });
@@ -2500,285 +2727,252 @@ function renderError(title, err) {
   var ce = err && err.contractError ? err.contractError : { code: 'CLIENT_ERROR', message: (err && err.message) || 'Unexpected error' };
   res.appendChild(resultHead(title, 'error', 'deny'));
   res.appendChild(el('div', { class: 'error-box' }, [
-    el('div', { class: 'code', text: ce.code }),
-    el('div', { class: 'msg', text: ce.message }),
-    el('button', { class: 'btn ghost', type: 'button', style: 'margin-top:12px', text: 'Dismiss', onclick: function () {
-      var r = document.getElementById('result'); clear(r);
-      r.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'big', text: '\u{1F512}' }), 'Pick a persona, then run an action.']));
-    } })
+    el('div', { class: 'code', text: ce.code }), el('div', { class: 'msg', text: ce.message }),
+    el('button', { class: 'btn ghost', type: 'button', style: 'margin-top:12px', text: 'Dismiss', onclick: function () { if (state.session) resetResult(personaById(state.persona)); } })
   ]));
 }
 
-// ================================================================ token-journey drawer
-// journeyCtx() packages the response + a little action meta so the drawer can synthesize
-// (or, in future, read a real response.journey array) the token's end-to-end path.
+// ================================================================ SIDEBAR: chrome, identity, journey
+function wireSidebarChrome() {
+  document.getElementById('collapseBtn').addEventListener('click', function () { setCollapsed(true); });
+  document.getElementById('expandBtn').addEventListener('click', function () { setCollapsed(false); });
+}
+function setCollapsed(c) {
+  state.sidebarCollapsed = c;
+  document.getElementById('sidebar').classList.toggle('collapsed', c);
+  document.querySelector('.workspace').classList.toggle('side-collapsed', c);
+}
+function renderViewToggle() {
+  var wrap = document.getElementById('viewToggle'); clear(wrap);
+  [['simple', 'Simple', 'Plain-language summary'], ['advanced', 'Advanced', 'Full technical detail']].forEach(function (v) {
+    wrap.appendChild(el('button', {
+      class: 'vt' + (state.view === v[0] ? ' active' : ''), type: 'button', role: 'tab', title: v[2],
+      'aria-selected': state.view === v[0] ? 'true' : 'false',
+      onclick: function () { setView(v[0]); }
+    }, [v[1]]));
+  });
+}
+function setView(v) {
+  if (state.view === v) return;
+  state.view = v;
+  renderViewToggle();
+  renderIdentitySection();
+  renderJourneySection();
+  if (state.rerenderMain) state.rerenderMain();
+}
+
+function renderIdentitySection() {
+  var sec = document.getElementById('identitySection'); if (!sec) return; clear(sec);
+  var s = state.session;
+  sec.appendChild(el('div', { class: 'side-title' }, [el('span', { text: 'Signed-in identity' }), el('span', { class: 'live-dot', title: 'isolated live session' })]));
+  if (!s) { sec.appendChild(el('p', { class: 'side-empty', text: 'No persona signed in yet.' })); return; }
+
+  var head = el('div', { class: 'id-top' }, [
+    el('div', { class: 'avatar', style: 'background:' + avatarColor(s.id), text: initials(s.label) }),
+    el('div', { class: 'id-who' }, [el('b', { text: s.label }), el('span', { text: s.role })])
+  ]);
+  sec.appendChild(el('div', { class: 'idcard' }, [head].concat(isAdvanced() ? identityAdvanced(s) : identitySimple(s))));
+}
+function identitySimple(s) {
+  return [
+    el('div', { class: 'id-line ok' }, [el('span', { class: 'il-ico', text: '✓' }), el('span', {}, [el('b', { text: 'Can: ' }), s.can || 'read permitted resources'])]),
+    el('div', { class: 'id-line no' }, [el('span', { class: 'il-ico', text: '✕' }), el('span', {}, [el('b', { text: 'Cannot: ' }), s.cannot || 'anything outside their entitlements'])]),
+    el('div', { class: 'id-groups', text: 'Member of: ' + (s.groups || []).join(', ') }),
+    el('p', { class: 'id-foot', text: 'Signed in via Okta in an isolated session. This tool never stores a password or token.' })
+  ];
+}
+function identityAdvanced(s) {
+  var d = s.idToken.decoded;
+  var scopes = s.scopes && s.scopes.length ? el('div', { class: 'chips' }, s.scopes.map(function (x) { return el('span', { class: 'chip', text: x }); })) : el('span', { class: 'subtle', text: '(no entitled scopes - not authorized to any resource)' });
+  var groups = el('div', { class: 'chips' }, (s.groups || []).map(function (g) { return el('span', { class: 'chip grp', text: g }); }));
+  var copy = el('button', { class: 'copybtn', type: 'button', text: 'copy raw', onclick: function () { if (navigator.clipboard) navigator.clipboard.writeText(s.idToken.raw); this.textContent = 'copied'; } });
+  return [
+    el('div', { class: 'card-title', style: 'margin:12px 0 8px' }, [copy, document.createTextNode('id_token (decoded)')]),
+    el('dl', { class: 'claims' }, [
+      el('dt', { text: 'sub' }), el('dd', { text: d.sub }), el('dt', { text: 'name' }), el('dd', { text: d.name }),
+      el('dt', { text: 'iss' }), el('dd', { text: d.iss }), el('dt', { text: 'exp' }), el('dd', { text: fmtExp(d.exp) }),
+      el('dt', { text: 'sid' }), el('dd', { text: d.sid })
+    ]),
+    el('div', { class: 'section-title', style: 'margin:10px 0 5px', text: 'groups' }), groups,
+    el('div', { class: 'section-title', style: 'margin:9px 0 5px', text: 'entitled scopes' }), scopes,
+    el('div', { class: 'raw-tok', text: s.idToken.raw }),
+    el('p', { class: 'id-foot', text: 'isolated session: ' + s.sessionId })
+  ];
+}
+
+// ---- journey section (view-aware) ----
+function renderJourneySection() {
+  var sec = document.getElementById('journeySection'); if (!sec) return; clear(sec);
+  sec.appendChild(el('div', { class: 'side-title' }, [el('span', { text: 'Token journey' })]));
+  var ctx = state.lastJourneyCtx;
+  if (!ctx) { sec.appendChild(el('p', { class: 'side-empty', text: 'Run an action to trace how the token is issued and exchanged, step by step.' })); return; }
+  sec.appendChild(el('div', { class: 'side-sub', text: (ctx.actionTitle || '') + '  ·  ' + (ctx.personaLabel || '') }));
+  buildJourneyTimeline(sec, ctx, isAdvanced());
+}
+
 function journeyCtx(data, meta) {
   return {
     persona: data.persona, personaLabel: personaLabel(data.persona),
     action: meta.action, actionTitle: meta.actionTitle, target: meta.target, tool: meta.tool,
-    flow: data.flow, token: data.token, denial: data.denial, http: data.http,
-    systemLog: data.systemLog, request: data.request, response: data.response,
+    flow: data.flow, token: data.token, denial: data.denial, http: data.http, systemLog: data.systemLog,
+    request: data.request, response: data.response, result: data.result, authorized: data.authorized, catalog: data.catalog,
     journey: data.journey // future backend field; used verbatim if present
   };
 }
-
 function cfgUrl() { var c = state.config || {}; return c.org_url || ('https://' + (c.org || 'okta.example')); }
-function hostFor(target) {
-  var c = state.config || {};
-  if (target === 'desk') return c.desk_host || 'https://vantage-desk.example';
-  return c.crm_host || 'https://vantage-crm.example';
-}
+function hostFor(target) { var c = state.config || {}; return target === 'desk' ? (c.desk_host || 'https://vantage-desk.example') : (c.crm_host || 'https://vantage-crm.example'); }
 function asIdFor(target, token) {
-  // Prefer the AS embedded in the real issued token; else fall back to config hints.
   var iss = token && token.decoded && token.decoded.iss;
   if (iss) { var m = /\/oauth2\/([^/]+)/.exec(iss); if (m) return m[1]; }
-  var c = state.config || {};
-  return target === 'desk' ? (c.desk_as_id || 'default') : (c.crm_as_id || 'default');
+  var c = state.config || {}; return target === 'desk' ? (c.desk_as_id || 'default') : (c.crm_as_id || 'default');
 }
 function shortUrl(u) { return (u || '').replace(/^https?:\/\//, '').replace(/\?.*$/, ''); }
-function hopStatus(flow, id) {
-  var h = (flow || []).filter(function (x) { return x.hop === id; })[0];
-  return h ? h.status : 'skipped';
-}
-function hopNote(flow, id) {
-  var h = (flow || []).filter(function (x) { return x.hop === id; })[0];
-  return h && h.note ? h.note : '';
-}
+function hopStatus(flow, id) { var h = (flow || []).filter(function (x) { return x.hop === id; })[0]; return h ? h.status : 'skipped'; }
+function hopNote(flow, id) { var h = (flow || []).filter(function (x) { return x.hop === id; })[0]; return h && h.note ? h.note : ''; }
 
-// Map the response fields onto the four-stage token journey. Structured so a real
-// `journey` array (same step shape) can replace this wholesale with no UI change.
 function synthesizeJourney(ctx) {
   if (ctx.journey && ctx.journey.length) return ctx.journey;
-  var org = cfgUrl();
-  var target = ctx.target || 'crm';
+  var org = cfgUrl(); var target = ctx.target || 'crm';
   var appName = target === 'desk' ? 'VantageDesk' : 'VantageCRM';
-  var as = asIdFor(target, ctx.token);
-  var flow = ctx.flow || [];
-  var http = ctx.http || {};
-  var cid = http.correlationId || null;
+  var as = asIdFor(target, ctx.token); var flow = ctx.flow || []; var http = ctx.http || {}; var cid = http.correlationId || null;
   var name = ctx.personaLabel || ctx.persona || 'the persona';
-
-  var sAuth = hopStatus(flow, 'agent');
-  var sAuthz = hopStatus(flow, 'adapter');
-  var sExch = hopStatus(flow, 'xaa');
-  var sApp = hopStatus(flow, 'app');
-
-  // which stage carries the verbatim denial (the hop marked 'denied')
+  var sAuth = hopStatus(flow, 'agent'), sAuthz = hopStatus(flow, 'adapter'), sExch = hopStatus(flow, 'xaa'), sApp = hopStatus(flow, 'app');
   var deniedHop = (flow.filter(function (x) { return x.status === 'denied'; })[0] || {}).hop;
-
-  var authzUrl = (ctx.denial && /authorize/.test(http.url || '')) ? http.url
-    : (org + '/oauth2/' + as + '/v1/authorize');
-  var tokenUrl = (ctx.denial && /token/.test(http.url || '')) ? http.url
-    : (org + '/oauth2/' + as + '/v1/token');
+  var authzUrl = (ctx.denial && /authorize/.test(http.url || '')) ? http.url : (org + '/oauth2/' + as + '/v1/authorize');
+  var tokenUrl = (ctx.denial && /token/.test(http.url || '')) ? http.url : (org + '/oauth2/' + as + '/v1/token');
   var appUrl, appMethod, appCtx;
   if (ctx.action === 'invoke' || ctx.action === 'list-tools') {
     appUrl = (state.config && state.config.adapter_url ? state.config.adapter_url : 'https://adapter.example') + '/';
     appMethod = 'POST';
-    appCtx = ctx.action === 'invoke'
-      ? 'the tool runs at the MCP adapter as ' + name + ', bounded by the scoped token.'
+    appCtx = ctx.action === 'invoke' ? 'the tool runs at the MCP adapter as ' + name + ', bounded by the scoped token.'
       : 'the adapter lists tools; each is probed with ' + name + "'s token to see what Okta authorizes.";
   } else {
     appUrl = (http.url) || (hostFor(target) + (target === 'desk' ? '/api/tickets' : '/api/accounts'));
     appMethod = http.method || 'GET';
-    appCtx = 'the resource returns records AS ' + name + ' — the token, not the app, decides what is visible.';
+    appCtx = 'the resource returns records AS ' + name + ' - the token, not the app, decides what is visible.';
   }
-
-  var steps = [
-    {
-      id: 'authn', title: 'User authentication', method: 'POST',
-      url: shortUrl(org + '/api/v1/authn'), status: sAuth, note: hopNote(flow, 'agent'),
+  return [
+    { id: 'authn', title: 'User authentication', plain: 'Signed in', method: 'POST', url: shortUrl(org + '/api/v1/authn'), status: sAuth, note: hopNote(flow, 'agent'),
       context: name + ' signs in; Okta returns a short-lived session token.',
-      token: { kind: 'session', label: 'sessionToken', detail: 'opaque, short-lived — proves who signed in' }
-    },
-    {
-      id: 'authorize', title: 'Authorization (PKCE)', method: 'GET',
-      url: shortUrl(authzUrl), status: sAuthz, note: hopNote(flow, 'adapter'),
+      token: { kind: 'session', label: 'sessionToken', detail: 'opaque, short-lived - proves who signed in' } },
+    { id: 'authorize', title: 'Authorization (PKCE)', plain: 'Okta checks the login', method: 'GET', url: shortUrl(authzUrl), status: sAuthz, note: hopNote(flow, 'adapter'),
       correlationId: deniedHop === 'adapter' ? cid : null,
       context: 'the agent starts an auth-code / PKCE flow. Okta decides whether ' + name + ' is even assigned.',
-      token: sAuthz === 'ok'
-        ? { kind: 'code', label: 'authorization code', detail: 'single-use, exchanged next' }
-        : { kind: 'none', label: '—', detail: 'no code issued' },
-      denial: deniedHop === 'adapter' ? ctx.denial : null
-    },
-    {
-      id: 'exchange', title: 'Token exchange (ID-JAG / XAA)', money: true, method: 'POST',
-      url: shortUrl(tokenUrl), status: sExch, note: hopNote(flow, 'xaa'),
+      token: sAuthz === 'ok' ? { kind: 'code', label: 'authorization code', detail: 'single-use, exchanged next' } : { kind: 'none', label: '—', detail: 'no code issued' },
+      denial: deniedHop === 'adapter' ? ctx.denial : null },
+    { id: 'exchange', title: 'Token exchange (ID-JAG / XAA)', plain: 'Okta scopes a token to ' + appName, money: true, method: 'POST', url: shortUrl(tokenUrl), status: sExch, note: hopNote(flow, 'xaa'),
       correlationId: (deniedHop === 'xaa' || (!deniedHop && sExch === 'ok')) ? cid : (deniedHop ? null : cid),
       context: 'the agent exchanges the user grant for a token scoped to ' + appName + '. This is where governance is enforced.',
-      token: (sExch === 'ok' && ctx.token)
-        ? { kind: 'access', label: 'access token', detail: 'aud=' + [].concat((ctx.token.decoded || {}).aud || []).join(' '), decoded: ctx.token.decoded, raw: ctx.token.raw }
-        : { kind: 'none', label: '—', detail: 'no scoped token minted' },
-      denial: deniedHop === 'xaa' ? ctx.denial : null
-    },
-    {
-      id: 'call', title: 'MCP / resource call', method: appMethod,
-      url: shortUrl(appUrl), status: sApp, note: hopNote(flow, 'app'),
+      token: (sExch === 'ok' && ctx.token) ? { kind: 'access', label: 'access token', detail: 'aud=' + [].concat((ctx.token.decoded || {}).aud || []).join(' '), decoded: ctx.token.decoded, raw: ctx.token.raw } : { kind: 'none', label: '—', detail: 'no scoped token minted' },
+      denial: deniedHop === 'xaa' ? ctx.denial : null },
+    { id: 'call', title: 'MCP / resource call', plain: 'The app answers as ' + name, method: appMethod, url: shortUrl(appUrl), status: sApp, note: hopNote(flow, 'app'),
       correlationId: (!deniedHop && sApp === 'ok' && ctx.action !== 'invoke' && ctx.action !== 'list-tools') ? cid : null,
       context: appCtx,
-      token: sApp === 'ok'
-        ? { kind: 'response', label: 'API response', detail: 'returned as ' + name }
-        : { kind: 'none', label: '—', detail: 'never reached' }
-    }
+      token: sApp === 'ok' ? { kind: 'response', label: 'API response', detail: 'returned as ' + name } : { kind: 'none', label: '—', detail: 'never reached' } }
   ];
-  return steps;
 }
 
-var drawerState = { esc: null, node: null };
-function reducedMotion() {
-  try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
-  catch (e) { return false; }
+function deniedStageName(ctx) {
+  var d = (ctx.flow || []).filter(function (x) { return x.status === 'denied'; })[0];
+  var hop = d ? d.hop : (ctx.denial ? 'adapter' : null);
+  return hop === 'adapter' ? 'Okta authorization (not assigned to the app)'
+    : hop === 'xaa' ? 'the token exchange (not entitled to this resource)'
+    : hop === 'app' ? 'the resource call' : 'authorization';
+}
+function isDenied(ctx) {
+  return !!ctx.denial || (ctx.flow || []).some(function (x) { return x.status === 'denied'; }) || (ctx.action === 'list-tools' && ctx.authorized && ctx.authorized.length === 0);
+}
+function outcomeText(ctx) {
+  var name = ctx.personaLabel || ctx.persona;
+  if (isDenied(ctx)) return name + ' was denied at ' + deniedStageName(ctx) + '. Okta issued no usable token, so the data was never returned.';
+  if (ctx.action === 'list-tools') return 'Okta authorized ' + (ctx.authorized || []).length + ' of ' + (ctx.catalog || []).length + ' tools for ' + name + '; the rest are blocked at use-time.';
+  if (ctx.action === 'invoke') return 'The tool ran as ' + name + ', bounded by a token scoped exactly to their entitlements.';
+  var n = ctx.result && ctx.result.rows ? ctx.result.rows.length : null;
+  return name + ' was authorized' + (n != null ? '; ' + n + ' record(s) were returned' : '') + '. The scoped token decided what was visible.';
 }
 
-function openDrawer(ctx) {
-  closeDrawer();
+function buildJourneyTimeline(container, ctx, adv) {
   var steps = synthesizeJourney(ctx);
-  var name = ctx.personaLabel || ctx.persona || '';
-  var verdict = ctx.denial ? 'deny' : 'allow';
-
-  var backdrop = el('div', { class: 'drawer-backdrop', onclick: function (e) { if (e.target === backdrop) closeDrawer(); } });
-  var panel = el('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Token journey' });
-
-  var head = el('div', { class: 'drawer-head' }, [
-    el('div', {}, [
-      el('div', { class: 'drawer-eyebrow', text: 'TOKEN JOURNEY' }),
-      el('h2', { class: 'drawer-title', text: ctx.actionTitle || 'Action' }),
-      el('div', { class: 'drawer-sub' }, [
-        el('span', { class: 'pill ' + (verdict === 'deny' ? 'deny' : 'allow'), text: verdict === 'deny' ? 'DENIED' : 'ALLOWED' }),
-        el('span', { text: ' ' + name })
-      ])
-    ]),
-    el('button', { class: 'drawer-close', type: 'button', 'aria-label': 'Close', text: '×', onclick: closeDrawer })
-  ]);
+  var deny = isDenied(ctx);
+  container.appendChild(el('div', { class: 'outcome ' + (deny ? 'deny' : 'allow') }, [
+    el('span', { class: 'pill ' + (deny ? 'deny' : 'allow'), text: deny ? 'DENIED' : 'ALLOWED' }),
+    el('span', { class: 'outcome-txt', text: outcomeText(ctx) })
+  ]));
 
   var timeline = el('div', { class: 'timeline' });
   var rail = el('div', { class: 'tl-rail' });
   var packet = el('div', { class: 'tl-packet' });
-  rail.appendChild(packet);
-  timeline.appendChild(rail);
+  rail.appendChild(packet); timeline.appendChild(rail);
 
   var stepRefs = [];
   steps.forEach(function (s, i) {
     var dot = el('div', { class: 'tl-dot' });
-    var chip = el('div', { class: 'tl-chip k-' + (s.token ? s.token.kind : 'none') }, [
-      el('span', { class: 'tl-chip-ico', text: chipIcon(s.token && s.token.kind) }),
-      el('span', {}, [el('b', { text: (s.token && s.token.label) || '—' }),
-        s.token && s.token.detail ? el('span', { class: 'tl-chip-det', text: ' — ' + s.token.detail }) : null])
-    ]);
-    var body = [
-      el('div', { class: 'tl-step-head' }, [
-        el('span', { class: 'tl-num', text: String(i + 1) }),
-        el('span', { class: 'tl-step-title', text: s.title }),
-        el('span', { class: 'tl-status ' + s.status, text: s.status })
-      ]),
-      el('div', { class: 'tl-endpoint' }, [el('span', { class: 'tl-method', text: s.method + ' ' }), document.createTextNode(s.url)]),
-      el('div', { class: 'tl-context', text: s.context }),
-      chip
-    ];
-    if (s.correlationId) {
-      body.push(el('div', { class: 'tl-cid' }, [el('span', { class: 'tl-cid-k', text: 'x-okta-request-id ' }), el('span', { class: 'cid', text: s.correlationId })]));
+    var body = [el('div', { class: 'tl-step-head' }, [
+      el('span', { class: 'tl-num', text: String(i + 1) }),
+      el('span', { class: 'tl-step-title', text: adv ? s.title : (s.plain || s.title) }),
+      el('span', { class: 'tl-status ' + s.status, text: s.status })
+    ])];
+    body.push(el('div', { class: 'tl-context', text: s.context }));
+
+    if (adv) {
+      body.push(el('div', { class: 'tl-endpoint' }, [el('span', { class: 'tl-method', text: s.method + ' ' }), document.createTextNode(s.url)]));
+      body.push(el('div', { class: 'tl-chip k-' + (s.token ? s.token.kind : 'none') }, [
+        el('span', { class: 'tl-chip-ico', text: chipIcon(s.token && s.token.kind) }),
+        el('span', {}, [el('b', { text: (s.token && s.token.label) || '—' }), s.token && s.token.detail ? el('span', { class: 'tl-chip-det', text: ' — ' + s.token.detail }) : null])
+      ]));
+      if (s.correlationId) body.push(el('div', { class: 'tl-cid' }, [el('span', { class: 'tl-cid-k', text: 'x-okta-request-id ' }), el('span', { class: 'cid', text: s.correlationId })]));
     }
-    // money step: expandable decoded access-token card
     var expand = null;
-    if (s.money && s.token && s.token.kind === 'access' && s.token.decoded) {
+    if (adv && s.money && s.token && s.token.kind === 'access' && s.token.decoded) {
       expand = el('div', { class: 'tl-expand' }, [decodedMini(s.token.decoded, s.token.raw)]);
       body.push(expand);
     }
+    // denial / reason (shown in both views; verbatim prose is plain enough and is the proof)
     if (s.denial) {
-      body.push(el('div', { class: 'tl-denial' }, [
-        el('span', { class: 'status', text: 'HTTP ' + s.denial.status }),
-        el('div', { class: 'verbatim', text: s.denial.verbatim }),
-        el('p', { class: 'note', text: "Okta's verbatim refusal — the journey stops here. Downstream steps never run." })
-      ]));
+      body.push(el('div', { class: 'tl-denial' }, [adv ? el('span', { class: 'status', text: 'HTTP ' + s.denial.status }) : null, el('div', { class: 'verbatim', text: s.denial.verbatim }), el('p', { class: 'note', text: 'Okta refused here - the journey stops. Downstream steps never run.' })]));
     } else if (s.status === 'denied') {
-      // denied stage without a single verbatim response (e.g. per-tool exchange refusals): show the reason.
-      body.push(el('div', { class: 'tl-denial' }, [
-        el('div', { class: 'verbatim', text: s.note || 'Okta refused this exchange; no scoped token was minted.' }),
-        el('p', { class: 'note', text: 'Governance blocked here — the journey stops. Downstream steps never run.' })
-      ]));
-    } else if (s.note) {
+      body.push(el('div', { class: 'tl-denial' }, [el('div', { class: 'verbatim', text: s.note || 'Okta refused this exchange; no scoped token was minted.' }), el('p', { class: 'note', text: 'Governance blocked here - the journey stops.' })]));
+    } else if (adv && s.note) {
       body.push(el('div', { class: 'tl-note', text: s.note }));
     }
     var stepEl = el('div', { class: 'tl-step s-' + s.status }, [dot, el('div', { class: 'tl-card' }, body)]);
     timeline.appendChild(stepEl);
     stepRefs.push({ el: stepEl, dot: dot, status: s.status, expand: expand, denied: s.status === 'denied' });
   });
+  container.appendChild(timeline);
 
-  var foot = el('div', { class: 'drawer-foot' });
   if (ctx.systemLog && ctx.systemLog.deepLink) {
-    foot.appendChild(el('a', { class: 'deeplink', href: ctx.systemLog.deepLink, target: '_blank', rel: 'noopener' },
-      ['\u{1F517} Verify this journey in the Okta System Log']));
+    container.appendChild(el('a', { class: 'deeplink', href: ctx.systemLog.deepLink, target: '_blank', rel: 'noopener' }, ['\u{1F517} ' + (adv ? 'Verify this journey in the Okta System Log' : "See Okta's own audit record")]));
   }
-  foot.appendChild(el('p', { class: 'drawer-note', text: 'Synthesized from the live response (flow, issued token, HTTP trace, denial). Every URL, claim, and correlation id shown is real.' }));
+  if (adv) container.appendChild(el('p', { class: 'drawer-note', text: 'Synthesized from the live response (flow, issued token, HTTP trace, denial). Every URL, claim, and correlation id shown is real.' }));
 
-  panel.appendChild(head);
-  panel.appendChild(el('div', { class: 'drawer-body' }, [timeline, foot]));
-  backdrop.appendChild(panel);
-  document.body.appendChild(backdrop);
-  drawerState.node = backdrop;
-
-  // esc to close
-  drawerState.esc = function (e) { if (e.key === 'Escape') closeDrawer(); };
-  document.addEventListener('keydown', drawerState.esc);
-  panel.querySelector('.drawer-close').focus();
-
-  // animate
-  requestAnimationFrame(function () {
-    backdrop.classList.add('open');
-    animateJourney(stepRefs, rail, packet, reducedMotion());
-  });
-}
-
-function closeDrawer() {
-  if (drawerState.esc) { document.removeEventListener('keydown', drawerState.esc); drawerState.esc = null; }
-  if (drawerState.node && drawerState.node.parentNode) drawerState.node.parentNode.removeChild(drawerState.node);
-  drawerState.node = null;
+  requestAnimationFrame(function () { animateJourney(stepRefs, rail, packet, reducedMotion()); });
 }
 
 function chipIcon(kind) {
-  return kind === 'session' ? '\u{1F511}' : kind === 'code' ? '\u{1F39F}️'
-    : kind === 'access' ? '\u{1F510}' : kind === 'response' ? '\u{1F4E6}' : '∅';
+  return kind === 'session' ? '\u{1F511}' : kind === 'code' ? '\u{1F39F}️' : kind === 'access' ? '\u{1F510}' : kind === 'response' ? '\u{1F4E6}' : '∅';
 }
 function decodedMini(d, raw) {
   var chips = el('div', { class: 'chips', style: 'margin-top:6px' }, (d.scopes || []).map(function (s) { return el('span', { class: 'chip', text: s }); }));
   var grps = el('div', { class: 'chips', style: 'margin-top:5px' }, (d.groups || []).map(function (g) { return el('span', { class: 'chip grp', text: g }); }));
   return el('div', {}, [
-    el('div', { class: 'tl-expand-title', text: 'decoded access token — the scoped grant' }),
-    el('dl', { class: 'claims' }, [
-      el('dt', { text: 'sub' }), el('dd', { text: d.sub || '' }),
-      el('dt', { text: 'aud' }), el('dd', { text: [].concat(d.aud || []).join(' ') }),
-      el('dt', { text: 'iss' }), el('dd', { text: d.iss || '' }),
-      el('dt', { text: 'exp' }), el('dd', { text: fmtExp(d.exp) })
-    ]),
+    el('div', { class: 'tl-expand-title', text: 'decoded access token - the scoped grant' }),
+    el('dl', { class: 'claims' }, [el('dt', { text: 'sub' }), el('dd', { text: d.sub || '' }), el('dt', { text: 'aud' }), el('dd', { text: [].concat(d.aud || []).join(' ') }), el('dt', { text: 'iss' }), el('dd', { text: d.iss || '' }), el('dt', { text: 'exp' }), el('dd', { text: fmtExp(d.exp) })]),
     el('div', { class: 'section-title', style: 'margin:9px 0 0', text: 'scopes' }), chips,
     el('div', { class: 'section-title', style: 'margin:8px 0 0', text: 'groups' }), grps
   ]);
 }
-
 function animateJourney(stepRefs, rail, packet, reduced) {
-  if (reduced) {
-    stepRefs.forEach(function (s) { s.el.classList.add('lit'); if (s.expand) s.expand.classList.add('open'); });
-    if (packet) packet.style.display = 'none';
-    return;
-  }
+  if (reduced) { stepRefs.forEach(function (s) { s.el.classList.add('lit'); if (s.expand) s.expand.classList.add('open'); }); if (packet) packet.style.display = 'none'; return; }
   var i = 0;
   (function next() {
     if (i >= stepRefs.length) return;
     var s = stepRefs[i];
     s.el.classList.add('lit');
-    // move the packet to this step's dot
-    if (packet) {
-      var top = s.dot.offsetTop + (s.dot.offsetHeight / 2) - 6;
-      packet.style.top = top + 'px';
-      packet.className = 'tl-packet ' + s.status;
-    }
+    if (packet) { packet.style.top = (s.dot.offsetTop + s.dot.offsetHeight / 2 - 6) + 'px'; packet.className = 'tl-packet ' + s.status; }
     if (s.expand) setTimeout(function () { s.expand.classList.add('open'); }, 160);
     i++;
-    if (s.denied) {
-      // pinpoint the block: mark downstream as already-skipped, stop the packet here
-      for (var j = i; j < stepRefs.length; j++) stepRefs[j].el.classList.add('lit');
-      if (packet) packet.classList.add('stopped');
-      return;
-    }
+    if (s.denied) { for (var j = i; j < stepRefs.length; j++) stepRefs[j].el.classList.add('lit'); if (packet) packet.classList.add('stopped'); return; }
     setTimeout(next, 400);
   })();
 }
