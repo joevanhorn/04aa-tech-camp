@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lab Toolkit GUI — proposed redesign</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; background:#0a0c12; color:#c9d1d9; font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif; }
+  .wrap { max-width:1300px; margin:0 auto; padding:28px 20px 48px; }
+  h1 { font-size:20px; margin:0 0 2px; color:#e6edf3; }
+  .sub { color:#8b949e; margin:0 0 20px; font-size:14px; }
+  svg { width:100%; height:auto; display:block; border:1px solid #1c2130; border-radius:12px; background:#0d1017; }
+  .legend { margin-top:22px; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+  .legend div { background:#11151f; border:1px solid #1c2130; border-radius:10px; padding:12px 14px; }
+  .n { display:inline-flex; width:22px; height:22px; border-radius:50%; background:#1d6fe0; color:#fff;
+       align-items:center; justify-content:center; font-size:13px; font-weight:700; margin-right:8px; }
+  .legend b { color:#e6edf3; }
+  .legend p { margin:6px 0 0; color:#9aa4b2; font-size:13px; }
+  .note { margin-top:18px; color:#8b949e; font-size:13px; border-left:3px solid #1d6fe0; padding:4px 0 4px 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Lab Toolkit GUI &mdash; proposed redesign</h1>
+  <p class="sub">Persona dropdown &middot; actions as a list &middot; login-on-select with a fresh session &middot; default-visible collapsible token sidebar &middot; Simple&harr;Advanced detail. Mockup, not final styling.</p>
+
+  <svg viewBox="0 0 1240 812" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,Segoe UI,Roboto,sans-serif">
+    <defs>
+      <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2ea043"/><stop offset="1" stop-color="#1d6fe0"/>
+      </linearGradient>
+    </defs>
+
+    <!-- app frame -->
+    <rect x="0" y="0" width="1240" height="812" rx="12" fill="#0d1017"/>
+    <!-- header -->
+    <rect x="0" y="0" width="1240" height="56" fill="#0f131c"/>
+    <rect x="24" y="18" width="20" height="20" rx="5" fill="#1d6fe0"/>
+    <text x="36" y="33" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">L</text>
+    <text x="56" y="28" font-size="16" font-weight="700" fill="#e6edf3">Lab Toolkit</text>
+    <text x="56" y="44" font-size="11" fill="#8b949e">Same agent, same tools. Okta authorizes per user.</text>
+    <text x="1216" y="34" text-anchor="end" font-size="11" fill="#5b6472">localhost only &middot; offline</text>
+
+    <!-- ===== LEFT COLUMN ===== -->
+    <text x="24" y="88" font-size="11" letter-spacing="1.2" fill="#7d8695" font-weight="600">PERSONA</text>
+    <!-- dropdown -->
+    <rect x="24" y="96" width="512" height="46" rx="9" fill="#161b26" stroke="#2a3346"/>
+    <circle cx="48" cy="119" r="8" fill="#2ea043"/>
+    <text x="66" y="124" font-size="15" fill="#e6edf3">Susan Potter &mdash; Sales Manager</text>
+    <path d="M514 114 l8 9 l8 -9" fill="none" stroke="#8b949e" stroke-width="2"/>
+    <circle cx="560" cy="119" r="13" fill="#1d6fe0"/><text x="560" y="124" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">1</text>
+
+    <!-- login-on-select chip -->
+    <rect x="24" y="152" width="330" height="32" rx="8" fill="#0f2338" stroke="#1d6fe0"/>
+    <circle cx="44" cy="168" r="6" fill="none" stroke="#7fb4ff" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="60" y="172" font-size="12.5" fill="#7fb4ff">Authenticating as Susan via Okta&hellip; (new session)</text>
+    <circle cx="376" cy="168" r="13" fill="#1d6fe0"/><text x="376" y="173" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">2</text>
+
+    <!-- actions list -->
+    <text x="24" y="212" font-size="11" letter-spacing="1.2" fill="#7d8695" font-weight="600">ACTIONS</text>
+    <circle cx="150" cy="207" r="13" fill="#1d6fe0"/><text x="150" y="212" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">3</text>
+    <g font-size="14" fill="#c9d1d9">
+      <!-- row template h=38 -->
+      <rect x="24" y="222" width="512" height="38" rx="7" fill="#12161f"/>
+      <text x="42" y="246">Check environment</text>
+      <!-- selected -->
+      <rect x="24" y="264" width="512" height="38" rx="7" fill="#17202f" stroke="#295089"/>
+      <rect x="24" y="264" width="4" height="38" rx="2" fill="#1d6fe0"/>
+      <text x="42" y="288" fill="#e6edf3" font-weight="600">Read CRM accounts</text>
+      <text x="516" y="288" text-anchor="end" font-size="11" fill="#2ea043">running&hellip;</text>
+      <rect x="24" y="306" width="512" height="38" rx="7" fill="#12161f"/>
+      <text x="42" y="330">Read Desk tickets</text>
+      <rect x="24" y="348" width="512" height="38" rx="7" fill="#12161f"/>
+      <text x="42" y="372">List the agent&rsquo;s tools</text>
+      <rect x="24" y="390" width="512" height="38" rx="7" fill="#12161f"/>
+      <text x="42" y="414">Invoke a tool</text>
+      <rect x="24" y="432" width="512" height="38" rx="7" fill="#12161f"/>
+      <text x="42" y="456">Access log</text>
+      <rect x="24" y="474" width="512" height="38" rx="7" fill="#12161f"/>
+      <text x="42" y="498">Side-by-side: allow vs deny</text>
+      <rect x="24" y="516" width="512" height="38" rx="7" fill="#12161f"/>
+      <text x="42" y="540">Prove it can&rsquo;t be faked</text>
+    </g>
+
+    <!-- result panel -->
+    <rect x="24" y="566" width="512" height="212" rx="9" fill="#11151f" stroke="#1f2633"/>
+    <text x="42" y="592" font-size="13" font-weight="600" fill="#e6edf3">Read CRM accounts &mdash; as Susan Potter</text>
+    <rect x="440" y="578" width="80" height="20" rx="10" fill="#0f2a17" stroke="#2ea043"/>
+    <text x="480" y="592" text-anchor="middle" font-size="11" font-weight="700" fill="#3fb950">ALLOW</text>
+    <g font-size="12.5" fill="#9aa4b2" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <text x="42" y="620">ACC-1001  Globex Corporation      $1.2M</text>
+      <text x="42" y="642">ACC-1002  Initech LLC             $840K</text>
+      <text x="42" y="664">ACC-1003  Umbrella Health         $2.1M</text>
+      <text x="42" y="686">&hellip; 8 accounts (manager sees all)</text>
+    </g>
+    <text x="42" y="726" font-size="12" fill="#2ea043">HTTP 200 &middot; 8 records &middot; token aud: api://vantage-crm</text>
+    <text x="42" y="752" font-size="11.5" fill="#5b6472">Row filtering by identity; Alex (rep) would see only his 2 accounts.</text>
+
+    <!-- ===== RIGHT SIDEBAR ===== -->
+    <rect x="812" y="72" width="404" height="706" rx="10" fill="#10141d" stroke="#1f2633"/>
+    <!-- sidebar header -->
+    <text x="832" y="98" font-size="12" letter-spacing="1" font-weight="700" fill="#e6edf3">IDENTITY &amp; TOKEN</text>
+    <path d="M1192 90 l-8 6 l8 6 M1200 90 l-8 6 l8 6" fill="none" stroke="#8b949e" stroke-width="2"/>
+    <circle cx="905" cy="93" r="13" fill="#1d6fe0"/><text x="905" y="98" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">4</text>
+    <!-- Simple/Advanced toggle -->
+    <rect x="832" y="112" width="176" height="30" rx="8" fill="#161b26" stroke="#2a3346"/>
+    <rect x="920" y="114" width="84" height="26" rx="6" fill="#1d6fe0"/>
+    <text x="874" y="130" text-anchor="middle" font-size="12.5" fill="#8b949e">Simple</text>
+    <text x="962" y="130" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">Advanced</text>
+    <circle cx="1030" cy="127" r="13" fill="#1d6fe0"/><text x="1030" y="132" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">5</text>
+
+    <!-- logged in as -->
+    <circle cx="838" cy="166" r="6" fill="#2ea043"/>
+    <text x="852" y="171" font-size="13.5" fill="#e6edf3">Logged in as <tspan font-weight="700">Susan Potter</tspan></text>
+    <!-- id token card -->
+    <rect x="832" y="184" width="368" height="104" rx="8" fill="#161b26" stroke="#232c3c"/>
+    <text x="846" y="206" font-size="11" fill="#7d8695" font-weight="600">id_token (Advanced view)</text>
+    <g font-size="12" fill="#c9d1d9" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <text x="846" y="228">sub    susan@taskvantage.demo</text>
+      <text x="846" y="248">name   Susan Potter</text>
+      <text x="846" y="268">groups [ Sales Management ]</text>
+    </g>
+    <!-- scopes -->
+    <text x="832" y="314" font-size="11" letter-spacing="1" font-weight="600" fill="#7d8695">AUTHORIZED SCOPES</text>
+    <g font-size="11.5" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <rect x="832" y="322" width="150" height="24" rx="12" fill="#132033" stroke="#274a75"/><text x="847" y="338" fill="#8fb8ff">crm.accounts.read</text>
+      <rect x="990" y="322" width="150" height="24" rx="12" fill="#132033" stroke="#274a75"/><text x="1005" y="338" fill="#8fb8ff">crm.contacts.read</text>
+      <rect x="832" y="352" width="176" height="24" rx="12" fill="#132033" stroke="#274a75"/><text x="847" y="368" fill="#8fb8ff">crm.opportunities.read</text>
+      <rect x="1016" y="352" width="124" height="24" rx="12" fill="#132033" stroke="#274a75"/><text x="1031" y="368" fill="#8fb8ff">&hellip;write</text>
+    </g>
+
+    <!-- token journey -->
+    <line x1="832" y1="398" x2="1200" y2="398" stroke="#1f2633"/>
+    <text x="832" y="420" font-size="11" letter-spacing="1" font-weight="700" fill="#e6edf3">TOKEN JOURNEY</text>
+    <text x="1200" y="420" text-anchor="end" font-size="10.5" fill="#5b6472">animated</text>
+    <!-- rail -->
+    <rect x="846" y="440" width="3" height="288" rx="1.5" fill="url(#rail)"/>
+    <!-- steps -->
+    <g>
+      <!-- step 1 -->
+      <circle cx="847" cy="452" r="7" fill="#2ea043" stroke="#0d1017" stroke-width="2"/>
+      <text x="868" y="450" font-size="13" font-weight="600" fill="#e6edf3">1. User authentication</text>
+      <text x="868" y="468" font-size="11" fill="#8b949e" font-family="ui-monospace,Menlo,Consolas,monospace">POST /api/v1/authn &rarr; session token</text>
+      <!-- step 2 -->
+      <circle cx="847" cy="516" r="7" fill="#2ea043" stroke="#0d1017" stroke-width="2"/>
+      <text x="868" y="514" font-size="13" font-weight="600" fill="#e6edf3">2. Authorization (PKCE)</text>
+      <text x="868" y="532" font-size="11" fill="#8b949e" font-family="ui-monospace,Menlo,Consolas,monospace">/authorize &rarr; auth code</text>
+      <!-- step 3 money -->
+      <circle cx="847" cy="580" r="8" fill="#1d6fe0" stroke="#0d1017" stroke-width="2"/>
+      <rect x="864" y="562" width="336" height="52" rx="7" fill="#101d30" stroke="#274a75"/>
+      <text x="878" y="580" font-size="13" font-weight="700" fill="#8fb8ff">3. Token exchange (ID-JAG / XAA)</text>
+      <text x="878" y="598" font-size="11" fill="#9aa4b2" font-family="ui-monospace,Menlo,Consolas,monospace">/token &rarr; access token &middot; aud api://vantage-crm</text>
+      <text x="1188" y="558" text-anchor="end" font-size="10" fill="#5b6472">enforcement point</text>
+      <!-- step 4 -->
+      <circle cx="847" cy="652" r="7" fill="#2ea043" stroke="#0d1017" stroke-width="2"/>
+      <text x="868" y="650" font-size="13" font-weight="600" fill="#e6edf3">4. MCP tool call</text>
+      <text x="868" y="668" font-size="11" fill="#8b949e" font-family="ui-monospace,Menlo,Consolas,monospace">Bearer &rarr; VantageCRM, as Susan</text>
+      <!-- token chip transform -->
+      <text x="868" y="700" font-size="11" fill="#7d8695">token:</text>
+      <rect x="906" y="688" width="58" height="18" rx="9" fill="#20262f"/><text x="935" y="701" text-anchor="middle" font-size="10" fill="#9aa4b2">session</text>
+      <text x="968" y="701" font-size="11" fill="#5b6472">&rarr;</text>
+      <rect x="980" y="688" width="42" height="18" rx="9" fill="#20262f"/><text x="1001" y="701" text-anchor="middle" font-size="10" fill="#9aa4b2">code</text>
+      <text x="1026" y="701" font-size="11" fill="#5b6472">&rarr;</text>
+      <rect x="1038" y="688" width="86" height="18" rx="9" fill="#132a1c" stroke="#2ea043"/><text x="1081" y="701" text-anchor="middle" font-size="10" fill="#3fb950">access token</text>
+    </g>
+    <!-- syslog link -->
+    <text x="832" y="752" font-size="12.5" fill="#58a6ff" text-decoration="underline">Verify in Okta System Log &rarr;</text>
+  </svg>
+
+  <div class="legend">
+    <div><span class="n">1</span><b>Persona = dropdown</b><p>One persona at a time, replacing the card row.</p></div>
+    <div><span class="n">2</span><b>Select &rarr; Okta login, fresh session</b><p>Each change triggers a login (embedded browser, isolated session) so no SSO bleed between personas.</p></div>
+    <div><span class="n">3</span><b>Actions = vertical list</b><p>Stacked one below the other; click runs it, result renders on the left.</p></div>
+    <div><span class="n">4</span><b>Token sidebar, default-visible</b><p>Persistent &amp; collapsible. Shows the identity token, scopes, and the animated token journey.</p></div>
+    <div><span class="n">5</span><b>Simple &harr; Advanced toggle</b><p>Advanced = raw/decoded tokens, scopes, endpoints, correlation ids. Simple = plain "authorized / denied &amp; why," no JWTs.</p></div>
+  </div>
+
+  <p class="note">Shown here in <b>Advanced</b> view with an <b>allow</b> (Susan). A denial (e.g. Frank, or Alex&rarr;Desk) stops the journey red at the failing step and, in Simple view, reads simply "Okta denied this &mdash; not entitled." Live values come from real Okta tokens; this mockup uses sample data.</p>
+</div>
+</body>
+</html>
