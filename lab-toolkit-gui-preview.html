@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- CSP-safe: all assets same-origin, no external CDNs/fonts/scripts. -->
+  <title>Lab Toolkit - Proof of Enforcement</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d6fe0'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3EL%3C/text%3E%3C/svg%3E" />
+  <style>
+/* Lab Toolkit GUI - offline, CSP-safe (no external fonts/assets). */
+:root {
+  --bg: #0b0f14;
+  --bg-2: #0f151d;
+  --panel: #131b26;
+  --panel-2: #182230;
+  --border: #223041;
+  --border-strong: #2d4056;
+  --text: #e6edf3;
+  --muted: #8ba1b7;
+  --faint: #5c7085;
+  --accent: #4c9ffe;
+  --ok: #3fb950;
+  --ok-bg: #0f2a17;
+  --deny: #f85149;
+  --deny-bg: #2b1113;
+  --skip: #56657a;
+  --warn: #d29922;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius: 10px;
+  --shadow: 0 1px 0 rgba(255,255,255,0.02), 0 8px 24px rgba(0,0,0,0.35);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: radial-gradient(1200px 600px at 70% -10%, #14202e 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.app { max-width: 1180px; margin: 0 auto; padding: 20px 20px 80px; }
+
+/* ---------- header ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; margin-bottom: 18px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand .mark {
+  width: 34px; height: 34px; border-radius: 8px; flex: none;
+  background: linear-gradient(135deg, #1d6fe0, #4c9ffe);
+  display: grid; place-items: center; font-weight: 700; color: #fff; font-size: 15px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+}
+.brand h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+.brand .sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.topbar .spacer { flex: 1; }
+.meta { text-align: right; font-size: 12px; color: var(--muted); }
+.meta .org { color: var(--text); font-family: var(--mono); font-size: 12px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--border-strong); color: var(--muted);
+}
+.badge.mock { color: var(--warn); border-color: #4a3a12; background: #23190a; cursor: pointer; }
+.badge.live { color: var(--ok); border-color: #17371f; background: #0f2016; }
+.badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* ---------- section headings ---------- */
+.section-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--faint); font-weight: 700; margin: 22px 4px 10px;
+}
+
+/* ---------- persona switcher ---------- */
+.persona-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.persona {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 8px 12px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--border);
+  transition: border-color .12s, background .12s, transform .05s;
+}
+.persona:hover { border-color: var(--border-strong); }
+.persona:active { transform: translateY(1px); }
+.persona.active { border-color: var(--accent); background: #12233a; box-shadow: 0 0 0 1px var(--accent) inset; }
+.persona .avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #04121f;
+}
+.persona .who { line-height: 1.15; }
+.persona .who b { font-weight: 600; font-size: 13px; }
+.persona .who span { display: block; font-size: 11px; color: var(--muted); }
+
+/* ---------- action tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.tile {
+  position: relative; text-align: left; cursor: pointer;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 14px 13px; color: var(--text);
+  transition: border-color .12s, transform .06s, box-shadow .12s;
+}
+.tile:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
+.tile:active { transform: translateY(1px); }
+.tile:disabled { opacity: .45; cursor: not-allowed; }
+.tile .ico {
+  width: 30px; height: 30px; border-radius: 8px; margin-bottom: 10px;
+  display: grid; place-items: center; font-size: 16px;
+  background: var(--panel); border: 1px solid var(--border);
+}
+.tile h3 { margin: 0 0 3px; font-size: 13.5px; font-weight: 620; }
+.tile p { margin: 0; font-size: 12px; color: var(--muted); }
+.tile.proof { border-color: #33251a; }
+.tile.proof .ico { border-color: #4a3a12; color: var(--warn); }
+.tile .spinner { position: absolute; top: 12px; right: 12px; }
+
+/* ---------- result region ---------- */
+.result { margin-top: 22px; }
+.result-head {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding: 0 4px 8px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+}
+.result-head h2 { font-size: 16px; margin: 0; font-weight: 640; }
+.result-head .ctx { font-size: 12.5px; color: var(--muted); }
+.result-head .pill {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--border-strong); color: var(--muted);
+}
+.pill.allow { color: var(--ok); border-color: #17371f; background: var(--ok-bg); }
+.pill.deny { color: var(--deny); border-color: #4a1c1c; background: var(--deny-bg); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 15px; margin-bottom: 16px;
+}
+.card > .card-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--faint); font-weight: 700; margin: 0 0 11px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card.stack { margin-bottom: 0; }
+
+/* ---------- token card ---------- */
+.token { border-left: 3px solid var(--ok); }
+.token.deny { border-left-color: var(--deny); }
+.claims { display: grid; grid-template-columns: 74px 1fr; gap: 6px 12px; font-family: var(--mono); font-size: 12.5px; }
+.claims dt { color: var(--faint); text-transform: uppercase; font-size: 10.5px; letter-spacing: .05em; padding-top: 2px; }
+.claims dd { margin: 0; color: var(--text); word-break: break-all; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px;
+  background: #10202f; border: 1px solid #1c3448; color: #9fd0ff;
+}
+.chip.grp { background: #131f13; border-color: #234023; color: #a6e0a6; }
+.raw-tok {
+  margin-top: 11px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+  background: var(--bg-2); border: 1px solid var(--border); border-radius: 7px;
+  padding: 8px 10px; word-break: break-all; max-height: 72px; overflow: auto;
+}
+.copybtn {
+  float: right; font-size: 10.5px; font-family: var(--sans); cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--border-strong); color: var(--muted);
+  border-radius: 5px; padding: 2px 8px; margin-left: 8px;
+}
+.copybtn:hover { color: var(--text); }
+
+/* ---------- denial card ---------- */
+.denial {
+  border: 1px solid #5a2020; background: linear-gradient(180deg, #24100f, #1a0d0d);
+  border-left: 3px solid var(--deny);
+}
+.denial .card-title { color: #f5a9a4; }
+.denial .status {
+  display: inline-block; font-family: var(--mono); font-weight: 700; color: #fff;
+  background: var(--deny); border-radius: 5px; padding: 1px 8px; font-size: 12px; margin-bottom: 9px;
+}
+.denial .verbatim {
+  font-family: var(--mono); font-size: 13px; color: #ffd7d3; white-space: pre-wrap; word-break: break-word;
+  background: #1c0e0e; border: 1px solid #4a1c1c; border-radius: 7px; padding: 10px 12px;
+}
+.denial .note { margin: 9px 0 0; font-size: 11.5px; color: #c98f8b; }
+
+/* ---------- http trace / receipt ---------- */
+.trace { font-family: var(--mono); font-size: 12.5px; }
+.trace .line { display: flex; gap: 10px; padding: 3px 0; align-items: baseline; flex-wrap: wrap; }
+.trace .k { color: var(--faint); width: 58px; flex: none; text-transform: uppercase; font-size: 10.5px; }
+.trace .v { color: var(--text); word-break: break-all; }
+.method { font-weight: 700; color: #9fd0ff; }
+.st { font-weight: 700; }
+.st.ok { color: var(--ok); } .st.bad { color: var(--deny); }
+.cid { color: var(--warn); }
+
+/* ---------- flow diagram ---------- */
+.flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 4px 2px 2px; }
+.flow .hop {
+  flex: 1 1 0; min-width: 118px; text-align: center;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px;
+  padding: 11px 8px; position: relative; opacity: .28; transform: translateY(2px);
+  transition: opacity .35s ease, transform .35s ease, border-color .35s, background .35s;
+}
+.flow .hop.lit { opacity: 1; transform: none; }
+.flow .hop .ic { font-size: 17px; margin-bottom: 4px; }
+.flow .hop .name { font-size: 12px; font-weight: 640; }
+.flow .hop .st { font-size: 10.5px; margin-top: 3px; font-family: var(--mono); }
+.flow .hop.ok { border-color: #1f5130; background: #0f2317; }
+.flow .hop.ok .st { color: var(--ok); }
+.flow .hop.denied { border-color: #6a2222; background: #240f0f; }
+.flow .hop.denied .st { color: var(--deny); }
+.flow .hop.skipped { border-color: var(--border); }
+.flow .hop.skipped .st { color: var(--skip); }
+.flow .arrow {
+  flex: 0 0 30px; display: grid; place-items: center; color: var(--faint); font-size: 16px;
+  opacity: .25; transition: opacity .35s, color .35s;
+}
+.flow .arrow.lit { opacity: 1; }
+.flow .arrow.ok { color: var(--ok); } .flow .arrow.denied { color: var(--deny); }
+.flow .hop .note {
+  font-size: 10.5px; color: var(--muted); margin-top: 5px; line-height: 1.3;
+  min-height: 26px;
+}
+
+/* ---------- system log panel ---------- */
+.syslog { border-left: 3px solid var(--accent); }
+.syslog .evt { font-family: var(--mono); font-size: 12.5px; color: var(--text); }
+.syslog .evt b { color: #9fd0ff; }
+.syslog .deeplink {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 10px;
+  background: #10233b; border: 1px solid #1d456e; border-radius: 7px;
+  padding: 8px 12px; font-size: 12.5px; font-weight: 600;
+}
+.syslog .hint { font-size: 11.5px; color: var(--muted); margin: 9px 0 0; }
+.embed-slot {
+  margin-top: 10px; border: 1px dashed var(--border-strong); border-radius: 7px;
+  padding: 10px 12px; font-size: 11.5px; color: var(--faint);
+}
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { text-align: left; padding: 8px 11px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; background: var(--panel-2); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--panel-2); }
+td.mono, th.mono { font-family: var(--mono); }
+
+/* ---------- tool catalog ---------- */
+.tools-summary { font-size: 12.5px; color: var(--muted); margin: 0 0 12px; }
+.tools-summary b { color: var(--text); }
+.tool-list { display: grid; gap: 7px; }
+.tool {
+  display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12.5px;
+  padding: 8px 11px; border-radius: 7px; border: 1px solid var(--border); background: var(--panel-2);
+}
+.tool .tag { font-family: var(--sans); font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px; flex: none; }
+.tool.usable { border-color: #1f5130; }
+.tool.usable .tag { background: var(--ok-bg); color: var(--ok); border: 1px solid #17371f; }
+.tool.blocked { border-color: #3a1717; }
+.tool.blocked .tag { background: var(--deny-bg); color: var(--deny); border: 1px solid #4a1c1c; }
+.tool.blocked .tname { color: var(--muted); }
+.tool .tname { flex: 1; }
+
+/* ---------- invoke form ---------- */
+.form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.form-row label { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.input, .textarea, select {
+  background: var(--bg-2); border: 1px solid var(--border-strong); color: var(--text);
+  border-radius: 7px; padding: 9px 11px; font-family: var(--mono); font-size: 12.5px; width: 100%;
+}
+.textarea { min-height: 74px; resize: vertical; }
+.input:focus, .textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  background: linear-gradient(180deg, #2b6fd6, #1d5bbf); border: 1px solid #2f74d8; color: #fff;
+  border-radius: 8px; padding: 9px 16px; font-weight: 600; font-size: 13px; font-family: var(--sans);
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn.ghost { background: var(--panel-2); border-color: var(--border-strong); color: var(--text); }
+
+pre.json {
+  font-family: var(--mono); font-size: 12px; color: #cfe6ff; background: var(--bg-2);
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow: auto; margin: 0;
+  max-height: 320px;
+}
+
+/* ---------- cheat attempts ---------- */
+.attempt { border: 1px solid var(--border); border-radius: 9px; margin-bottom: 12px; overflow: hidden; }
+.attempt .ahead {
+  display: flex; align-items: center; gap: 10px; padding: 11px 13px; background: var(--panel-2);
+  border-bottom: 1px solid var(--border);
+}
+.attempt .ahead .num {
+  width: 22px; height: 22px; border-radius: 6px; background: var(--deny-bg); color: var(--deny);
+  border: 1px solid #4a1c1c; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; font-weight: 700; flex: none;
+}
+.attempt .ahead b { font-size: 13px; }
+.attempt .adesc { font-size: 12px; color: var(--muted); padding: 10px 13px 4px; }
+.attempt .abody { padding: 4px 13px 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 720px) { .attempt .abody { grid-template-columns: 1fr; } }
+.attempt .abody .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); font-weight: 700; margin-bottom: 5px; }
+
+/* ---------- check-env ---------- */
+.checks { display: grid; gap: 8px; }
+.check { display: flex; align-items: center; gap: 11px; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); }
+.check .st-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.check.ok .st-dot { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); }
+.check.bad .st-dot { background: var(--deny); box-shadow: 0 0 0 3px var(--deny-bg); }
+.check .cname { font-weight: 600; width: 130px; flex: none; }
+.check .cdetail { font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all; }
+.env-grid { display: grid; grid-template-columns: 160px 1fr; gap: 5px 14px; font-family: var(--mono); font-size: 12.5px; margin-top: 4px; }
+.env-grid .ek { color: var(--faint); }
+.env-grid .ev { color: var(--text); word-break: break-all; }
+
+/* ---------- states ---------- */
+.empty { text-align: center; color: var(--faint); padding: 46px 20px; font-size: 13.5px; }
+.empty .big { font-size: 30px; margin-bottom: 10px; opacity: .6; }
+.error-box {
+  border: 1px solid #5a2020; background: #1a0d0d; border-radius: var(--radius); padding: 16px 18px;
+}
+.error-box .code { font-family: var(--mono); color: var(--deny); font-weight: 700; font-size: 12.5px; }
+.error-box .msg { margin-top: 6px; color: #ffd7d3; }
+
+.skeleton { animation: pulse 1.3s ease-in-out infinite; }
+.skeleton .bar { height: 12px; border-radius: 5px; background: var(--panel-2); margin: 8px 0; }
+.skeleton .bar.w60 { width: 60%; } .skeleton .bar.w40 { width: 40%; } .skeleton .bar.w80 { width: 80%; }
+@keyframes pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+
+.spinner {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.18); border-top-color: var(--accent);
+  animation: spin .7s linear infinite; display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.foot { margin-top: 40px; text-align: center; color: var(--faint); font-size: 11.5px; }
+.sbs-col h3 { font-size: 13px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.subtle { color: var(--muted); font-size: 12px; }
+
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">L</div>
+        <div>
+          <h1>Lab Toolkit</h1>
+          <div class="sub">Same agent, same tools &mdash; Okta authorizes per user.</div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="meta">
+        <div class="org" id="orgLabel">&hellip;</div>
+        <div id="verLabel">v&hellip;</div>
+        <div style="margin-top:5px"><span class="badge" id="modeBadge" role="button" tabindex="0"></span></div>
+      </div>
+    </header>
+
+    <div class="section-title">Persona</div>
+    <div class="persona-row" id="personaRow"><span class="subtle">Loading personas&hellip;</span></div>
+
+    <div class="section-title">Actions</div>
+    <div class="tiles" id="tiles"></div>
+
+    <div class="result" id="result">
+      <div class="empty">
+        <div class="big">&#128274;</div>
+        Pick a persona, then run an action.<br />
+        Every result shows the real token Okta issued (or its verbatim denial), the HTTP receipt, and the matching Okta System Log entry.
+      </div>
+    </div>
+
+    <div class="foot">
+      localhost only &middot; no external calls &middot; every allow/deny is a real, verifiable Okta artifact
+    </div>
+  </div>
+
+  <!-- Offline fixture bundle: present in dist so mock mode works over file:// with zero network. -->
+  <script>
+window.__FIXTURES__ = {
+  "config": {
+    "org": "demo-o4aa-techcamp-1.okta.com",
+    "personas": [
+      {
+        "id": "alex",
+        "label": "Alex Martinez",
+        "role": "Sales Rep"
+      },
+      {
+        "id": "susan",
+        "label": "Susan Potter",
+        "role": "Sales Manager"
+      },
+      {
+        "id": "kim",
+        "label": "Kim Liu",
+        "role": "IT Help Desk"
+      },
+      {
+        "id": "frank",
+        "label": "Frank Boone",
+        "role": "Engineering"
+      },
+      {
+        "id": "sally",
+        "label": "Sally Nguyen",
+        "role": "Customer Success"
+      }
+    ],
+    "actions": [
+      "check-env",
+      "read-crm",
+      "read-desk",
+      "list-tools",
+      "invoke",
+      "access-log",
+      "side-by-side",
+      "cheat"
+    ],
+    "appVersion": "2.0.0"
+  },
+  "check-env": {
+    "checks": [
+      {
+        "name": "VantageCRM",
+        "ok": true,
+        "detail": "HTTP 200  https://vantage-crm.dev.oktademo.app/healthz"
+      },
+      {
+        "name": "VantageDesk",
+        "ok": true,
+        "detail": "HTTP 200  https://vantage-desk.dev.oktademo.app/healthz"
+      },
+      {
+        "name": "MCP adapter",
+        "ok": true,
+        "detail": "HTTP 200  protected-resource metadata present"
+      },
+      {
+        "name": "Lab CA trust",
+        "ok": true,
+        "detail": "lab-ca.crt present and trusted by the VDI browser"
+      }
+    ],
+    "environment": {
+      "OKTA_ORG": "demo-o4aa-techcamp-1.okta.com",
+      "OKTA_DOMAIN": "okta.com",
+      "MCP_URL": "https://adapter.dev.oktademo.app/mcp",
+      "CRM_URL": "https://vantage-crm.dev.oktademo.app",
+      "DESK_URL": "https://vantage-desk.dev.oktademo.app"
+    }
+  },
+  "read.crm.susan": {
+    "persona": "susan",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6InN1c2FuLnBvdHRlckBhdGtvLmVtYWlsIiwiYXVkIjoiYXBpOi8vdmFudGFnZS1jcm0iLCJpc3MiOiJodHRwczovL2RlbW8tbzRhYS10ZWNoY2FtcC0xLm9rdGEuY29tL29hdXRoMi9hdXMxY3JtQVMwZXhhbXBsZUlkIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbImNybS5hY2NvdW50cy5yZWFkIiwiY3JtLmNvbnRhY3RzLnJlYWQiLCJjcm0ub3Bwb3J0dW5pdGllcy5yZWFkIl0sImdyb3VwcyI6WyJDUk0tTWFuYWdlcnMiLCJFdmVyeW9uZSJdfQ.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "susan.potter@atko.email",
+        "aud": "api://vantage-crm",
+        "scopes": [
+          "crm.accounts.read",
+          "crm.contacts.read",
+          "crm.opportunities.read"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId",
+        "groups": [
+          "CRM-Managers",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "http": {
+      "method": "GET",
+      "url": "https://vantage-crm.dev.oktademo.app/api/accounts",
+      "status": 200,
+      "correlationId": "59b6e0d2040081d76992d818d8fc01c9"
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "brokered auth-code / PKCE"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "scoped CRM token minted"
+      },
+      {
+        "hop": "app",
+        "status": "ok",
+        "note": "200 - 8 records"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=59b6e0d2040081d76992d818d8fc01c9",
+      "embedded": null
+    },
+    "result": {
+      "rows": [
+        {
+          "id": "ACC-1001",
+          "name": "Acme Corporation",
+          "owner": "susan.potter@atko.email",
+          "industry": "Manufacturing",
+          "arr": 480000,
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1002",
+          "name": "Globex Industries",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Logistics",
+          "arr": 220000,
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1003",
+          "name": "Initech LLC",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Software",
+          "arr": 95000,
+          "stage": "Prospect"
+        },
+        {
+          "id": "ACC-1004",
+          "name": "Umbrella Health",
+          "owner": "susan.potter@atko.email",
+          "industry": "Healthcare",
+          "arr": 610000,
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1005",
+          "name": "Stark Systems",
+          "owner": "susan.potter@atko.email",
+          "industry": "Energy",
+          "arr": 1250000,
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1006",
+          "name": "Wayne Enterprises",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Aerospace",
+          "arr": 875000,
+          "stage": "Negotiation"
+        },
+        {
+          "id": "ACC-1007",
+          "name": "Soylent Foods",
+          "owner": "susan.potter@atko.email",
+          "industry": "Consumer",
+          "arr": 140000,
+          "stage": "Prospect"
+        },
+        {
+          "id": "ACC-1008",
+          "name": "Hooli Cloud",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Cloud",
+          "arr": 330000,
+          "stage": "Customer"
+        }
+      ]
+    }
+  },
+  "read.crm.alex": {
+    "persona": "alex",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6ImFsZXgubWFydGluZXpAYXRrby5lbWFpbCIsImF1ZCI6ImFwaTovL3ZhbnRhZ2UtY3JtIiwiaXNzIjoiaHR0cHM6Ly9kZW1vLW80YWEtdGVjaGNhbXAtMS5va3RhLmNvbS9vYXV0aDIvYXVzMWNybUFTMGV4YW1wbGVJZCIsImlhdCI6MTc4NDgzMjM1MywiZXhwIjoxNzg0ODM1OTUzLCJjaWQiOiIwb2ExbGFiVG9vbGtpdENsaWVudCIsInNjcCI6WyJjcm0uYWNjb3VudHMucmVhZCIsImNybS5jb250YWN0cy5yZWFkIl0sImdyb3VwcyI6WyJDUk0tUmVwcyIsIkV2ZXJ5b25lIl19.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "alex.martinez@atko.email",
+        "aud": "api://vantage-crm",
+        "scopes": [
+          "crm.accounts.read",
+          "crm.contacts.read"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId",
+        "groups": [
+          "CRM-Reps",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "http": {
+      "method": "GET",
+      "url": "https://vantage-crm.dev.oktademo.app/api/accounts",
+      "status": 200,
+      "correlationId": "4d2e1f0a9c8b7654321fedcba9876543"
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "brokered auth-code / PKCE"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "scoped CRM token minted"
+      },
+      {
+        "hop": "app",
+        "status": "ok",
+        "note": "200 - 4 records"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=4d2e1f0a9c8b7654321fedcba9876543",
+      "embedded": null
+    },
+    "result": {
+      "rows": [
+        {
+          "id": "ACC-1002",
+          "name": "Globex Industries",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Logistics",
+          "arr": 220000,
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1003",
+          "name": "Initech LLC",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Software",
+          "arr": 95000,
+          "stage": "Prospect"
+        },
+        {
+          "id": "ACC-1006",
+          "name": "Wayne Enterprises",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Aerospace",
+          "arr": 875000,
+          "stage": "Negotiation"
+        },
+        {
+          "id": "ACC-1008",
+          "name": "Hooli Cloud",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Cloud",
+          "arr": 330000,
+          "stage": "Customer"
+        }
+      ]
+    }
+  },
+  "read.crm.sally": {
+    "persona": "sally",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6InNhbGx5Lm5ndXllbkBhdGtvLmVtYWlsIiwiYXVkIjoiYXBpOi8vdmFudGFnZS1jcm0iLCJpc3MiOiJodHRwczovL2RlbW8tbzRhYS10ZWNoY2FtcC0xLm9rdGEuY29tL29hdXRoMi9hdXMxY3JtQVMwZXhhbXBsZUlkIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbImNybS5hY2NvdW50cy5yZWFkIl0sImdyb3VwcyI6WyJDUk0tQ3VzdG9tZXJTdWNjZXNzIiwiRXZlcnlvbmUiXX0.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "sally.nguyen@atko.email",
+        "aud": "api://vantage-crm",
+        "scopes": [
+          "crm.accounts.read"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId",
+        "groups": [
+          "CRM-CustomerSuccess",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "http": {
+      "method": "GET",
+      "url": "https://vantage-crm.dev.oktademo.app/api/accounts",
+      "status": 200,
+      "correlationId": "11aa22bb33cc44dd55ee66ff77008899"
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "brokered auth-code / PKCE"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "scoped CRM token minted"
+      },
+      {
+        "hop": "app",
+        "status": "ok",
+        "note": "200 - 8 records"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=11aa22bb33cc44dd55ee66ff77008899",
+      "embedded": null
+    },
+    "result": {
+      "rows": [
+        {
+          "id": "ACC-1001",
+          "name": "Acme Corporation",
+          "owner": "susan.potter@atko.email",
+          "industry": "Manufacturing",
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1002",
+          "name": "Globex Industries",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Logistics",
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1003",
+          "name": "Initech LLC",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Software",
+          "stage": "Prospect"
+        },
+        {
+          "id": "ACC-1004",
+          "name": "Umbrella Health",
+          "owner": "susan.potter@atko.email",
+          "industry": "Healthcare",
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1005",
+          "name": "Stark Systems",
+          "owner": "susan.potter@atko.email",
+          "industry": "Energy",
+          "stage": "Customer"
+        },
+        {
+          "id": "ACC-1006",
+          "name": "Wayne Enterprises",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Aerospace",
+          "stage": "Negotiation"
+        },
+        {
+          "id": "ACC-1007",
+          "name": "Soylent Foods",
+          "owner": "susan.potter@atko.email",
+          "industry": "Consumer",
+          "stage": "Prospect"
+        },
+        {
+          "id": "ACC-1008",
+          "name": "Hooli Cloud",
+          "owner": "alex.martinez@atko.email",
+          "industry": "Cloud",
+          "stage": "Customer"
+        }
+      ]
+    }
+  },
+  "read.crm.frank": {
+    "persona": "frank",
+    "denial": {
+      "status": 403,
+      "verbatim": "access_denied: User is not assigned to the client application."
+    },
+    "http": {
+      "method": "GET",
+      "url": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId/v1/authorize",
+      "status": 403,
+      "correlationId": "b288e7df7b7fa344a2d70c77511bef8c"
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "denied",
+        "note": "Okta refused to issue a token at /authorize"
+      },
+      {
+        "hop": "xaa",
+        "status": "skipped",
+        "note": "no token to exchange"
+      },
+      {
+        "hop": "app",
+        "status": "skipped",
+        "note": "never reached"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.authorize",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=b288e7df7b7fa344a2d70c77511bef8c",
+      "embedded": null
+    }
+  },
+  "read.desk.kim": {
+    "persona": "kim",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6ImtpbS5saXVAYXRrby5lbWFpbCIsImF1ZCI6ImFwaTovL3ZhbnRhZ2UtZGVzayIsImlzcyI6Imh0dHBzOi8vZGVtby1vNGFhLXRlY2hjYW1wLTEub2t0YS5jb20vb2F1dGgyL2F1czFkZXNrQVMwZXhhbXBsZUlkIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbIml0c20udGlja2V0cy5yZWFkIiwiaXRzbS5pbmNpZGVudHMucmVhZCIsIml0c20ua2IucmVhZCJdLCJncm91cHMiOlsiSVRTTS1BZ2VudHMiLCJFdmVyeW9uZSJdfQ.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "kim.liu@atko.email",
+        "aud": "api://vantage-desk",
+        "scopes": [
+          "itsm.tickets.read",
+          "itsm.incidents.read",
+          "itsm.kb.read"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1deskAS0exampleId",
+        "groups": [
+          "ITSM-Agents",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "http": {
+      "method": "GET",
+      "url": "https://vantage-desk.dev.oktademo.app/api/tickets",
+      "status": 200,
+      "correlationId": "c13ab8f47e0d49f2b6d1e5c8f0a2b3c4"
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "brokered auth-code / PKCE"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "scoped Desk token minted"
+      },
+      {
+        "hop": "app",
+        "status": "ok",
+        "note": "200 - 5 records"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=c13ab8f47e0d49f2b6d1e5c8f0a2b3c4",
+      "embedded": null
+    },
+    "result": {
+      "rows": [
+        {
+          "id": "TIC-5001",
+          "subject": "VPN disconnects on wake",
+          "priority": "High",
+          "status": "Open",
+          "assignee": "kim.liu@atko.email",
+          "requester": "alex.martinez@atko.email"
+        },
+        {
+          "id": "TIC-5002",
+          "subject": "Laptop replacement request",
+          "priority": "Medium",
+          "status": "In Progress",
+          "assignee": "kim.liu@atko.email",
+          "requester": "susan.potter@atko.email"
+        },
+        {
+          "id": "TIC-5003",
+          "subject": "MFA reset for contractor",
+          "priority": "High",
+          "status": "Open",
+          "assignee": "kim.liu@atko.email",
+          "requester": "frank.boone@atko.email"
+        },
+        {
+          "id": "TIC-5004",
+          "subject": "Printer offline - 4th floor",
+          "priority": "Low",
+          "status": "Resolved",
+          "assignee": "kim.liu@atko.email",
+          "requester": "sally.nguyen@atko.email"
+        },
+        {
+          "id": "TIC-5005",
+          "subject": "New hire onboarding kit",
+          "priority": "Medium",
+          "status": "Open",
+          "assignee": "kim.liu@atko.email",
+          "requester": "susan.potter@atko.email"
+        }
+      ]
+    }
+  },
+  "read.desk.alex": {
+    "persona": "alex",
+    "denial": {
+      "status": 403,
+      "verbatim": "Authentication failed for resource"
+    },
+    "http": {
+      "method": "GET",
+      "url": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1deskAS0exampleId/v1/token",
+      "status": 403,
+      "correlationId": "a7f31c90d2b14e6685c0f1e2aa4498de"
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "denied",
+        "note": "Desk AS refused the token exchange - not entitled"
+      },
+      {
+        "hop": "app",
+        "status": "skipped",
+        "note": "no scoped token; app never called"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant_failure",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=a7f31c90d2b14e6685c0f1e2aa4498de",
+      "embedded": null
+    }
+  },
+  "list-tools.susan": {
+    "persona": "susan",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6InN1c2FuLnBvdHRlckBhdGtvLmVtYWlsIiwiYXVkIjoiYXBpOi8vbWNwLWFkYXB0ZXIiLCJpc3MiOiJodHRwczovL2RlbW8tbzRhYS10ZWNoY2FtcC0xLm9rdGEuY29tL29hdXRoMi92MSIsImlhdCI6MTc4NDgzMjM1MywiZXhwIjoxNzg0ODM1OTUzLCJjaWQiOiIwb2ExbGFiVG9vbGtpdENsaWVudCIsInNjcCI6WyJva3RhLmFnZW50Lmludm9rZSJdLCJncm91cHMiOlsiQ1JNLU1hbmFnZXJzIiwiRXZlcnlvbmUiXX0.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "susan.potter@atko.email",
+        "aud": "api://mcp-adapter",
+        "scopes": [
+          "okta.agent.invoke"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/v1",
+        "groups": [
+          "CRM-Managers",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "catalog": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities",
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "authorized": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities"
+    ],
+    "denied": [
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "CRM exchange authorized"
+      },
+      {
+        "hop": "app",
+        "status": "ok",
+        "note": "Desk exchange denied - shows per-tool"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=59b6e0d2040081d76992d818d8fc01c9",
+      "embedded": null
+    }
+  },
+  "list-tools.alex": {
+    "persona": "alex",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6ImFsZXgubWFydGluZXpAYXRrby5lbWFpbCIsImF1ZCI6ImFwaTovL21jcC1hZGFwdGVyIiwiaXNzIjoiaHR0cHM6Ly9kZW1vLW80YWEtdGVjaGNhbXAtMS5va3RhLmNvbS9vYXV0aDIvdjEiLCJpYXQiOjE3ODQ4MzIzNTMsImV4cCI6MTc4NDgzNTk1MywiY2lkIjoiMG9hMWxhYlRvb2xraXRDbGllbnQiLCJzY3AiOlsib2t0YS5hZ2VudC5pbnZva2UiXSwiZ3JvdXBzIjpbIkNSTS1SZXBzIiwiRXZlcnlvbmUiXX0.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "alex.martinez@atko.email",
+        "aud": "api://mcp-adapter",
+        "scopes": [
+          "okta.agent.invoke"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/v1",
+        "groups": [
+          "CRM-Reps",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "catalog": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities",
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "authorized": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities"
+    ],
+    "denied": [
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "CRM exchange authorized"
+      },
+      {
+        "hop": "app",
+        "status": "denied",
+        "note": "Desk exchange denied"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=4d2e1f0a9c8b7654321fedcba9876543",
+      "embedded": null
+    }
+  },
+  "list-tools.kim": {
+    "persona": "kim",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6ImtpbS5saXVAYXRrby5lbWFpbCIsImF1ZCI6ImFwaTovL21jcC1hZGFwdGVyIiwiaXNzIjoiaHR0cHM6Ly9kZW1vLW80YWEtdGVjaGNhbXAtMS5va3RhLmNvbS9vYXV0aDIvdjEiLCJpYXQiOjE3ODQ4MzIzNTMsImV4cCI6MTc4NDgzNTk1MywiY2lkIjoiMG9hMWxhYlRvb2xraXRDbGllbnQiLCJzY3AiOlsib2t0YS5hZ2VudC5pbnZva2UiXSwiZ3JvdXBzIjpbIklUU00tQWdlbnRzIiwiRXZlcnlvbmUiXX0.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "kim.liu@atko.email",
+        "aud": "api://mcp-adapter",
+        "scopes": [
+          "okta.agent.invoke"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/v1",
+        "groups": [
+          "ITSM-Agents",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "catalog": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities",
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "authorized": [
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "denied": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities"
+    ],
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "Desk exchange authorized"
+      },
+      {
+        "hop": "app",
+        "status": "denied",
+        "note": "CRM exchange denied"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=c13ab8f47e0d49f2b6d1e5c8f0a2b3c4",
+      "embedded": null
+    }
+  },
+  "list-tools.frank": {
+    "persona": "frank",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6ImZyYW5rLmJvb25lQGF0a28uZW1haWwiLCJhdWQiOiJhcGk6Ly9tY3AtYWRhcHRlciIsImlzcyI6Imh0dHBzOi8vZGVtby1vNGFhLXRlY2hjYW1wLTEub2t0YS5jb20vb2F1dGgyL3YxIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbIm9rdGEuYWdlbnQuaW52b2tlIl0sImdyb3VwcyI6WyJFbmdpbmVlcmluZyIsIkV2ZXJ5b25lIl19.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "frank.boone@atko.email",
+        "aud": "api://mcp-adapter",
+        "scopes": [
+          "okta.agent.invoke"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/v1",
+        "groups": [
+          "Engineering",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "catalog": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities",
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "authorized": [],
+    "denied": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities",
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "denied",
+        "note": "every resource exchange refused - no entitlements"
+      },
+      {
+        "hop": "app",
+        "status": "skipped",
+        "note": "no scoped token for any resource"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant_failure",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=b288e7df7b7fa344a2d70c77511bef8c",
+      "embedded": null
+    }
+  },
+  "list-tools.sally": {
+    "persona": "sally",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6InNhbGx5Lm5ndXllbkBhdGtvLmVtYWlsIiwiYXVkIjoiYXBpOi8vbWNwLWFkYXB0ZXIiLCJpc3MiOiJodHRwczovL2RlbW8tbzRhYS10ZWNoY2FtcC0xLm9rdGEuY29tL29hdXRoMi92MSIsImlhdCI6MTc4NDgzMjM1MywiZXhwIjoxNzg0ODM1OTUzLCJjaWQiOiIwb2ExbGFiVG9vbGtpdENsaWVudCIsInNjcCI6WyJva3RhLmFnZW50Lmludm9rZSJdLCJncm91cHMiOlsiQ1JNLUN1c3RvbWVyU3VjY2VzcyIsIkV2ZXJ5b25lIl19.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "sally.nguyen@atko.email",
+        "aud": "api://mcp-adapter",
+        "scopes": [
+          "okta.agent.invoke"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/v1",
+        "groups": [
+          "CRM-CustomerSuccess",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "catalog": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact",
+      "vantage_crm__list_opportunities",
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "authorized": [
+      "vantage_crm__lookup_account",
+      "vantage_crm__list_accounts",
+      "vantage_crm__get_contact"
+    ],
+    "denied": [
+      "vantage_crm__list_opportunities",
+      "vantage_desk__list_tickets",
+      "vantage_desk__get_ticket",
+      "vantage_desk__create_ticket",
+      "vantage_desk__search_kb"
+    ],
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "CRM read exchange authorized"
+      },
+      {
+        "hop": "app",
+        "status": "denied",
+        "note": "opportunities + Desk denied"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=11aa22bb33cc44dd55ee66ff77008899",
+      "embedded": null
+    }
+  },
+  "invoke.susan": {
+    "persona": "susan",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6InN1c2FuLnBvdHRlckBhdGtvLmVtYWlsIiwiYXVkIjoiYXBpOi8vdmFudGFnZS1jcm0iLCJpc3MiOiJodHRwczovL2RlbW8tbzRhYS10ZWNoY2FtcC0xLm9rdGEuY29tL29hdXRoMi9hdXMxY3JtQVMwZXhhbXBsZUlkIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbImNybS5hY2NvdW50cy5yZWFkIl0sImdyb3VwcyI6WyJDUk0tTWFuYWdlcnMiLCJFdmVyeW9uZSJdfQ.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "susan.potter@atko.email",
+        "aud": "api://vantage-crm",
+        "scopes": [
+          "crm.accounts.read"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId",
+        "groups": [
+          "CRM-Managers",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "request": {
+      "tool": "vantage_crm__lookup_account",
+      "args": {
+        "name": "Acme Corporation"
+      }
+    },
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"id\":\"ACC-1001\",\"name\":\"Acme Corporation\",\"owner\":\"susan.potter@atko.email\",\"industry\":\"Manufacturing\",\"arr\":480000,\"stage\":\"Customer\"}"
+        }
+      ],
+      "isError": false
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "ID-JAG -> scoped CRM token"
+      },
+      {
+        "hop": "app",
+        "status": "ok",
+        "note": "tool executed - 200"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=59b6e0d2040081d76992d818d8fc01c9",
+      "embedded": null
+    }
+  },
+  "invoke.frank": {
+    "persona": "frank",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6ImZyYW5rLmJvb25lQGF0a28uZW1haWwiLCJhdWQiOiJhcGk6Ly9tY3AtYWRhcHRlciIsImlzcyI6Imh0dHBzOi8vZGVtby1vNGFhLXRlY2hjYW1wLTEub2t0YS5jb20vb2F1dGgyL3YxIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbIm9rdGEuYWdlbnQuaW52b2tlIl0sImdyb3VwcyI6WyJFbmdpbmVlcmluZyIsIkV2ZXJ5b25lIl19.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "frank.boone@atko.email",
+        "aud": "api://mcp-adapter",
+        "scopes": [
+          "okta.agent.invoke"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/v1",
+        "groups": [
+          "Engineering",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "request": {
+      "tool": "vantage_crm__lookup_account",
+      "args": {
+        "name": "Acme Corporation"
+      }
+    },
+    "denial": {
+      "status": 403,
+      "verbatim": "access_denied: Policy evaluation failed - no scoped token minted for api://vantage-crm"
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "denied",
+        "note": "XAA exchange at CRM AS refused"
+      },
+      {
+        "hop": "app",
+        "status": "skipped",
+        "note": "tool never executed"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant_failure",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=b288e7df7b7fa344a2d70c77511bef8c",
+      "embedded": null
+    }
+  },
+  "invoke.kim": {
+    "persona": "kim",
+    "token": {
+      "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6ImtpbS5saXVAYXRrby5lbWFpbCIsImF1ZCI6ImFwaTovL3ZhbnRhZ2UtZGVzayIsImlzcyI6Imh0dHBzOi8vZGVtby1vNGFhLXRlY2hjYW1wLTEub2t0YS5jb20vb2F1dGgyL2F1czFkZXNrQVMwZXhhbXBsZUlkIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbIml0c20udGlja2V0cy5yZWFkIl0sImdyb3VwcyI6WyJJVFNNLUFnZW50cyIsIkV2ZXJ5b25lIl19.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+      "decoded": {
+        "sub": "kim.liu@atko.email",
+        "aud": "api://vantage-desk",
+        "scopes": [
+          "itsm.tickets.read"
+        ],
+        "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1deskAS0exampleId",
+        "groups": [
+          "ITSM-Agents",
+          "Everyone"
+        ],
+        "exp": 1784835953
+      }
+    },
+    "request": {
+      "tool": "vantage_desk__list_tickets",
+      "args": {}
+    },
+    "response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"tickets\":[{\"id\":\"TIC-5001\",\"subject\":\"VPN disconnects on wake\",\"priority\":\"High\",\"status\":\"Open\",\"assignee\":\"kim.liu@atko.email\",\"requester\":\"alex.martinez@atko.email\"},{\"id\":\"TIC-5002\",\"subject\":\"Laptop replacement request\",\"priority\":\"Medium\",\"status\":\"In Progress\",\"assignee\":\"kim.liu@atko.email\",\"requester\":\"susan.potter@atko.email\"},{\"id\":\"TIC-5003\",\"subject\":\"MFA reset for contractor\",\"priority\":\"High\",\"status\":\"Open\",\"assignee\":\"kim.liu@atko.email\",\"requester\":\"frank.boone@atko.email\"},{\"id\":\"TIC-5004\",\"subject\":\"Printer offline - 4th floor\",\"priority\":\"Low\",\"status\":\"Resolved\",\"assignee\":\"kim.liu@atko.email\",\"requester\":\"sally.nguyen@atko.email\"},{\"id\":\"TIC-5005\",\"subject\":\"New hire onboarding kit\",\"priority\":\"Medium\",\"status\":\"Open\",\"assignee\":\"kim.liu@atko.email\",\"requester\":\"susan.potter@atko.email\"}]}"
+        }
+      ],
+      "isError": false
+    },
+    "flow": [
+      {
+        "hop": "agent",
+        "status": "ok",
+        "note": "persona session"
+      },
+      {
+        "hop": "adapter",
+        "status": "ok",
+        "note": "adapter token issued"
+      },
+      {
+        "hop": "xaa",
+        "status": "ok",
+        "note": "ID-JAG -> scoped Desk token"
+      },
+      {
+        "hop": "app",
+        "status": "ok",
+        "note": "tool executed - 200"
+      }
+    ],
+    "systemLog": {
+      "eventType": "app.oauth2.as.token.grant",
+      "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=c13ab8f47e0d49f2b6d1e5c8f0a2b3c4",
+      "embedded": null
+    }
+  },
+  "access-log": {
+    "events": [
+      {
+        "time": "2026-07-23T18:45:53Z",
+        "actor": "susan.potter@atko.email",
+        "eventType": "app.oauth2.as.token.grant",
+        "outcome": "SUCCESS",
+        "target": "vantage-crm-as",
+        "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=59b6e0d2040081d76992d818d8fc01c9"
+      },
+      {
+        "time": "2026-07-23T18:44:12Z",
+        "actor": "frank.boone@atko.email",
+        "eventType": "app.generic.unauth_app_access_attempt",
+        "outcome": "FAILURE",
+        "target": "O4AA Lab Toolkit",
+        "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=b288e7df7b7fa344a2d70c77511bef8c"
+      },
+      {
+        "time": "2026-07-23T18:42:07Z",
+        "actor": "alex.martinez@atko.email",
+        "eventType": "app.oauth2.as.token.grant_failure",
+        "outcome": "FAILURE",
+        "target": "vantage-desk-as",
+        "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=a7f31c90d2b14e6685c0f1e2aa4498de"
+      },
+      {
+        "time": "2026-07-23T18:40:33Z",
+        "actor": "kim.liu@atko.email",
+        "eventType": "app.oauth2.as.token.grant",
+        "outcome": "SUCCESS",
+        "target": "vantage-desk-as",
+        "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=c13ab8f47e0d49f2b6d1e5c8f0a2b3c4"
+      },
+      {
+        "time": "2026-07-23T18:38:50Z",
+        "actor": "alex.martinez@atko.email",
+        "eventType": "app.oauth2.as.token.grant",
+        "outcome": "SUCCESS",
+        "target": "vantage-crm-as",
+        "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=4d2e1f0a9c8b7654321fedcba9876543"
+      }
+    ]
+  },
+  "side-by-side": {
+    "a": {
+      "persona": "susan",
+      "token": {
+        "raw": "eyJhbGciOiJSUzI1NiIsImtpZCI6InNhbXBsZUtpZF9sYWJUb29sa2l0IiwidHlwIjoiSldUIn0.eyJ2ZXIiOjEsInN1YiI6InN1c2FuLnBvdHRlckBhdGtvLmVtYWlsIiwiYXVkIjoiYXBpOi8vdmFudGFnZS1jcm0iLCJpc3MiOiJodHRwczovL2RlbW8tbzRhYS10ZWNoY2FtcC0xLm9rdGEuY29tL29hdXRoMi9hdXMxY3JtQVMwZXhhbXBsZUlkIiwiaWF0IjoxNzg0ODMyMzUzLCJleHAiOjE3ODQ4MzU5NTMsImNpZCI6IjBvYTFsYWJUb29sa2l0Q2xpZW50Iiwic2NwIjpbImNybS5hY2NvdW50cy5yZWFkIiwiY3JtLmNvbnRhY3RzLnJlYWQiLCJjcm0ub3Bwb3J0dW5pdGllcy5yZWFkIl0sImdyb3VwcyI6WyJDUk0tTWFuYWdlcnMiLCJFdmVyeW9uZSJdfQ.SAMPLE_signature_not_verifiable_this_is_a_fixture_token",
+        "decoded": {
+          "sub": "susan.potter@atko.email",
+          "aud": "api://vantage-crm",
+          "scopes": [
+            "crm.accounts.read",
+            "crm.contacts.read",
+            "crm.opportunities.read"
+          ],
+          "iss": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId",
+          "groups": [
+            "CRM-Managers",
+            "Everyone"
+          ],
+          "exp": 1784835953
+        }
+      },
+      "http": {
+        "method": "GET",
+        "url": "https://vantage-crm.dev.oktademo.app/api/accounts",
+        "status": 200,
+        "correlationId": "59b6e0d2040081d76992d818d8fc01c9"
+      },
+      "flow": [
+        {
+          "hop": "agent",
+          "status": "ok",
+          "note": "persona session"
+        },
+        {
+          "hop": "adapter",
+          "status": "ok",
+          "note": "brokered auth-code / PKCE"
+        },
+        {
+          "hop": "xaa",
+          "status": "ok",
+          "note": "scoped CRM token minted"
+        },
+        {
+          "hop": "app",
+          "status": "ok",
+          "note": "200 - 8 records"
+        }
+      ],
+      "systemLog": {
+        "eventType": "app.oauth2.as.token.grant",
+        "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=59b6e0d2040081d76992d818d8fc01c9",
+        "embedded": null
+      },
+      "result": {
+        "rows": [
+          {
+            "id": "ACC-1001",
+            "name": "Acme Corporation",
+            "owner": "susan.potter@atko.email",
+            "industry": "Manufacturing",
+            "arr": 480000,
+            "stage": "Customer"
+          },
+          {
+            "id": "ACC-1002",
+            "name": "Globex Industries",
+            "owner": "alex.martinez@atko.email",
+            "industry": "Logistics",
+            "arr": 220000,
+            "stage": "Customer"
+          },
+          {
+            "id": "ACC-1003",
+            "name": "Initech LLC",
+            "owner": "alex.martinez@atko.email",
+            "industry": "Software",
+            "arr": 95000,
+            "stage": "Prospect"
+          },
+          {
+            "id": "ACC-1004",
+            "name": "Umbrella Health",
+            "owner": "susan.potter@atko.email",
+            "industry": "Healthcare",
+            "arr": 610000,
+            "stage": "Customer"
+          },
+          {
+            "id": "ACC-1005",
+            "name": "Stark Systems",
+            "owner": "susan.potter@atko.email",
+            "industry": "Energy",
+            "arr": 1250000,
+            "stage": "Customer"
+          },
+          {
+            "id": "ACC-1006",
+            "name": "Wayne Enterprises",
+            "owner": "alex.martinez@atko.email",
+            "industry": "Aerospace",
+            "arr": 875000,
+            "stage": "Negotiation"
+          },
+          {
+            "id": "ACC-1007",
+            "name": "Soylent Foods",
+            "owner": "susan.potter@atko.email",
+            "industry": "Consumer",
+            "arr": 140000,
+            "stage": "Prospect"
+          },
+          {
+            "id": "ACC-1008",
+            "name": "Hooli Cloud",
+            "owner": "alex.martinez@atko.email",
+            "industry": "Cloud",
+            "arr": 330000,
+            "stage": "Customer"
+          }
+        ]
+      }
+    },
+    "b": {
+      "persona": "frank",
+      "denial": {
+        "status": 403,
+        "verbatim": "access_denied: User is not assigned to the client application."
+      },
+      "http": {
+        "method": "GET",
+        "url": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId/v1/authorize",
+        "status": 403,
+        "correlationId": "b288e7df7b7fa344a2d70c77511bef8c"
+      },
+      "flow": [
+        {
+          "hop": "agent",
+          "status": "ok",
+          "note": "persona session"
+        },
+        {
+          "hop": "adapter",
+          "status": "denied",
+          "note": "Okta refused to issue a token at /authorize"
+        },
+        {
+          "hop": "xaa",
+          "status": "skipped",
+          "note": "no token to exchange"
+        },
+        {
+          "hop": "app",
+          "status": "skipped",
+          "note": "never reached"
+        }
+      ],
+      "systemLog": {
+        "eventType": "app.oauth2.as.authorize",
+        "deepLink": "https://demo-o4aa-techcamp-1-admin.okta.com/report/system_log_2?q=b288e7df7b7fa344a2d70c77511bef8c",
+        "embedded": null
+      }
+    }
+  },
+  "cheat": {
+    "attempts": [
+      {
+        "name": "Okta says no (unassigned user)",
+        "description": "Frank requests a CRM token he is not entitled to - fails at the IdP before any token exists.",
+        "request": {
+          "method": "GET",
+          "url": "https://demo-o4aa-techcamp-1.okta.com/oauth2/aus1crmAS0exampleId/v1/authorize",
+          "persona": "frank.boone@atko.email"
+        },
+        "rejection": {
+          "status": 403,
+          "verbatim": "access_denied: User is not assigned to the client application."
+        }
+      },
+      {
+        "name": "Wrong audience",
+        "description": "Alex's real, valid, unmodified CRM token presented to the Desk app. A real key cut for the wrong door.",
+        "request": {
+          "method": "GET",
+          "url": "https://vantage-desk.dev.oktademo.app/api/tickets",
+          "authorization": "Bearer <Alex CRM token, aud=api://vantage-crm>"
+        },
+        "rejection": {
+          "status": 401,
+          "verbatim": "{\"detail\":\"token verification failed: Audience doesn't match\"}"
+        }
+      },
+      {
+        "name": "Expired token",
+        "description": "A previously valid token replayed after its exp. 200 at exp-2s, 401 at exp+13s - the resource re-checks on every call.",
+        "request": {
+          "method": "GET",
+          "url": "https://vantage-crm.dev.oktademo.app/api/accounts",
+          "authorization": "Bearer <expired CRM token>"
+        },
+        "rejection": {
+          "status": 401,
+          "verbatim": "{\"detail\":\"token verification failed: Signature has expired\"}"
+        }
+      },
+      {
+        "name": "Tampered signature",
+        "description": "Last character of the JWT signature flipped. Rejected before any claim is even read.",
+        "request": {
+          "method": "GET",
+          "url": "https://vantage-crm.dev.oktademo.app/api/accounts",
+          "authorization": "Bearer <CRM token with mangled signature>"
+        },
+        "rejection": {
+          "status": 401,
+          "verbatim": "{\"detail\":\"token verification failed: Signature verification failed\"}"
+        }
+      },
+      {
+        "name": "No token",
+        "description": "No Authorization header at all.",
+        "request": {
+          "method": "GET",
+          "url": "https://vantage-crm.dev.oktademo.app/api/accounts"
+        },
+        "rejection": {
+          "status": 401,
+          "verbatim": "{\"detail\":\"missing Authorization header\"}"
+        }
+      }
+    ]
+  },
+  "error": {
+    "error": {
+      "code": "UPSTREAM_TIMEOUT",
+      "message": "Okta /authorize did not respond within 15s. Check the lab bridge and try again."
+    }
+  }
+};
+
+</script>
+  <script>
+/* Lab Toolkit GUI - single-page app. CSP-safe: no inline handlers, no external assets.
+ * Consumes the API-CONTRACT.md shapes. Runs live (backend at /api/*) or from fixtures. */
+'use strict';
+
+// ---------------------------------------------------------------- helpers
+function el(tag, props, kids) {
+  const n = document.createElement(tag);
+  if (props) for (const k in props) {
+    if (k === 'class') n.className = props[k];
+    else if (k === 'text') n.textContent = props[k];
+    else if (k === 'html') n.innerHTML = props[k];
+    else if (k === 'style') n.style.cssText = props[k]; // CSSOM: exempt from CSP style-src
+    else if (k.slice(0, 2) === 'on' && typeof props[k] === 'function') n.addEventListener(k.slice(2), props[k]);
+    else if (props[k] != null) n.setAttribute(k, props[k]);
+  }
+  if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+    if (c == null) return;
+    n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return n;
+}
+function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+function delay(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function fmtTime(t) { try { return new Date(t).toISOString().replace('T', ' ').replace('.000Z', 'Z').replace('Z', ' UTC'); } catch (e) { return t; } }
+function fmtExp(exp) { if (!exp) return '(none)'; return exp + '  (' + fmtTime(exp * 1000) + ')'; }
+function avatarColor(id) {
+  var map = { alex: '#4c9ffe', susan: '#a371f7', kim: '#3fb950', frank: '#f0883e', sally: '#f778ba' };
+  return map[id] || '#8ba1b7';
+}
+function initials(label) { return (label || '?').split(/\s+/).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase(); }
+
+// ---------------------------------------------------------------- API client
+var params = new URLSearchParams(location.search);
+var USE_FIXTURES = true; // preview build: always use the inlined fixture bundle
+var autoFellBack = false;
+
+var EMAIL = {
+  alex: 'alex.martinez@atko.email', susan: 'susan.potter@atko.email',
+  kim: 'kim.liu@atko.email', frank: 'frank.boone@atko.email', sally: 'sally.nguyen@atko.email'
+};
+var CRM_ALLOW = { alex: 1, susan: 1, sally: 1 };
+var DESK_ALLOW = { kim: 1 };
+
+function F(name) {
+  // Prefer the embedded offline bundle; fall back to fetching the json file (http only).
+  if (window.__FIXTURES__ && window.__FIXTURES__[name]) return Promise.resolve(clone(window.__FIXTURES__[name]));
+  return fetch('fixtures/' + name + '.json').then(function (r) { return r.json(); });
+}
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+function mockResolve(endpoint, body) {
+  body = body || {};
+  switch (endpoint) {
+    case 'config': return F('config');
+    case 'check-env': return F('check-env');
+    case 'access-log': return F('access-log');
+    case 'cheat': return F('cheat');
+    case 'side-by-side': return F('side-by-side');
+    case 'read': return mockRead(body.persona, body.target);
+    case 'list-tools': return mockListTools(body.persona);
+    case 'invoke': return mockInvoke(body.persona, body.tool, body.args);
+    default: return Promise.reject(new Error('no mock for ' + endpoint));
+  }
+}
+function mockRead(persona, target) {
+  var key = 'read.' + target + '.' + persona;
+  if (window.__FIXTURES__ && window.__FIXTURES__[key]) return F(key);
+  var allow = target === 'crm' ? CRM_ALLOW[persona] : DESK_ALLOW[persona];
+  var tmpl = allow ? (target === 'crm' ? 'read.crm.susan' : 'read.desk.kim')
+                   : (target === 'crm' ? 'read.crm.frank' : 'read.desk.alex');
+  return F(tmpl).then(function (o) { return repersona(o, persona, target === 'crm' ? 'vantage-crm' : 'vantage-desk'); });
+}
+function mockListTools(persona) {
+  var key = 'list-tools.' + persona;
+  if (window.__FIXTURES__ && window.__FIXTURES__[key]) return F(key);
+  return F('list-tools.frank').then(function (o) { o.persona = persona; if (o.token) o.token.decoded.sub = EMAIL[persona] || persona; return o; });
+}
+function mockInvoke(persona, tool, args) {
+  var key = 'invoke.' + persona;
+  if (window.__FIXTURES__ && window.__FIXTURES__[key]) {
+    return F(key).then(function (o) { patchInvokeReq(o, tool, args); return o; });
+  }
+  var allow = CRM_ALLOW[persona] || DESK_ALLOW[persona];
+  var tmpl = allow ? (DESK_ALLOW[persona] ? 'invoke.kim' : 'invoke.susan') : 'invoke.frank';
+  return F(tmpl).then(function (o) {
+    o.persona = persona; if (o.token) o.token.decoded.sub = EMAIL[persona] || persona;
+    patchInvokeReq(o, tool, args); return o;
+  });
+}
+function patchInvokeReq(o, tool, args) {
+  if (!o.request) o.request = {};
+  if (tool) o.request.tool = tool;
+  if (args != null) o.request.args = args;
+}
+function repersona(o, persona, aud) {
+  o.persona = persona;
+  if (o.token && o.token.decoded) o.token.decoded.sub = EMAIL[persona] || persona;
+  return o;
+}
+
+var api = {
+  request: function (endpoint, opts) {
+    opts = opts || {};
+    if (USE_FIXTURES) {
+      return delay(420 + Math.random() * 380).then(function () { return mockResolve(endpoint, opts.body); });
+    }
+    var map = {
+      'config': ['GET', '/api/config'], 'check-env': ['POST', '/api/check-env'],
+      'read': ['POST', '/api/read'], 'list-tools': ['POST', '/api/list-tools'],
+      'invoke': ['POST', '/api/invoke'], 'access-log': ['GET', '/api/access-log'],
+      'side-by-side': ['POST', '/api/side-by-side'], 'cheat': ['POST', '/api/cheat']
+    };
+    var m = map[endpoint]; var init = { method: m[0], headers: { 'Accept': 'application/json' } };
+    if (m[0] === 'POST') { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(opts.body || {}); }
+    return fetch(m[1], init).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok || (j && j.error)) {
+          var e = new Error((j && j.error && j.error.message) || ('HTTP ' + r.status));
+          e.contractError = (j && j.error) || { code: 'HTTP_' + r.status, message: 'Request failed' };
+          throw e;
+        }
+        return j;
+      });
+    });
+  }
+};
+
+// ---------------------------------------------------------------- state
+var state = { config: null, persona: null, busy: false };
+
+var TILES = [
+  { id: 'check-env', ico: '\u{1FA7A}', title: 'Check environment', desc: 'Reach CRM, Desk & the MCP adapter', needsPersona: false },
+  { id: 'read-crm', ico: '\u{1F4C7}', title: 'Read CRM accounts', desc: 'GET /api/accounts as this persona', needsPersona: true, target: 'crm' },
+  { id: 'read-desk', ico: '\u{1F3AB}', title: 'Read Desk tickets', desc: 'GET /api/tickets as this persona', needsPersona: true, target: 'desk' },
+  { id: 'list-tools', ico: '\u{1F9F0}', title: "List the agent's tools", desc: 'Full catalog vs what Okta authorizes', needsPersona: true },
+  { id: 'invoke', ico: '⚙️', title: 'Invoke a tool', desc: 'Call an MCP tool; watch the XAA exchange', needsPersona: true },
+  { id: 'access-log', ico: '\u{1F4DC}', title: 'Access log', desc: 'Recent events in your tenant', needsPersona: false },
+  { id: 'side-by-side', ico: '⚖️', title: 'Side-by-side allow vs deny', desc: 'Same call, two personas', needsPersona: false, proof: true },
+  { id: 'cheat', ico: '\u{1F6E1}️', title: "Prove it can't be faked", desc: 'Forged / wrong-audience tokens rejected live', needsPersona: false, proof: true }
+];
+
+// ---------------------------------------------------------------- boot
+function boot() {
+  renderModeBadge();
+  api.request('config').then(onConfig).catch(function () {
+    if (!USE_FIXTURES) { // backend down -> fall back to fixtures automatically
+      USE_FIXTURES = true; autoFellBack = true; renderModeBadge();
+      return mockResolve('config', {}).then(onConfig);
+    }
+    document.getElementById('personaRow').textContent = 'Failed to load config.';
+  });
+}
+function onConfig(cfg) {
+  state.config = cfg;
+  state.persona = cfg.personas && cfg.personas[0] ? cfg.personas[0].id : null;
+  document.getElementById('orgLabel').textContent = cfg.org || '';
+  document.getElementById('verLabel').textContent = 'v' + (cfg.appVersion || '?');
+  renderPersonas();
+  renderTiles();
+}
+function renderModeBadge() {
+  var b = document.getElementById('modeBadge');
+  clear(b);
+  if (USE_FIXTURES) {
+    b.className = 'badge mock';
+    b.appendChild(el('span', { class: 'dot' }));
+    b.appendChild(document.createTextNode(autoFellBack ? 'Fixture mode (backend offline)' : 'Fixture mode'));
+    b.title = 'Rendering from local fixtures. Click to try the live backend.';
+    b.onclick = function () { setMock(false); };
+  } else {
+    b.className = 'badge live';
+    b.appendChild(el('span', { class: 'dot' }));
+    b.appendChild(document.createTextNode('Live backend'));
+    b.title = 'Talking to the local backend. Click to switch to fixture mode.';
+    b.onclick = function () { setMock(true); };
+  }
+}
+function setMock(on) { params.set('mock', on ? '1' : '0'); location.search = params.toString(); }
+
+// ---------------------------------------------------------------- persona switcher
+function renderPersonas() {
+  var row = document.getElementById('personaRow');
+  clear(row);
+  state.config.personas.forEach(function (p) {
+    var node = el('div', {
+      class: 'persona' + (p.id === state.persona ? ' active' : ''),
+      role: 'button', tabindex: '0',
+      onclick: function () { state.persona = p.id; renderPersonas(); }
+    }, [
+      el('div', { class: 'avatar', style: 'background:' + avatarColor(p.id), text: initials(p.label) }),
+      el('div', { class: 'who' }, [el('b', { text: p.label }), el('span', { text: p.role })])
+    ]);
+    node.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); node.click(); } });
+    row.appendChild(node);
+  });
+}
+function personaLabel(id) {
+  var p = (state.config.personas || []).filter(function (x) { return x.id === id; })[0];
+  return p ? p.label : id;
+}
+
+// ---------------------------------------------------------------- action tiles
+function renderTiles() {
+  var wrap = document.getElementById('tiles');
+  clear(wrap);
+  TILES.forEach(function (t) {
+    var tile = el('button', {
+      class: 'tile' + (t.proof ? ' proof' : ''), type: 'button', 'data-id': t.id,
+      onclick: function () { if (!state.busy) runAction(t); }
+    }, [
+      el('div', { class: 'ico', text: t.ico }),
+      el('h3', { text: t.title }),
+      el('p', { text: t.desc })
+    ]);
+    wrap.appendChild(tile);
+  });
+}
+function setTileBusy(id, busy) {
+  state.busy = busy;
+  Array.prototype.forEach.call(document.querySelectorAll('.tile'), function (tl) {
+    tl.disabled = busy && tl.getAttribute('data-id') !== id;
+    var sp = tl.querySelector('.spinner');
+    if (tl.getAttribute('data-id') === id && busy && !sp) tl.appendChild(el('span', { class: 'spinner' }));
+    if (!(busy) && sp) sp.remove();
+    if (tl.getAttribute('data-id') === id && !busy && sp) sp.remove();
+  });
+}
+
+// ---------------------------------------------------------------- action dispatch
+function runAction(t) {
+  var res = document.getElementById('result');
+  if (t.id === 'invoke') return renderInvokeForm(t);
+
+  showSkeleton(t.title);
+  setTileBusy(t.id, true);
+
+  var call;
+  if (t.id === 'check-env') call = api.request('check-env', { body: {} });
+  else if (t.id === 'read-crm' || t.id === 'read-desk') call = api.request('read', { body: { persona: state.persona, target: t.target } });
+  else if (t.id === 'list-tools') call = api.request('list-tools', { body: { persona: state.persona } });
+  else if (t.id === 'access-log') call = api.request('access-log');
+  else if (t.id === 'side-by-side') call = api.request('side-by-side', { body: { personaA: 'susan', personaB: 'frank', action: 'read', params: { target: 'crm' } } });
+  else if (t.id === 'cheat') call = api.request('cheat', { body: {} });
+
+  call.then(function (data) {
+    setTileBusy(t.id, false);
+    if (t.id === 'check-env') renderCheckEnv(data);
+    else if (t.id === 'read-crm' || t.id === 'read-desk') renderPersonaResult(t, data);
+    else if (t.id === 'list-tools') renderListTools(data);
+    else if (t.id === 'access-log') renderAccessLog(data);
+    else if (t.id === 'side-by-side') renderSideBySide(data);
+    else if (t.id === 'cheat') renderCheat(data);
+  }).catch(function (err) {
+    setTileBusy(t.id, false);
+    renderError(t.title, err);
+  });
+}
+
+// ---------------------------------------------------------------- shared building blocks
+function resultHead(title, ctx, verdict) {
+  var pill = verdict === 'allow' ? el('span', { class: 'pill allow', text: 'ALLOWED' })
+    : verdict === 'deny' ? el('span', { class: 'pill deny', text: 'DENIED' }) : null;
+  return el('div', { class: 'result-head' }, [
+    el('h2', { text: title }),
+    ctx ? el('span', { class: 'ctx', text: ctx }) : null,
+    pill
+  ]);
+}
+function showSkeleton(title) {
+  var res = document.getElementById('result'); clear(res);
+  res.appendChild(resultHead(title, 'running…'));
+  res.appendChild(el('div', { class: 'card skeleton' }, [
+    el('div', { class: 'bar w40' }), el('div', { class: 'bar w80' }), el('div', { class: 'bar w60' })
+  ]));
+}
+
+function tokenCard(token, title) {
+  var d = token.decoded || {};
+  var claims = el('dl', { class: 'claims' }, [
+    el('dt', { text: 'sub' }), el('dd', { text: d.sub || '' }),
+    el('dt', { text: 'aud' }), el('dd', { text: [].concat(d.aud || []).join(' ') }),
+    el('dt', { text: 'iss' }), el('dd', { text: d.iss || '' }),
+    el('dt', { text: 'exp' }), el('dd', { text: fmtExp(d.exp) })
+  ]);
+  var scopes = el('div', { class: 'chips' }, (d.scopes || []).map(function (s) { return el('span', { class: 'chip', text: s }); }));
+  var groups = el('div', { class: 'chips' }, (d.groups || []).map(function (g) { return el('span', { class: 'chip grp', text: g }); }));
+  var copy = el('button', { class: 'copybtn', type: 'button', text: 'copy raw', onclick: function () {
+    if (navigator.clipboard) navigator.clipboard.writeText(token.raw || '');
+    this.textContent = 'copied';
+  } });
+  return el('div', { class: 'card token' }, [
+    el('div', { class: 'card-title' }, [copy, document.createTextNode(title || 'Token Okta issued (decoded JWT)')]),
+    claims,
+    el('div', { style: 'margin-top:11px' }, [el('div', { class: 'section-title', style: 'margin:0 0 5px', text: 'scopes' }), scopes]),
+    el('div', { style: 'margin-top:9px' }, [el('div', { class: 'section-title', style: 'margin:0 0 5px', text: 'groups' }), groups]),
+    el('div', { class: 'raw-tok', text: token.raw || '' })
+  ]);
+}
+function denialCard(denial, title) {
+  return el('div', { class: 'card denial' }, [
+    el('div', { class: 'card-title', text: title || "Okta denial (verbatim response)" }),
+    el('span', { class: 'status', text: 'HTTP ' + denial.status }),
+    el('div', { class: 'verbatim', text: denial.verbatim }),
+    el('p', { class: 'note', text: "Okta's exact words — not a toolkit-computed label. This is the IdP (or the resource server) refusing." })
+  ]);
+}
+function httpTraceCard(http) {
+  if (!http) return null;
+  var stClass = http.status >= 200 && http.status < 300 ? 'ok' : 'bad';
+  return el('div', { class: 'card' }, [
+    el('div', { class: 'card-title', text: 'HTTP receipt' }),
+    el('div', { class: 'trace' }, [
+      el('div', { class: 'line' }, [el('span', { class: 'k', text: 'req' }), el('span', { class: 'v' }, [el('span', { class: 'method', text: http.method + ' ' }), document.createTextNode(http.url)])]),
+      el('div', { class: 'line' }, [el('span', { class: 'k', text: 'status' }), el('span', { class: 'v st ' + stClass, text: String(http.status) })]),
+      el('div', { class: 'line' }, [el('span', { class: 'k', text: 'x-okta-request-id' }), el('span', { class: 'v cid', text: http.correlationId || '(none)' })])
+    ])
+  ]);
+}
+
+// ----- live call-flow diagram -----
+var HOPS = [
+  { id: 'agent', name: 'Agent', ic: '\u{1F916}' },
+  { id: 'adapter', name: 'Adapter', ic: '\u{1F500}' },
+  { id: 'xaa', name: 'ID-JAG / XAA', ic: '\u{1F39F}️' },
+  { id: 'app', name: 'App', ic: '\u{1F5C4}️' }
+];
+function flowCard(flowArr) {
+  var byId = {};
+  (flowArr || []).forEach(function (h) { byId[h.hop] = h; });
+  var container = el('div', { class: 'flow' });
+  var hopNodes = [], arrowNodes = [];
+  HOPS.forEach(function (h, i) {
+    if (i > 0) { var a = el('div', { class: 'arrow', text: '→' }); arrowNodes.push(a); container.appendChild(a); }
+    var info = byId[h.id] || { status: 'skipped' };
+    var node = el('div', { class: 'hop', 'data-status': info.status }, [
+      el('div', { class: 'ic', text: h.ic }),
+      el('div', { class: 'name', text: h.name }),
+      el('div', { class: 'st', text: info.status }),
+      el('div', { class: 'note', text: info.note || '' })
+    ]);
+    hopNodes.push({ node: node, info: info });
+    container.appendChild(node);
+  });
+  var card = el('div', { class: 'card' }, [el('div', { class: 'card-title', text: 'Live call-flow — where enforcement happens' }), container]);
+  // animate lighting after paint
+  requestAnimationFrame(function () { animateFlow(hopNodes, arrowNodes); });
+  return card;
+}
+function animateFlow(hopNodes, arrowNodes) {
+  var step = 0;
+  (function next() {
+    if (step >= hopNodes.length) return;
+    var h = hopNodes[step];
+    if (step > 0) {
+      var prevStatus = hopNodes[step - 1].info.status;
+      var arr = arrowNodes[step - 1];
+      arr.classList.add('lit', prevStatus === 'denied' ? 'denied' : 'ok');
+    }
+    h.node.classList.add('lit', h.info.status);
+    step++;
+    // stop advancing visually past a denial (downstream hops stay dim/skipped)
+    setTimeout(next, 430);
+  })();
+}
+
+// ----- system log panel -----
+function systemLogCard(sl) {
+  if (!sl) return null;
+  var kids = [
+    el('div', { class: 'card-title', text: 'Okta System Log — the independent audit record' }),
+    el('div', { class: 'evt' }, [el('span', { text: 'eventType: ' }), el('b', { text: sl.eventType || '(pending)' })])
+  ];
+  if (sl.embedded) {
+    kids.push(el('pre', { class: 'json', style: 'margin-top:10px', text: JSON.stringify(sl.embedded, null, 2) }));
+  } else {
+    kids.push(el('a', { class: 'deeplink', href: sl.deepLink, target: '_blank', rel: 'noopener' }, ['\u{1F517} View in Okta System Log']));
+    kids.push(el('p', { class: 'hint', text: "Opens the exact correlated event in the admin console. “Don’t take our word — that’s Okta’s own record.”" }));
+    kids.push(el('div', { class: 'embed-slot', text: 'Inline embed slots here once the admin-ui app is granted okta.logs.read (v1 uses the deep link).' }));
+  }
+  return el('div', { class: 'card syslog' }, kids);
+}
+
+// ---------------------------------------------------------------- renderers per action
+function renderPersonaResult(t, data) {
+  var res = document.getElementById('result'); clear(res);
+  var verdict = data.denial ? 'deny' : 'allow';
+  var name = personaLabel(data.persona);
+  res.appendChild(resultHead(t.title, name + ' → ' + (t.target === 'crm' ? 'VantageCRM' : 'VantageDesk'), verdict));
+  res.appendChild(flowCard(data.flow));
+  var cols = el('div', { class: 'grid-2' });
+  cols.appendChild(data.denial ? denialCard(data.denial) : tokenCard(data.token, 'Token Okta issued to ' + name));
+  cols.appendChild(el('div', {}, [httpTraceCard(data.http), systemLogCard(data.systemLog)].filter(Boolean)));
+  res.appendChild(cols);
+  if (data.result && data.result.rows) res.appendChild(rowsCard(data.result.rows, (t.target === 'crm' ? 'accounts' : 'tickets')));
+}
+
+function rowsCard(rows, label) {
+  var card = el('div', { class: 'card' });
+  card.appendChild(el('div', { class: 'card-title', text: (rows.length + ' ' + label + ' returned') }));
+  if (!rows.length) { card.appendChild(el('p', { class: 'subtle', text: 'No rows.' })); return card; }
+  var cols = Object.keys(rows[0]);
+  var thead = el('tr', {}, cols.map(function (c) { return el('th', { text: c }); }));
+  var body = rows.map(function (r) {
+    return el('tr', {}, cols.map(function (c) {
+      return el('td', { class: (typeof r[c] === 'number' || /id|owner|assignee|requester/.test(c)) ? 'mono' : '', text: String(r[c]) });
+    }));
+  });
+  card.appendChild(el('div', { class: 'table-wrap' }, [el('table', {}, [el('thead', {}, thead), el('tbody', {}, body)])]));
+  return card;
+}
+
+function renderListTools(data) {
+  var res = document.getElementById('result'); clear(res);
+  var name = personaLabel(data.persona);
+  var verdict = (data.authorized && data.authorized.length) ? 'allow' : 'deny';
+  res.appendChild(resultHead("The agent's tools", name, verdict));
+  res.appendChild(flowCard(data.flow));
+  var cols = el('div', { class: 'grid-2' });
+  cols.appendChild(data.denial ? denialCard(data.denial) : tokenCard(data.token, 'Adapter token Okta issued to ' + name));
+  cols.appendChild(systemLogCard(data.systemLog));
+  res.appendChild(cols);
+
+  var auth = {}; (data.authorized || []).forEach(function (x) { auth[x] = 1; });
+  var summary = el('p', { class: 'tools-summary', html:
+    'Every user <b>sees</b> the full catalog of <b>' + (data.catalog || []).length + '</b> tools. ' +
+    'With ' + name + "'s entitlements, Okta authorizes <b>" + (data.authorized || []).length + '</b> of them. ' +
+    'BLOCKED = the agent has the tool, but Okta will not mint ' + name + ' a token for that resource, so it is denied at use-time.' });
+  var list = el('div', { class: 'tool-list' }, (data.catalog || []).map(function (tn) {
+    var usable = !!auth[tn];
+    return el('div', { class: 'tool ' + (usable ? 'usable' : 'blocked') }, [
+      el('span', { class: 'tag', text: usable ? 'USABLE' : 'BLOCKED' }),
+      el('span', { class: 'tname', text: tn })
+    ]);
+  }));
+  res.appendChild(el('div', { class: 'card' }, [el('div', { class: 'card-title', text: 'Tool catalog vs. authorization' }), summary, list]));
+}
+
+function renderInvokeForm(t) {
+  var res = document.getElementById('result'); clear(res);
+  var name = personaLabel(state.persona);
+  res.appendChild(resultHead('Invoke a tool', name));
+  var toolInput = el('input', { class: 'input', value: 'vantage_crm__lookup_account' });
+  var argsInput = el('textarea', { class: 'textarea', text: '{\n  "name": "Acme Corporation"\n}' });
+  var run = el('button', { class: 'btn', type: 'button', text: 'Run tool' });
+  var errLine = el('p', { class: 'subtle', style: 'color:var(--deny)' });
+  run.addEventListener('click', function () {
+    var args;
+    try { args = JSON.parse(argsInput.value || '{}'); }
+    catch (e) { errLine.textContent = 'Arguments must be valid JSON: ' + e.message; return; }
+    errLine.textContent = '';
+    showSkeleton('Invoke a tool');
+    setTileBusy('invoke', true);
+    api.request('invoke', { body: { persona: state.persona, tool: toolInput.value.trim(), args: args } })
+      .then(function (data) { setTileBusy('invoke', false); renderInvokeResult(data); })
+      .catch(function (err) { setTileBusy('invoke', false); renderError('Invoke a tool', err); });
+  });
+  res.appendChild(el('div', { class: 'card' }, [
+    el('div', { class: 'card-title', text: 'Choose a tool to invoke as ' + name }),
+    el('div', { class: 'form-row' }, [el('label', { text: 'tool' }), toolInput]),
+    el('div', { class: 'form-row' }, [el('label', { text: 'arguments (JSON)' }), argsInput]),
+    errLine, run
+  ]));
+}
+function renderInvokeResult(data) {
+  var res = document.getElementById('result'); clear(res);
+  var name = personaLabel(data.persona);
+  var verdict = data.denial ? 'deny' : 'allow';
+  var toolName = data.request && data.request.tool ? data.request.tool : '';
+  res.appendChild(resultHead('Invoke: ' + toolName, name, verdict));
+  res.appendChild(flowCard(data.flow));
+  var cols = el('div', { class: 'grid-2' });
+  cols.appendChild(data.denial ? denialCard(data.denial, 'XAA exchange refused (verbatim)') : tokenCard(data.token, 'Scoped token Okta issued to ' + name));
+  cols.appendChild(systemLogCard(data.systemLog));
+  res.appendChild(cols);
+  res.appendChild(el('div', { class: 'card' }, [
+    el('div', { class: 'card-title', text: 'MCP request' }),
+    el('pre', { class: 'json', text: JSON.stringify(data.request || {}, null, 2) })
+  ]));
+  if (data.response) res.appendChild(el('div', { class: 'card' }, [
+    el('div', { class: 'card-title', text: 'MCP response' }),
+    el('pre', { class: 'json', text: JSON.stringify(data.response, null, 2) })
+  ]));
+  res.appendChild(el('button', { class: 'btn ghost', type: 'button', text: '← Invoke another', onclick: function () { renderInvokeForm({ id: 'invoke' }); } }));
+}
+
+function renderCheckEnv(data) {
+  var res = document.getElementById('result'); clear(res);
+  var allOk = (data.checks || []).every(function (c) { return c.ok; });
+  res.appendChild(resultHead('Environment check', null, allOk ? 'allow' : 'deny'));
+  res.appendChild(el('div', { class: 'card' }, [
+    el('div', { class: 'card-title', text: 'Reachability' }),
+    el('div', { class: 'checks' }, (data.checks || []).map(function (c) {
+      return el('div', { class: 'check ' + (c.ok ? 'ok' : 'bad') }, [
+        el('span', { class: 'st-dot' }), el('span', { class: 'cname', text: c.name }), el('span', { class: 'cdetail', text: c.detail })
+      ]);
+    }))
+  ]));
+  var env = data.environment || {};
+  res.appendChild(el('div', { class: 'card' }, [
+    el('div', { class: 'card-title', text: 'Environment' }),
+    el('div', { class: 'env-grid' }, Object.keys(env).reduce(function (acc, k) {
+      acc.push(el('span', { class: 'ek', text: k })); acc.push(el('span', { class: 'ev', text: String(env[k]) })); return acc;
+    }, []))
+  ]));
+}
+
+function renderAccessLog(data) {
+  var res = document.getElementById('result'); clear(res);
+  res.appendChild(resultHead('Access log', 'your tenant'));
+  var card = el('div', { class: 'card' });
+  card.appendChild(el('div', { class: 'card-title', text: (data.events || []).length + ' recent events' }));
+  var thead = el('tr', {}, ['time', 'actor', 'eventType', 'outcome', 'target', ''].map(function (c) { return el('th', { text: c }); }));
+  var body = (data.events || []).map(function (e) {
+    var oc = el('span', { class: 'st ' + (e.outcome === 'SUCCESS' ? 'ok' : 'bad'), text: e.outcome });
+    return el('tr', {}, [
+      el('td', { class: 'mono', text: fmtTime(e.time) }),
+      el('td', { class: 'mono', text: e.actor }),
+      el('td', { class: 'mono', text: e.eventType }),
+      el('td', {}, [oc]),
+      el('td', { text: e.target }),
+      el('td', {}, [el('a', { href: e.deepLink, target: '_blank', rel: 'noopener', text: 'log ↗' })])
+    ]);
+  });
+  card.appendChild(el('div', { class: 'table-wrap' }, [el('table', {}, [el('thead', {}, thead), el('tbody', {}, body)])]));
+  res.appendChild(card);
+}
+
+function renderSideBySide(data) {
+  var res = document.getElementById('result'); clear(res);
+  res.appendChild(resultHead('Side-by-side: allow vs deny', 'same call, two personas'));
+  var grid = el('div', { class: 'grid-2' });
+  grid.appendChild(sbsColumn(data.a));
+  grid.appendChild(sbsColumn(data.b));
+  res.appendChild(grid);
+}
+function sbsColumn(r) {
+  var name = personaLabel(r.persona);
+  var deny = !!r.denial;
+  var col = el('div', { class: 'card sbs-col stack' });
+  col.appendChild(el('h3', {}, [
+    el('span', { class: 'pill ' + (deny ? 'deny' : 'allow'), text: deny ? 'DENIED' : 'ALLOWED' }),
+    document.createTextNode(' ' + name)
+  ]));
+  col.appendChild(flowCard(r.flow));
+  col.appendChild(deny ? denialCard(r.denial) : tokenCard(r.token, 'Token Okta issued to ' + name));
+  col.appendChild(httpTraceCard(r.http));
+  col.appendChild(systemLogCard(r.systemLog));
+  if (r.result && r.result.rows) col.appendChild(el('p', { class: 'subtle', text: r.result.rows.length + ' records returned.' }));
+  return col;
+}
+
+function renderCheat(data) {
+  var res = document.getElementById('result'); clear(res);
+  res.appendChild(resultHead("Prove it can't be faked", 'every rejection is live server-side', 'deny'));
+  res.appendChild(el('p', { class: 'subtle', style: 'margin:0 0 14px', text:
+    'Forged, expired, tampered, and wrong-audience tokens are all rejected by Okta or the resource server — not by this tool. Enforcement is server-side.' }));
+  (data.attempts || []).forEach(function (a, i) {
+    res.appendChild(el('div', { class: 'attempt' }, [
+      el('div', { class: 'ahead' }, [el('span', { class: 'num', text: String(i + 1) }), el('b', { text: a.name })]),
+      el('div', { class: 'adesc', text: a.description }),
+      el('div', { class: 'abody' }, [
+        el('div', {}, [el('div', { class: 'lbl', text: 'attempt (request)' }), el('pre', { class: 'json', text: JSON.stringify(a.request, null, 2) })]),
+        el('div', {}, [el('div', { class: 'lbl', text: 'live rejection' }),
+          el('div', { class: 'denial', style: 'padding:11px 13px' }, [
+            el('span', { class: 'status', text: 'HTTP ' + a.rejection.status }),
+            el('div', { class: 'verbatim', text: a.rejection.verbatim })
+          ])
+        ])
+      ])
+    ]));
+  });
+}
+
+function renderError(title, err) {
+  var res = document.getElementById('result'); clear(res);
+  var ce = err && err.contractError ? err.contractError : { code: 'CLIENT_ERROR', message: (err && err.message) || 'Unexpected error' };
+  res.appendChild(resultHead(title, 'error', 'deny'));
+  res.appendChild(el('div', { class: 'error-box' }, [
+    el('div', { class: 'code', text: ce.code }),
+    el('div', { class: 'msg', text: ce.message }),
+    el('button', { class: 'btn ghost', type: 'button', style: 'margin-top:12px', text: 'Dismiss', onclick: function () {
+      var r = document.getElementById('result'); clear(r);
+      r.appendChild(el('div', { class: 'empty' }, [el('div', { class: 'big', text: '\u{1F512}' }), 'Pick a persona, then run an action.']));
+    } })
+  ]));
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+
+</script>
+</body>
+</html>
