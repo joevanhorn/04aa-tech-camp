@@ -158,9 +158,11 @@ submitted previously and is unrelated to this batch.)
 ---
 
 ## Known follow-ups / open items
-- Three `VERIFY-AT-GA` HTML comments in the guides mark spots needing confirmation against
-  the current console/Bridge builds (AI Agents settings location, Bridge resource scope-list
-  location, exact AI_AGENT System Log event names).
+- ~~Three `VERIFY-AT-GA` comments~~ **All resolved 7/26-27 (owner spot-checked):** the
+  "AI Agents Settings" control does not exist (mention removed); the Bridge Admin UI does
+  not display resource scope lists (guide now points at the agent's Resource connections
+  tab in the Okta console); §4.7 lists the real `workload_principal.*` System Log event
+  names verified against a live org — note owner assignment emits no AI_AGENT event.
 - §5.7's screenshot comment marker wording ("Authentication failed for resource") vs the
   captured GUI ("Policy evaluation failed") — marker left as-is, prose matches the image;
   recapture at will.
