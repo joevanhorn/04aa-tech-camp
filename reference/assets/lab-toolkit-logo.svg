@@ -1,0 +1,62 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="28%" r="90%">
+      <stop offset="0%" stop-color="#28325C"/>
+      <stop offset="55%" stop-color="#182042"/>
+      <stop offset="100%" stop-color="#0C1024"/>
+    </radialGradient>
+    <linearGradient id="steelLid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9AA7CC"/>
+      <stop offset="100%" stop-color="#606E9A"/>
+    </linearGradient>
+    <linearGradient id="steelBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6C7BA6"/>
+      <stop offset="100%" stop-color="#394669"/>
+    </linearGradient>
+    <linearGradient id="steelHandle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818FB8"/>
+      <stop offset="100%" stop-color="#4E5C84"/>
+    </linearGradient>
+    <!-- pink T (left) -> purple weld -> blue V (right), one gradient across the whole mark -->
+    <linearGradient id="tvFlow" gradientUnits="userSpaceOnUse" x1="150" y1="0" x2="372" y2="0">
+      <stop offset="0%" stop-color="#FF6AAB"/>
+      <stop offset="36%" stop-color="#FF3E86"/>
+      <stop offset="50%" stop-color="#B24AD6"/>
+      <stop offset="64%" stop-color="#4C7BFF"/>
+      <stop offset="100%" stop-color="#79ADFF"/>
+    </linearGradient>
+    <filter id="drop" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#070A16" flood-opacity="0.5"/>
+    </filter>
+    <filter id="tvGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#B24AD6" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- tile -->
+  <rect x="0" y="0" width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect x="0" y="0" width="512" height="250" rx="116" fill="#ffffff" opacity="0.05"/>
+
+  <!-- toolbox: wide, rectangular tool-case -->
+  <g filter="url(#drop)">
+    <path d="M186 206 V178 Q186 136 256 136 Q326 136 326 178 V206" fill="none" stroke="url(#steelHandle)" stroke-width="30" stroke-linecap="round"/>
+    <path d="M186 206 V178 Q186 136 256 136 Q326 136 326 178 V206" fill="none" stroke="#BAC5E2" stroke-width="6" stroke-linecap="round" opacity="0.35"/>
+    <rect x="84" y="196" width="344" height="66" rx="16" fill="url(#steelLid)"/>
+    <rect x="104" y="206" width="304" height="9" rx="4.5" fill="#C6D0EA" opacity="0.55"/>
+    <rect x="100" y="256" width="312" height="176" rx="18" fill="url(#steelBody)"/>
+    <rect x="100" y="256" width="312" height="12" rx="6" fill="#212949" opacity="0.55"/>
+    <rect x="150" y="248" width="44" height="26" rx="6" fill="#E6B152"/>
+    <rect x="318" y="248" width="44" height="26" rx="6" fill="#E6B152"/>
+    <rect x="150" y="248" width="44" height="8" rx="4" fill="#FFD98A" opacity="0.7"/>
+    <rect x="318" y="248" width="44" height="8" rx="4" fill="#FFD98A" opacity="0.7"/>
+  </g>
+
+  <!-- TV: the T's crossbar flows right into the V (one continuous top stroke); stem drops from its center -->
+  <g filter="url(#drop)">
+    <g filter="url(#tvGlow)">
+      <path d="M140 308 L252 308 L312 392 L372 308" fill="none" stroke="url(#tvFlow)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="175" y="294" width="42" height="120" rx="15" fill="url(#tvFlow)"/>
+    </g>
+    <rect x="150" y="292" width="92" height="7" rx="3.5" fill="#ffffff" opacity="0.28"/>
+  </g>
+</svg>
