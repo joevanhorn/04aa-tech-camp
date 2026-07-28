@@ -36,6 +36,14 @@ ADAPTER_SERVICE    = "okta-agent-mcp-adapter"
 ADMIN_UI_SERVICE   = "admin-ui"
 COMPOSE_TIMEOUT = 240  # seconds
 
+# Log viewer: the Bridge Admin "Events" pane reads LOG_VIEWER_PROVIDER from the bundle .env.
+# Default it ON ("docker") so proctors get adapter logs without hand-editing the bridge host
+# (an unset value shows "No log provider configured (LOG_VIEWER_PROVIDER='none')"). Override per
+# deployment via BRIDGE_LOG_VIEWER_PROVIDER (e.g. "cloudwatch" on AWS-hosted bridges).
+# NOTE: the "docker" provider needs /var/run/docker.sock mounted into the admin-ui service in
+# docker-compose.bundle.yml — the bridge bundle/image must mount it, or the pane errors on read.
+LOG_VIEWER_PROVIDER = os.environ.get("BRIDGE_LOG_VIEWER_PROVIDER", "docker")
+
 DOMAIN_RE = re.compile(r"^[a-z0-9][a-z0-9-]*\.okta(preview)?\.com$")
 CID_RE    = re.compile(r"^0oa[a-zA-Z0-9]+$")
 
@@ -62,13 +70,16 @@ def bundle_dir():
 
 
 def set_env(bundle, domain, cid):
-    """Idempotently set the 4 org-identity keys in the bundle .env, preserving everything else."""
+    """Idempotently set the org-identity keys + the log-viewer provider in the bundle .env,
+    preserving everything else."""
     env_path = os.path.join(bundle, ".env")
     keys = {
         "OKTA_DOMAIN": domain,
         "OKTA_ISSUER": f"https://{domain}",
         "ADMIN_UI_OKTA_ISSUER": f"https://{domain}",
         "ADMIN_UI_OKTA_CLIENT_ID": cid,
+        # Enable the Bridge Admin "Events" log pane by default (see LOG_VIEWER_PROVIDER above).
+        "LOG_VIEWER_PROVIDER": LOG_VIEWER_PROVIDER,
     }
     seen, out = set(), []
     with open(env_path) as f:

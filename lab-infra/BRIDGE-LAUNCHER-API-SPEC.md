@@ -58,7 +58,12 @@ A tiny, single-purpose HTTP service on the bridge. **Dependency-free** (Python s
    OKTA_ISSUER=https://<domain>
    ADMIN_UI_OKTA_ISSUER=https://<domain>
    ADMIN_UI_OKTA_CLIENT_ID=<client_id>
+   LOG_VIEWER_PROVIDER=docker          # default-on so the Bridge Admin "Events" pane works
    ```
+   `LOG_VIEWER_PROVIDER` defaults to `docker`; override per deployment with the launcher's
+   `BRIDGE_LOG_VIEWER_PROVIDER` env (e.g. `cloudwatch` on AWS-hosted bridges). **Prereq:** the
+   `docker` provider reads container logs via `/var/run/docker.sock`, so `docker-compose.bundle.yml`
+   must mount that socket into the `admin-ui` service — otherwise the pane errors on read.
 4. `docker compose -f docker-compose.bundle.yml up -d` (first launch creates all services; on
    re-config it recreates the services whose resolved env changed — force `--force-recreate
    okta-agent-mcp-adapter admin-ui` to guarantee the new org is applied).
