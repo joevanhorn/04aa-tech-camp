@@ -235,10 +235,22 @@ def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
     # 1. Import the agent (idempotent — import is a no-op/refresh if already present).
     print(f"[1/5] importing agent {okta_agent_id} …")
     code, body = _req("POST", f"{adapter}/api/admin/okta/agents/{okta_agent_id}/import", token, {})
-    if code not in (200, 400) or (isinstance(body, dict) and body.get("error") == "insufficient_scopes"):
+    if code != 200:
         print(f"      import response ({code}): {body}")
         if isinstance(body, dict) and body.get("error") == "insufficient_scopes":
             raise SystemExit("admin token lacks Okta AI-Agent scopes/role — see runbook 'Admin API access'")
+        if code == 401:
+            raise SystemExit("adapter rejected the admin token (401) — expired token, wrong org "
+                             "binding, or the client id is missing from ADMIN_API_SERVICE_CLIENT_IDS")
+        raise SystemExit(f"import failed ({code}) — see response above")
+    if isinstance(body, dict) and body.get("selection_required"):
+        cands = body.get("candidates") or []
+        raise SystemExit(
+            "import needs a delegation-app selection (agent has 2+ linked OIDC apps). Candidates: "
+            f"{[c.get('app_instance_id') or c.get('client_id') for c in cands]}. "
+            'Finish it in the adapter UI, or POST the import with {"selected_delegation_app_id": "<0oa...>"}.')
+    if isinstance(body, dict) and body.get("success") is False:
+        raise SystemExit(f"import reported failure: {body.get('message')} {body.get('warnings')}")
     slug = _agent_slug(adapter, token, okta_agent_id)
     if not slug:
         raise SystemExit("agent not found in adapter after import — check the okta-agent-id")
@@ -256,62 +268,62 @@ def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
     _req("POST", f"{adapter}/api/admin/okta/agents/{okta_agent_id}/sync", token, {})
     _req("POST", f"{adapter}/api/admin/connections/sync", token, {})
 
-    # 4. Ensure the resource exists, points at the path-scoped MCP URL, and is enabled.
-    print(f"[4/5] ensuring resource '{resource_name}' → {mcp_url} …")
-    existing = _find_resource(adapter, token, auth_server_id, audience, agent_slug=slug)
-    issuer = f"https://{org_domain}/oauth2/{auth_server_id}" if org_domain else None
-    orn_metadata = {
-        "resource_indicator": audience,
-        "authorization_server_orn": f"authorization_servers:{auth_server_id}",
-    }
-    if issuer:
-        orn_metadata["issuer_url"] = issuer
-    if existing is None:
-        # Newer adapter auto-materializes the resource on sync; give it a moment + re-sync,
-        # then look again. Only fall back to POST-create on older adapters that need it.
-        print("      resource not found yet — re-syncing for auto-materialize")
-        _req("POST", f"{adapter}/api/admin/connections/sync", token, {})
-        time.sleep(2)
-        existing = _find_resource(adapter, token, auth_server_id, audience, agent_slug=slug)
-    if existing is None:
-        print("      still none — POST-creating (older adapter path)")
+    # 4. Ensure the master resource exists and the agent's connection is linked to it.
+    # 0.16 contract: resources are master records ({name, url, enabled} — no auth_method,
+    # which is connection-level and derived from the Okta connection type). The syncer
+    # discovers connections but never creates masters; the link is an explicit PUT.
+    print(f"[4/5] ensuring resource '{resource_name}' → {mcp_url} and linking the connection …")
+    code, r = _req("GET", f"{adapter}/api/admin/resources/{resource_name}", token)
+    if code == 200:
+        cur_url = r.get("url")
+        if cur_url != mcp_url or not r.get("enabled", False):
+            print(f"      updating existing resource '{resource_name}' (url/enabled)")
+            code, body = _req("PUT", f"{adapter}/api/admin/resources/{resource_name}", token,
+                              {"url": mcp_url, "enabled": True})
+            if code not in (200, 204):
+                raise SystemExit(f"update resource failed ({code}): {body}")
+    else:
         code, body = _req("POST", f"{adapter}/api/admin/resources", token, {
-            "name": resource_name, "resource_id": auth_server_id, "url": mcp_url, "mcp_url": mcp_url,
-            "protocol": "mcp", "auth_method": "okta-cross-app", "enabled": True,
-            "config": {"metadata": orn_metadata, "resource_indicator": audience},
+            "name": resource_name, "url": mcp_url, "enabled": True,
+            "description": f"{audience} via {auth_server_id}",
         })
         if code not in (200, 201):
             raise SystemExit(f"create resource failed ({code}): {body}")
-        name = body.get("name", resource_name)
-    else:
-        name = existing.get("name", resource_name)
-        cur_url = existing.get("url") or existing.get("mcp_url")
-        if cur_url != mcp_url or not existing.get("enabled", False):
-            print(f"      updating existing resource '{name}' (url/enabled)")
-            # send both field names so it works across adapter versions
-            code, body = _req("PUT", f"{adapter}/api/admin/resources/{name}", token,
-                              {"url": mcp_url, "mcp_url": mcp_url, "enabled": True})
-            if code not in (200, 204):
-                raise SystemExit(f"update resource failed ({code}): {body}")
-        else:
-            print(f"      resource '{name}' already correct")
 
-    # 5. Verify: enabled, right URL, INCLUDE_ONLY granular scopes (not the mcp:read fallback).
-    print("[5/5] verifying …")
-    code, r = _req("GET", f"{adapter}/api/admin/resources/{name}", token)
+    # Find this agent's synced connection for the target auth server.
+    code, body = _req("GET", f"{adapter}/api/admin/agents/{slug}/connections", token)
     if code != 200:
-        raise SystemExit(f"verify GET failed ({code}): {r}")
-    got_url = r.get("url") or r.get("mcp_url")
-    ok = (r.get("enabled") and got_url == mcp_url
-          and r.get("scope_condition") == "INCLUDE_ONLY" and r.get("scopes"))
-    print(f"      enabled={r.get('enabled')} url={got_url} "
-          f"scope_condition={r.get('scope_condition')} scopes={r.get('scopes')}")
+        raise SystemExit(f"list agent connections failed ({code}): {body}")
+    conns = body.get("connections", []) if isinstance(body, dict) else body
+    conn = next((c for c in conns
+                 if c.get("connection_resource_id") == auth_server_id
+                 or c.get("resource_id") == auth_server_id
+                 or c.get("resource_indicator") == audience), None)
+    if conn is None:
+        raise SystemExit(f"no synced connection for {auth_server_id}/{audience} on agent '{slug}' — "
+                         "check the Okta managed connection and re-run (this script re-syncs)")
+    cid = conn["connection_id"]
+    code, body = _req("PUT", f"{adapter}/api/admin/agents/{slug}/connections/{cid}/resource",
+                      token, {"resource_name": resource_name})
+    if code not in (200, 204):
+        raise SystemExit(f"link connection {cid} → '{resource_name}' failed ({code}): {body}")
+    linked = body.get("agent_connection", {}) if isinstance(body, dict) else {}
+
+    # 5. Verify: link established, auth derived as okta-cross-app, INCLUDE_ONLY granular scopes
+    # (not the mcp:read fallback). Scopes/auth live on the connection, not the master resource.
+    print("[5/5] verifying …")
+    ok = (linked.get("resource_id") is not None
+          and linked.get("auth_method") == "okta-cross-app"
+          and linked.get("scope_condition") == "INCLUDE_ONLY" and linked.get("scopes"))
+    print(f"      auth_method={linked.get('auth_method')} "
+          f"scope_condition={linked.get('scope_condition')} scopes={linked.get('scopes')}")
     if not ok:
-        print("ERROR: resource is not fully wired. If scope_condition is ALLOW_ALL / scopes are "
+        print("ERROR: connection is not fully wired. If scope_condition is ALLOW_ALL / scopes are "
               "empty (→ adapter requests `mcp:read`), confirm the Okta managed connection is "
               "INCLUDE_ONLY with granular scopes, then re-run this script (it re-syncs).")
         return 1
-    print(f"OK: '{name}' wired → {mcp_url} (audience {audience}, {len(r['scopes'])} scopes).")
+    print(f"OK: '{resource_name}' wired → {mcp_url} (audience {audience}, "
+          f"{len(linked['scopes'])} scopes, connection {cid}).")
     return 0
 
 
