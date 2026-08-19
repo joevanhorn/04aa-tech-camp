@@ -111,3 +111,13 @@ Conclusion: this is a genuine Okta server-side validation — a `private_key_jwt
 3. Then edit the app's redirect URIs
 
 Open product question worth raising with the O4AA team: an auto-created `private_key_jwt` app ships with no key yet blocks all General-tab edits until one exists — arguably the "add redirect URI" edit shouldn't be gated on key presence.
+
+---
+
+## Clarification: owner & activation are pre-existing concepts, newly API-addressable
+
+Correcting an earlier imprecision: the **owner** and **activation** concepts are NOT new — the old lab already had "Add owner" (Module 2.4) and "Activate" (Module 2.7) as GUI steps, and they appear in the existing screenshots. What the migrated model adds is functioning **API** surfaces for them:
+- **Owner**: previously GUI-only; now `PUT /governance/api/v1/resource-owners` (event `resource.owner.update`).
+- **Activation**: previously the API `POST .../ai-agents/{id}/lifecycle/activate` no-op'd silently (per our own earlier reference notes — activate was effectively GUI-only); on the migrated model it works (returns 202, agent → ACTIVE, event `workload_principal.activate`). Confirmed live 2026-08-19.
+
+So the lab's owner/activate steps don't change conceptually, but they can now be scripted where they previously required the console.
