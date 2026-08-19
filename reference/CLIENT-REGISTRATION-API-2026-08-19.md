@@ -41,3 +41,22 @@ Confirmed on the throwaway agent: a `PUT /api/v1/apps/{appId}` (e.g. adding a re
 - This **Client registration** section is the new "getting a badge" surface. The old Module flow (Credentials tab → Add public key → activate) is replaced by: pick a method card → generate secret / add key → Activate. Module text + screenshots for that module change.
 - New left-nav items to account for: **User access** ("who can access this agent" — likely the assignment surface relevant to finding #1) and **Machine access** ("what can call this agent" — A2A, not covered by the lab today).
 - The lab should standardize on **Public/private key** (`private_key_jwt`), matching the bridge-held-key model already validated.
+
+---
+
+## Addendum: "User access" pane mapped (2026-08-19)
+
+"User access — Who can access this agent" is **not** a new workload-principals resource. Every agent-scoped candidate endpoint (`.../ai-agents/{id}/{users,access,user-access,assignments,grants,principals}`) returns the generic 405 fallback, and the public spec has no such path. It is backed by the **standard app assignment API on the agent's sign-on app**:
+- `GET/PUT/DELETE /api/v1/apps/{appInstanceId}/users/{userId}`
+- `GET/PUT/DELETE /api/v1/apps/{appInstanceId}/groups/{groupId}`
+
+Correlation confirms it:
+- Example agent (GUI showed a **warning** on User access): app has **0 users, 0 groups** assigned.
+- TaskVantage Sales Agent (Everyone group assigned during validation): app shows the **Everyone** group.
+
+So the ⚠ on User access simply means the agent's sign-on app has no assignments, and the pane is where you assign users or groups to it.
+
+### This is the replacement for finding #1's dead "allow everyone" checkbox
+The old manual Create-App-Integration wizard had "Allow everyone in your organization to access." That checkbox is gone with auto-created apps. On the migrated model, the equivalent is the **User access pane** → add the Everyone group (or specific persona users). Confirmed mechanism: assigning there writes to `PUT /api/v1/apps/{appInstanceId}/groups/{everyoneGroupId}`. Without it, persona sign-in through the agent fails `access_denied: User is not assigned to the client application`.
+
+Lab decision (per Joe) stands: make this a **manual step** in the v2 module — after registering the agent, open **User access** and assign the group. Capture the exact button/label wording during the module rewrite.
