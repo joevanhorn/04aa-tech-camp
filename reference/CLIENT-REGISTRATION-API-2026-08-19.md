@@ -94,3 +94,20 @@ Three ways to reach the agent's sign-on app for editing (e.g. adding the gateway
 3. Agent detail → Client registration / User access pane → **Application > General** deep-link
 
 The app can be edited while Inactive (no need to activate first), subject to the `jwks` key-material rule in finding #2.
+
+---
+
+## Finding #2 RESOLVED: the key-material constraint is real (GUI + API both blocked)
+
+Tested 2026-08-19 on a purpose-built keyless agent (`CallbackTest`, `private_key_jwt`, no registered JWK):
+- **API**: `PUT /api/v1/apps/{appId}` adding a redirect URI → `Api validation failed: jwks`.
+- **GUI**: Application > General → add Sign-in redirect URI → Save → red banner "We found some errors. Please review the form and make corrections." Save rejected. System Log shows the failed `application.lifecycle.update` attempts.
+
+Conclusion: this is a genuine Okta server-side validation — a `private_key_jwt` OIDC client must have key material before its app can be saved — **not** an API-payload artifact. Both clients (console and API) are blocked identically.
+
+**Firm lab/automation rule:** register (or activate) the agent's key **before** editing its sign-on app (e.g. adding the gateway `/oauth/callback` redirect URI). Correct order:
+1. Register agent (`signOnProvider: NEW_OIDC_APP`)
+2. Give it a key — bridge import/generate-keypair (`POST .../credentials/jwks`), or activate Public/private key in the GUI
+3. Then edit the app's redirect URIs
+
+Open product question worth raising with the O4AA team: an auto-created `private_key_jwt` app ships with no key yet blocks all General-tab edits until one exists — arguably the "add redirect URI" edit shouldn't be gated on key presence.
