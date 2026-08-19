@@ -81,3 +81,16 @@ Notes for the module rewrite:
 - **User access pane has no inline editor** — the Edit button is disabled; it deep-links to Application > General and Application > Assignments. The assignment happens on the classic app Assignments tab.
 - **Owners is a Governance resource-owner**, not an app or workload-principal field — worth knowing if provisioning ever needs to set it headlessly (`PUT /governance/api/v1/resource-owners`).
 - **Key ownership caution:** activating Public/private key in the GUI *creates an agent JWK* (`credentials/jwks`). The bridge also generates + registers its own key on import. Both would coexist (jwks is a set); the bridge signs with its own key, so it still works, but it's messy. Lab guidance: let the **bridge** own the key (don't generate/activate a key in the GUI), or if the module walks through Client registration for teaching, note that the bridge's key is the one actually used.
+
+---
+
+## Correction: the auto-created app IS in the admin Applications list (under Inactive)
+
+Earlier I said the auto-created app is "hidden from the Applications list." That is imprecise. Verified 2026-08-19 in the console: the app **appears in Applications**, but the list defaults to the **Active** status filter and the agent's app is **Inactive** until the agent is activated — so you must switch the filter to **Inactive** (or search by name) to see it. `visibility.hide: {web:true, iOS:true}` hides it from **end-user dashboards/catalog**, not from the admin console.
+
+Three ways to reach the agent's sign-on app for editing (e.g. adding the gateway redirect URI):
+1. Applications → **Inactive** status filter → click the agent's app
+2. Search by agent name (returns it regardless of status)
+3. Agent detail → Client registration / User access pane → **Application > General** deep-link
+
+The app can be edited while Inactive (no need to activate first), subject to the `jwks` key-material rule in finding #2.
