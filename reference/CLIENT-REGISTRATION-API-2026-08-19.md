@@ -121,3 +121,22 @@ Correcting an earlier imprecision: the **owner** and **activation** concepts are
 - **Activation**: previously the API `POST .../ai-agents/{id}/lifecycle/activate` no-op'd silently (per our own earlier reference notes — activate was effectively GUI-only); on the migrated model it works (returns 202, agent → ACTIVE, event `workload_principal.activate`). Confirmed live 2026-08-19.
 
 So the lab's owner/activate steps don't change conceptually, but they can now be scripted where they previously required the console.
+
+---
+
+## Machine access pane mapped (A2A) — 2026-08-19
+
+"Machine access — what can call this agent" is the **agent-to-agent (A2A)** surface. Adding an AI agent as a machine caller (verified live on the example agent, adding TaskVantage Sales Agent) fired four calls:
+
+| Step | Event | API call |
+|---|---|---|
+| Register the target agent as an A2A resource server | `resource_servers.a2a_server.register` | `POST /resource-servers/api/v1/a2a-servers` (returns `a2aServerId` = the agent's wlp id, `resourceUrl`) |
+| Link that A2A server to an authorization server | `resource_servers.a2a_server.auth_server.add` | `POST /resource-servers/api/v1/a2a-servers/{id}/authorization-servers` (associated with vantage-crm-as) |
+| Create the delegation link | `workload_principal.delegation_link.create` | `POST /workload-principals/api/v1/delegation-links` |
+| Create the A2A connection on the agent | `workload_principal.resource_connection.create` | `POST /workload-principals/api/v1/ai-agents/{id}/connections` — `connectionType: IDENTITY_ASSERTION_A2A_SERVER`, `resource` = target agent's A2A server, INCLUDE_ONLY scopes |
+
+Observed objects: A2A server `orn:...:resource-servers:a2a:{agentId}` (resourceUrl e.g. `https://test.com`); the connection sits on the *configuring* agent and references the *target* agent's A2A server, scoped through a custom AS. `GET /resource-servers/api/v1/a2a-servers` lists them; each links back to its ai-agent.
+
+**Direction note (unresolved):** the pane label is "what can call this agent," but the connection was created on the configuring agent pointing at the target's A2A server (configuring → target). Confirm intended direction with the person who set it up before writing module copy.
+
+**Lab scope:** the current lab does not cover A2A / Machine access at all. This is net-new surface — a candidate for a V2 module addition, not a change to existing content.
