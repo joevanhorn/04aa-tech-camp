@@ -370,6 +370,11 @@ ADMIN_UI_REDIRECTS = ["http://localhost:3001/callback",
                       # needs its callback registered or the OIDC redirect is rejected.
                       "http://bridge.taskvantage.lab:3001/callback"]
 ADMIN_UI_API_SCOPES = ["okta.aiAgents.manage", "okta.aiAgents.read", "okta.apps.read",
+                       # okta.apps.manage lets the no-browser wire helper (setup-crm-resource.ps1)
+                       # PUT the agent's auto-created sign-on app to add the bridge's OAuth callback
+                       # (<gateway>/oauth/callback). Without it the brokered admin token can read the
+                       # app but not edit it, and Module 4's automated redirect-URI step 403s.
+                       "okta.apps.manage",
                        "okta.authorizationServers.read", "okta.logs.read"]
 
 

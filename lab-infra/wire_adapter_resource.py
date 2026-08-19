@@ -219,6 +219,49 @@ def ensure_managed_connection(okta_domain: str, token: str, scheme: str, okta_ag
           f"(INCLUDE_ONLY, {len(scopes)} scopes)")
 
 
+def ensure_gateway_redirect_uri(okta_domain: str, token: str, scheme: str,
+                                okta_agent_id: str, gateway_url: str) -> None:
+    """Idempotently add the bridge's OAuth callback to the agent's sign-on app.
+
+    On the migrated model the agent's sign-on app is auto-created with only a
+    localhost redirect URI; the bridge's brokered OAuth needs its own callback,
+    `<gateway>/oauth/callback`, registered as a Sign-in redirect URI or Okta 400s
+    the relayed /authorize. This is best-effort: Okta blocks editing a
+    private_key_jwt app until the agent has a registered signing key (Module 3.3),
+    so a failure here just prints a hint rather than aborting the wire.
+    """
+    base = f"https://{okta_domain.replace('https://', '').rstrip('/')}"
+    callback = f"{gateway_url.rstrip('/')}/oauth/callback"
+    code, agent = _okta_req("GET", f"{base}/workload-principals/api/v1/ai-agents/{okta_agent_id}",
+                            token, scheme)
+    if code != 200 or not isinstance(agent, dict):
+        print(f"      WARN could not read agent for redirect-URI step ({code}); skipping")
+        return
+    app_id = ((agent.get("signOnProvider") or {}).get("appInstanceId"))
+    if not app_id:
+        print("      agent has no sign-on app (not a migrated agent?); skipping redirect-URI step")
+        return
+    code, app = _okta_req("GET", f"{base}/api/v1/apps/{app_id}", token, scheme)
+    if code != 200 or not isinstance(app, dict):
+        print(f"      WARN could not read sign-on app {app_id} ({code}); skipping redirect-URI step")
+        return
+    uris = app.get("settings", {}).get("oauthClient", {}).get("redirect_uris") or []
+    if callback in uris:
+        print(f"      bridge callback already on the sign-on app ({callback})")
+        return
+    uris.append(callback)
+    code, updated = _okta_req("PUT", f"{base}/api/v1/apps/{app_id}", token, scheme, app)
+    if code == 200:
+        print(f"      added bridge callback to the sign-on app ({callback})")
+    else:
+        cause = updated if isinstance(updated, str) else json.dumps(updated)
+        if "jwks" in cause.lower():
+            print("      WARN could not add the bridge callback: the sign-on app has no signing key "
+                  "yet. Register the agent's key first (Module 3.3), then re-run this step.")
+        else:
+            print(f"      WARN could not add the bridge callback ({code}): {cause[:160]}")
+
+
 def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
          resource_name: str, audience: str, mcp_url: str, org_domain: str,
          scopes: list[str], okta_token: str | None = None, okta_scheme: str = "SSWS") -> int:
@@ -231,6 +274,8 @@ def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
         print(f"[0] ensuring Okta managed connection for {audience} …")
         ensure_managed_connection(org_domain, okta_token, okta_scheme, okta_agent_id,
                                   auth_server_id, audience, scopes)
+        print("[0b] ensuring the bridge callback is on the agent's sign-on app …")
+        ensure_gateway_redirect_uri(org_domain, okta_token, okta_scheme, okta_agent_id, adapter)
 
     # 1. Import the agent (idempotent — import is a no-op/refresh if already present).
     print(f"[1/5] importing agent {okta_agent_id} …")
