@@ -146,3 +146,18 @@ Observed objects: A2A server `orn:...:resource-servers:a2a:{agentId}` (resourceU
 - **App as caller** (e.g. the Lab Toolkit OIDC app): 1 call — `POST /workload-principals/api/v1/delegation-links` only. No A2A server, no agent connection (the app already has an OAuth identity; only the trust grant is needed).
 - The **delegation link** is the common "allowed caller" primitive across both.
 - Note: `GET /workload-principals/api/v1/delegation-links` returned empty despite `delegation_link.create` events firing — list/read of these links needs a filter/shape not yet pinned; direction (inbound vs outbound) to be confirmed from the GUI.
+
+### Machine access — direction RESOLVED (it's the NHI counterpart to User access)
+
+GUI wording (TaskVantage Sales Agent → Machine access pane): **"What can call this agent. Callers access TaskVantage Sales Agent as a resource with their own access token. No user identity is required to access this AI agent."**
+
+So the model is:
+- **User access** = which *human* users can act *through* the agent (app assignments).
+- **Machine access** = which *machine identities* (NHIs — other AI agents, apps, services) can *call this agent as a resource*, with their own token and **no user identity**. This is the inbound A2A / agent-as-resource surface.
+
+On agent **Y**'s Machine access, **Add caller** makes Y a callable A2A resource and grants a caller X:
+- Y is registered as an **A2A resource server** (`resourceUrl`, e.g. `https://test.com`) bound to an authorization server (here vantage-crm-as); the caller table shows an **ON BEHALF OF** type per row.
+- **X = AI Agent** → X gets an `IDENTITY_ASSERTION_A2A_SERVER` connection (on X) pointing at Y's A2A server, plus a delegation link. (This is why, when TSA added "VantageCRM Example Agent" as a caller, the connection landed on the *example* agent — the caller — not on TSA.)
+- **X = App/service** (e.g. O4AA Lab Toolkit, "Application (native)") → just a delegation link; no A2A connection, since the app already has its own OAuth identity.
+
+Correction to the earlier "direction unresolved" note above: the pane sits on the **resource/callee** agent; callers are added to it. There is no ambiguity — it is inbound (callers → this agent), machine-to-machine, no user.
