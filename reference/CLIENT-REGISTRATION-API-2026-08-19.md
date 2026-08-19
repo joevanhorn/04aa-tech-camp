@@ -60,3 +60,24 @@ So the ⚠ on User access simply means the agent's sign-on app has no assignment
 The old manual Create-App-Integration wizard had "Allow everyone in your organization to access." That checkbox is gone with auto-created apps. On the migrated model, the equivalent is the **User access pane** → add the Everyone group (or specific persona users). Confirmed mechanism: assigning there writes to `PUT /api/v1/apps/{appInstanceId}/groups/{everyoneGroupId}`. Without it, persona sign-in through the agent fails `access_denied: User is not assigned to the client application`.
 
 Lab decision (per Joe) stands: make this a **manual step** in the v2 module — after registering the agent, open **User access** and assign the group. Capture the exact button/label wording during the module rewrite.
+
+---
+
+## Addendum 2: full agent-detail GUI → API map (confirmed live via System Log, 2026-08-19)
+
+Each left-nav pane and its underlying call, mapped by driving the console and reading the Okta System Log:
+
+| GUI pane / action | System Log event | API call |
+|---|---|---|
+| **Owners** → add owner | `resource.owner.update` | `PUT /governance/api/v1/resource-owners` (Governance API, target ORN `...:ai-agents:{id}`) |
+| **Client registration** → Public/private key → Activate | `workload_principal.ai_agent.credential.create` | `POST /workload-principals/api/v1/ai-agents/{id}/credentials/jwks` (registers a JWK on the agent) |
+| **Client registration** → Client secret → Generate | (secret create) | `POST .../ai-agents/{id}/credentials/secrets` |
+| **Client registration** active-method switch | `application.lifecycle.update` | `PUT /api/v1/apps/{appId}` (token_endpoint_auth_method) |
+| Agent **Activate** (Actions) | `workload_principal.activate` + `application.lifecycle.activate` | agent lifecycle activate; the sign-on app flips ACTIVE with it |
+| **User access** → assign users/groups | `application.user_membership.add` (one per user) | via the linked **Application > Assignments** tab → `PUT /api/v1/apps/{appId}/{users,groups}/{id}`. Assigning the Everyone group materialized a membership.add per user. |
+| **Resource connections** | (managed-connection sync) | `POST .../ai-agents/{id}/connections` etc. (already covered by the lab) |
+
+Notes for the module rewrite:
+- **User access pane has no inline editor** — the Edit button is disabled; it deep-links to Application > General and Application > Assignments. The assignment happens on the classic app Assignments tab.
+- **Owners is a Governance resource-owner**, not an app or workload-principal field — worth knowing if provisioning ever needs to set it headlessly (`PUT /governance/api/v1/resource-owners`).
+- **Key ownership caution:** activating Public/private key in the GUI *creates an agent JWK* (`credentials/jwks`). The bridge also generates + registers its own key on import. Both would coexist (jwks is a set); the bridge signs with its own key, so it still works, but it's messy. Lab guidance: let the **bridge** own the key (don't generate/activate a key in the GUI), or if the module walks through Client registration for teaching, note that the bridge's key is the one actually used.
