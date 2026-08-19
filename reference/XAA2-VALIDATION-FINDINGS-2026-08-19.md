@@ -46,3 +46,14 @@ Nuance worth a sentence in the module (do not over-claim "instantly, every call 
 ## Bundle/compose fixes already upstream
 
 PR #4 on `joevanhorn/okta-agent-mcp-adapter` carries the DCR private_key_jwt gate fixes and the compose admin-env passthrough fix; both were required to bring this environment up.
+
+## 7. Toolkit + OpenCode capstone (Modules 2/3/7) validated
+
+**Toolkit DCR endpoint break (fixed).** The Lab Toolkit posted DCR to the pre-0.16 path `/.well-known/oauth/registration`, which on 0.16 falls through to the MCP proxy and 401s ("Authorization header required"). Every Toolkit action that brokers a persona token (list-tools, invoke, side-by-side) failed. Fix: read `registration_endpoint` from `/.well-known/oauth-authorization-server` (falls back to `/oauth/register`). Landed in three places, all on XAA2-Updates branches: `o4aa-lab-toolkit` backend/app/auth.py; `techcamp-o4aa-v2` PS `Lab-Toolkit.ps1` + `invoke-agent-write.ps1` (and the embedded copy in bootstrap.ps1).
+
+**Toolkit end-to-end (validated live on migrated xaa2, patched backend from source).** check-env green (CRM, Desk, Bridge all HTTP 200). Persona matrix is exactly the lab's teaching point:
+- alex / susan / kim: catalog 6, authorized 6, denied 0, flow agent>adapter>xaa>app all ok
+- frank: catalog 6, authorized 0, denied 6, flow app:denied
+Invoke succeeds for an entitled persona and is denied for Frank. Tokens show the real chain (sub=persona, act.sub=wlp agent, cid=wlp).
+
+**OpenCode capstone (Module 7).** OpenCode 1.18.4 installed, OpenAI via OPENAI_API_KEY env, MCP block points at the bridge with X-MCP-Agent=taskvantage-sales-agent. `opencode run "List the Northwind account from VantageCRM"` connects to the bridge (bridge log: `10.0.0.6 POST / 401`) and the agent reports "You're not authorized" — the bridge correctly rejects the unauthenticated MCP session. The one step that cannot be driven headlessly is OpenCode's interactive MCP OAuth (browser loopback) to establish the persona session; that is inherent to the capstone (the attendee logs in as a persona in the browser) and uses the same DCR->authorize->token flow already validated end-to-end via the Toolkit and the raw e2e harness. Automatable portion: PASS. Interactive persona-login step: not headlessly testable, deferred to a live human run.
