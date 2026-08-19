@@ -140,3 +140,9 @@ Observed objects: A2A server `orn:...:resource-servers:a2a:{agentId}` (resourceU
 **Direction note (unresolved):** the pane label is "what can call this agent," but the connection was created on the configuring agent pointing at the target's A2A server (configuring → target). Confirm intended direction with the person who set it up before writing module copy.
 
 **Lab scope:** the current lab does not cover A2A / Machine access at all. This is net-new surface — a candidate for a V2 module addition, not a change to existing content.
+
+### Machine access: caller type changes the artifacts
+- **AI agent as caller**: 4 calls — register target as A2A server (`POST /resource-servers/api/v1/a2a-servers`), link to AS, `POST /delegation-links`, and an `IDENTITY_ASSERTION_A2A_SERVER` connection on the configuring agent.
+- **App as caller** (e.g. the Lab Toolkit OIDC app): 1 call — `POST /workload-principals/api/v1/delegation-links` only. No A2A server, no agent connection (the app already has an OAuth identity; only the trust grant is needed).
+- The **delegation link** is the common "allowed caller" primitive across both.
+- Note: `GET /workload-principals/api/v1/delegation-links` returned empty despite `delegation_link.create` events firing — list/read of these links needs a filter/shape not yet pinned; direction (inbound vs outbound) to be confirmed from the GUI.
