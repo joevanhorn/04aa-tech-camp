@@ -37,6 +37,12 @@ On this env the CDN bootstrap wrote `url: https://adapter.taskvantage.lab:8000`,
 
 The 0.16 adapter refuses to start with a non-loopback `http://` GATEWAY_BASE_URL. The bundle's standalone profile has no TLS termination, so the Heropa bridge image must provide the TLS front (this was true of the old image; it was lost when the bundle was swapped). On this env: host nginx terminates TLS on 443 and on `<private-ip>:8000` (so the CDN bootstrap's `:8000` URL works verbatim), proxying to the adapter on loopback. The image build should bake this in (or the bundle's `edge-proxy` profile should be evaluated as the supported path).
 
+## 6. Kill switch (Module 5 / conclusion): works, with a cached-token nuance
+
+Verified on the migrated model 2026-08-19. Deactivating the agent (Actions > Deactivate, or `POST .../ai-agents/{id}/lifecycle/deactivate`) flips the agent's auto-created sign-on app to INACTIVE. A **new** user sign-in through the agent is then blocked at Okta's `/authorize` (HTTP 400, app inactive) before any token is brokered — this is exactly the "no user can broker a token through it" claim, and it holds. Reactivating flips the app back to ACTIVE and a fresh sign-in fully recovers (after the bridge re-syncs the agent's enabled state).
+
+Nuance worth a sentence in the module (do not over-claim "instantly, every call stops"): an **already-issued** resource token stays usable from the adapter's token cache until its TTL. In testing, replaying a gateway token minted just before deactivation still returned cached CRM data, because the resource token was already brokered and cached (default cache TTL 3600s). The kill switch stops *new* brokering immediately; in-flight cached tokens age out. For the lab this is fine (the demo deactivates, then starts a fresh session to show the block), but the text should say "no new token can be brokered" rather than implying instant revocation of live sessions. Bridge-side note: the bridge only learns of the deactivation on its next agent sync (the lab's Toolkit/last step triggers this; the periodic syncer also picks it up).
+
 ## Bundle/compose fixes already upstream
 
 PR #4 on `joevanhorn/okta-agent-mcp-adapter` carries the DCR private_key_jwt gate fixes and the compose admin-env passthrough fix; both were required to bring this environment up.
