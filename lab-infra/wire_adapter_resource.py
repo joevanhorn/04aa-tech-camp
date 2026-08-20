@@ -262,40 +262,6 @@ def ensure_gateway_redirect_uri(okta_domain: str, token: str, scheme: str,
             print(f"      WARN could not add the bridge callback ({code}): {cause[:160]}")
 
 
-def ensure_crm_policy_open(okta_domain: str, token: str, scheme: str, auth_server_id: str) -> None:
-    """Reassert the vantage-crm-as access policy to ALL_CLIENTS so the agent's own
-    client (client_id == the wlp workload-principal id on the signOnProvider model)
-    can do the XAA token exchange. The provisioner sets ALL_CLIENTS, but it collapses
-    to a specific client (e.g. just the lab-toolkit client) when clients are added or
-    removed, which then denies EVERY exchange ("access_denied: Policy evaluation
-    failed") at Module 5/6 — even for entitled users like Alex. Best-effort: a failure
-    here just warns rather than aborting the wire."""
-    base = f"https://{okta_domain.replace('https://', '').rstrip('/')}"
-    code, pols = _okta_req("GET", f"{base}/api/v1/authorizationServers/{auth_server_id}/policies", token, scheme)
-    if code != 200 or not isinstance(pols, list):
-        print(f"      WARN could not read {auth_server_id} policies ({code}); skipping policy reconcile")
-        return
-    pol = next((p for p in pols if p.get("name") == "VantageCRM access policy"), None) \
-        or next((p for p in pols if "AUTHORIZATION" in (p.get("type") or "")), None)
-    if not pol:
-        print("      no vantage-crm-as access policy found; skipping policy reconcile")
-        return
-    incl = (((pol.get("conditions") or {}).get("clients") or {}).get("include")) or []
-    if incl == ["ALL_CLIENTS"]:
-        print("      vantage-crm-as policy already open to ALL_CLIENTS")
-        return
-    code, full = _okta_req("GET", f"{base}/api/v1/authorizationServers/{auth_server_id}/policies/{pol['id']}", token, scheme)
-    if code != 200 or not isinstance(full, dict):
-        print(f"      WARN could not read policy {pol.get('id')} ({code}); skipping policy reconcile")
-        return
-    full.setdefault("conditions", {})["clients"] = {"include": ["ALL_CLIENTS"]}
-    code, r = _okta_req("PUT", f"{base}/api/v1/authorizationServers/{auth_server_id}/policies/{pol['id']}", token, scheme, full)
-    if code == 200:
-        print(f"      reconciled vantage-crm-as policy clients -> ALL_CLIENTS (was: {', '.join(incl) or 'empty'})")
-    else:
-        print(f"      WARN could not reconcile vantage-crm-as policy ({code}): {str(r)[:160]}")
-
-
 def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
          resource_name: str, audience: str, mcp_url: str, org_domain: str,
          scopes: list[str], okta_token: str | None = None, okta_scheme: str = "SSWS") -> int:
@@ -310,8 +276,6 @@ def wire(adapter: str, token: str, okta_agent_id: str, auth_server_id: str,
                                   auth_server_id, audience, scopes)
         print("[0b] ensuring the bridge callback is on the agent's sign-on app …")
         ensure_gateway_redirect_uri(org_domain, okta_token, okta_scheme, okta_agent_id, adapter)
-        print("[0c] ensuring vantage-crm-as accepts the agent's client (ALL_CLIENTS) …")
-        ensure_crm_policy_open(org_domain, okta_token, okta_scheme, auth_server_id)
 
     # 1. Import the agent (idempotent — import is a no-op/refresh if already present).
     print(f"[1/5] importing agent {okta_agent_id} …")
